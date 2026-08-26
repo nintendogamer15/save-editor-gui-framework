@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SaveEditor.Ui.Controls;assembly=SaveEditor.Ui"
+             x:Class="SaveEditor.Ui.Gallery.Views.EditingGalleryView"
+             FontFamily="{DynamicResource FontFamilyDefault}">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="Foreground" Value="{DynamicResource SubtleForeground}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,12">
+      <TextBlock Text="Editing surface"
+                 Foreground="{DynamicResource Foreground}"
+                 FontSize="22" FontWeight="Bold" />
+      <TextBlock Classes="caption"
+                 Text="FieldCard, FieldList, and SectionToolbar over a small demo document: text, numeric, boolean, choice, and read-only fields, a warning, a validation error, and a pending edit. Search, per-field Apply, and Apply All all work here; nothing on this page writes to a real save." />
+    </StackPanel>
+
+    <controls:SectionToolbar x:Name="Toolbar" DockPanel.Dock="Top" Margin="0,0,0,8" />
+
+    <controls:FieldList x:Name="Fields" />
+  </DockPanel>
+
+</UserControl>

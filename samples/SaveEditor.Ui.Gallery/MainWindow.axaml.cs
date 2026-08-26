@@ -55,6 +55,14 @@ public partial class MainWindow : Window
                 BodyMode = SectionBodyMode.Custom,
                 Body = new ControlGalleryView(),
             },
+            new SectionDescriptor
+            {
+                Key = "editing",
+                Title = "Editing surface",
+                Subtitle = "Field cards, virtualized list, section toolbar",
+                BodyMode = SectionBodyMode.Custom,
+                Body = new EditingGalleryView(),
+            },
         ]);
 
         var shell = this.FindControl<EditorShell>("Shell")!;
