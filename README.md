@@ -73,7 +73,7 @@ git clone https://github.com/nintendogamer15/save-editor-gui-framework
 cd save-editor-gui-framework
 dotnet pack src/SaveEditor.Ui       -c Release -o ./local-feed
 dotnet pack src/SaveEditor.Template -c Release -o ./local-feed
-dotnet new install ./local-feed/SaveEditor.Template.1.0.0-alpha.2.nupkg
+dotnet new install ./local-feed/SaveEditor.Template.1.0.0-alpha.3.nupkg
 dotnet new save-editor -n MyGameEditor -o ../MyGameEditor
 ```
 
@@ -103,7 +103,7 @@ appears to work and generates a project that cannot restore: the framework versi
 is a `__SaveEditorUiVersion__` token substituted during `pack`, so installing from
 source leaves it literal and restore fails with an `MSB4181` that names nothing
 useful. Install the packed `.nupkg`. And **the version in the install command
-tracks the package version**, currently `1.0.0-alpha.2` — if you have bumped it,
+tracks the package version**, currently `1.0.0-alpha.3` — if you have bumped it,
 the filename changes with it.
 
 If you are modifying the framework itself rather than building an editor on it,
@@ -388,7 +388,7 @@ The public surface is pinned in `eng/PublicApi.SaveEditor.Ui.txt`; any change to
 fails the build, so the "breaking changes require a major version" promise is enforced
 rather than merely stated.
 
-Packages are `1.0.0-alpha.2`. They stay prerelease until the two human gates above have
+Packages are `1.0.0-alpha.3`. They stay prerelease until the two human gates above have
 actually been run — shipping `1.0.0` while a named release gate has never been executed
 would claim more than the evidence supports.
 
