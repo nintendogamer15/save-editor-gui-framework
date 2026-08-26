@@ -6,6 +6,15 @@ on:
 # Launches the gallery under a real Wayland compositor and proves it starts,
 # renders, and survives. That is all this can prove.
 #
+# It runs through XWayland, not the Wayland protocol, because Avalonia 12.1.1
+# ships no Wayland backend — there is no Wayland assembly, no UseWayland, and
+# UsePlatformDetect resolves to X11 on Linux. The first run of this job proved it
+# by aborting with "XOpenDisplay failed" under a pure Wayland socket.
+#
+# That is not a workaround, it is the real deployment shape: on a GNOME or KDE
+# Wayland desktop this application is an X11 client under XWayland, so testing it
+# any other way would be testing something users never run.
+#
 # The interactive half — file and folder drop, menu placement, portal pickers,
 # resizing, theme repaint — needs a human at a session, and the checklist is in
 # docs/WAYLAND-CHECKLIST.md. Headless tests deliberately inject drop paths into
@@ -22,11 +31,12 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Install Weston and Wayland runtime
+      - name: Install Weston, XWayland, and the runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y weston libwayland-client0 libwayland-cursor0 \
-            libwayland-egl1 libxkbcommon0 libfontconfig1 libfreetype6 libgl1 libegl1
+          sudo apt-get install -y weston xwayland libwayland-client0 libwayland-cursor0 \
+            libwayland-egl1 libxkbcommon0 libfontconfig1 libfreetype6 libgl1 libegl1 \
+            libice6 libsm6 libx11-6 libxext6 libxrandr2 libxi6 libxcursor1
 
       - name: Build the gallery
         run: dotnet build samples/SaveEditor.Ui.Gallery -c Release
@@ -40,7 +50,7 @@ jobs:
           chmod 700 "$XDG_RUNTIME_DIR"
 
           weston --backend=headless-backend.so --width=1600 --height=1000 \
-            --socket=wayland-ci &
+            --socket=wayland-ci --xwayland > weston.log 2>&1 &
           WESTON_PID=$!
 
           # Wait for the socket rather than sleeping a guessed interval: a fixed
@@ -49,10 +59,22 @@ jobs:
             [ -S "$XDG_RUNTIME_DIR/wayland-ci" ] && break
             sleep 0.5
           done
-          test -S "$XDG_RUNTIME_DIR/wayland-ci" || { echo "Weston never created its socket"; exit 1; }
+          test -S "$XDG_RUNTIME_DIR/wayland-ci" || { echo "Weston never created its socket"; cat weston.log; exit 1; }
 
           export WAYLAND_DISPLAY=wayland-ci
-          unset DISPLAY   # or Avalonia silently takes the X11 backend and proves nothing
+
+          # Read the display XWayland actually chose rather than assuming :0. Guessing
+          # produces "XOpenDisplay failed", which looks identical to a genuine backend
+          # failure and would send the next person debugging the wrong thing.
+          for _ in $(seq 1 40); do
+            XDISPLAY=$(grep -oE 'xserver listening on display :[0-9]+' weston.log | grep -oE ':[0-9]+' | head -1)
+            [ -n "$XDISPLAY" ] && break
+            sleep 0.5
+          done
+          test -n "$XDISPLAY" || { echo "XWayland never reported a display:"; cat weston.log; exit 1; }
+
+          echo "XWayland is on $XDISPLAY"
+          export DISPLAY="$XDISPLAY"
 
           dotnet samples/SaveEditor.Ui.Gallery/bin/Release/net10.0/SaveEditor.Ui.Gallery.dll \
             > gallery.log 2>&1 &
@@ -65,7 +87,7 @@ jobs:
             sleep 1
           done
 
-          echo "Gallery survived 20s under Wayland."
+          echo "Gallery survived 20s as an XWayland client under Weston."
           kill "$APP_PID" 2>/dev/null || true
           kill "$WESTON_PID" 2>/dev/null || true
 
@@ -74,5 +96,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: wayland-gallery-log
-          path: gallery.log
+          path: |
+            gallery.log
+            weston.log
           if-no-files-found: warn

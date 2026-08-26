@@ -498,7 +498,9 @@ Behavioral and headless tests run on both Ubuntu and Windows. Screenshot baselin
 
 Build and run the generated template in a smoke test, exercise its sample fields and theme settings, and validate both NuGet packages install and restore from a local feed.
 
-Provide a manually invoked real-Wayland job that runs the gallery and checks file drop, folder drop, menus, dialogs, resizing, theme switching, and keyboard behavior.
+Provide a manually invoked Wayland-session job that runs the gallery and checks file drop, folder drop, menus, dialogs, resizing, theme switching, and keyboard behavior.
+
+**This is XWayland, not the Wayland protocol, and the distinction is load-bearing.** Avalonia 12.1.1 ships no Wayland backend — no Wayland assembly, no `UseWayland`, and `UsePlatformDetect` resolves to X11 on Linux. The first run of the job proved it by aborting with `XOpenDisplay failed` against a pure Wayland socket. That is not a gap to close but the real deployment shape: on a GNOME or KDE Wayland desktop this application is an X11 client under XWayland, so testing it any other way would test something users never run. It matters for diagnosis — fractional scaling, clipboard, and drag-and-drop all behave differently under XWayland than under a native client, and a tester who assumes otherwise will misattribute what they see.
 
 Accessibility is a release gate: keyboard operation, visible focus, logical tab order, accessible names and descriptions, the contrast ratios of §5, and Windows screen-reader smoke coverage.
 

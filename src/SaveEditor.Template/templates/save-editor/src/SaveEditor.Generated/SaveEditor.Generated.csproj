@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>SaveEditor.Generated</RootNamespace>
+    <AssemblyName>SaveEditor.Generated</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      SaveEditor.Ui is the framework this app is built on. The version below is
+      substituted at pack time to match the SaveEditor.Template package it
+      shipped inside — see SaveEditor.Template.csproj's StageTemplateContent
+      target. Bump it yourself if you later want to move to a newer framework
+      release than the one your template package installed.
+    -->
+    <PackageReference Include="SaveEditor.Ui" Version="__SaveEditorUiVersion__" />
+
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+  </ItemGroup>
+
+</Project>

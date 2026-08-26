@@ -1,0 +1,96 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      This project produces `dotnet new save-editor`. It ships no compiled
+      assembly of its own — only the template.json manifest and the templates/
+      content tree, staged and packed as package Content. Everything under
+      templates/ is a *file* to another project (the generated app), not
+      source belonging to this one, so the SDK's default item globs must not
+      pick it up: EnableDefaultItems=false is what keeps the generated app's
+      .cs files out of this project's own Compile items, where
+      TreatWarningsAsErrors would otherwise be applied to code that was never
+      meant to compile standalone (it targets a different, not-yet-restored
+      package reference) and to a project that also has its own, separate
+      obj/bin outputs the SDK would try to glob back in.
+    -->
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+
+    <PackageType>Template</PackageType>
+    <PackageId>SaveEditor.Template</PackageId>
+    <Title>Save Editor GUI Framework template</Title>
+    <Description>
+      dotnet new save-editor — generates a themed, testable Avalonia save-editor
+      shell wired to the Save Editor GUI Framework, with no manual framework
+      wiring required.
+    </Description>
+    <PackageTags>dotnet-new;templates;avalonia;save-editor</PackageTags>
+
+    <!-- A template package carries content, not a library. -->
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+
+    <!-- No compiled surface, so there is nothing to document. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!--
+      NU5128 ("no lib/ref assets") is the expected shape of a template
+      package and is suppressed only for that one code. Nothing else is
+      silenced.
+    -->
+    <NoWarn>$(NoWarn);NU5128</NoWarn>
+  </PropertyGroup>
+
+  <!--
+    src/Directory.Build.props already packs the repository's own README.md and
+    THIRD-PARTY-NOTICES at the package root and sets PackageReadmeFile — this
+    project does not add its own, to avoid a colliding PackagePath. The
+    generated app gets its own, separate README under templates/save-editor/,
+    which ships as template content rather than as this package's own readme.
+  -->
+
+  <!--
+    The generated app's project file carries a __SaveEditorUiVersion__ token in
+    its PackageReference to SaveEditor.Ui instead of a literal version, so the
+    template can never silently reference a version of the framework that does
+    not match the one it ships beside. Packing stages the whole templates/
+    tree into the intermediate directory and substitutes the token with
+    $(PackageVersion) — the exact version NuGet is about to stamp on *this*
+    package — before the staged copy is packed as Content. Nothing under the
+    tracked templates/ directory is mutated; only the staged copy is.
+  -->
+  <Target Name="StageTemplateContent" BeforeTargets="_GetPackageFiles;GenerateNuspec">
+    <ItemGroup>
+      <_TemplateSourceFiles Include="templates/**/*"
+                             Exclude="templates/**/bin/**;templates/**/obj/**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_StagedTemplateDestination Include="@(_TemplateSourceFiles->'$(IntermediateOutputPath)templates-staged\%(RecursiveDir)%(Filename)%(Extension)')" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_TemplateSourceFiles)"
+          DestinationFiles="@(_StagedTemplateDestination)"
+          SkipUnchangedFiles="false" />
+
+    <PropertyGroup>
+      <_GeneratedCsprojPath>$(IntermediateOutputPath)templates-staged\save-editor\src\SaveEditor.Generated\SaveEditor.Generated.csproj</_GeneratedCsprojPath>
+      <_GeneratedCsprojContent>$([System.IO.File]::ReadAllText('$(_GeneratedCsprojPath)'))</_GeneratedCsprojContent>
+      <_GeneratedCsprojContent>$(_GeneratedCsprojContent.Replace('__SaveEditorUiVersion__', '$(PackageVersion)'))</_GeneratedCsprojContent>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_GeneratedCsprojPath)" Lines="$(_GeneratedCsprojContent)" Overwrite="true" />
+
+    <ItemGroup>
+      <Content Include="$(IntermediateOutputPath)templates-staged\**\*">
+        <Pack>true</Pack>
+        <PackagePath>content\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+        <Visible>false</Visible>
+      </Content>
+    </ItemGroup>
+  </Target>
+
+</Project>

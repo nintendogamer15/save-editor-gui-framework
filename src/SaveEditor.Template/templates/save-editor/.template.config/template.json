@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Save Editor GUI Framework",
+  "classifications": [ "Desktop", "Avalonia", "Save Editor" ],
+  "identity": "SaveEditor.Template.Editor",
+  "name": "Save Editor GUI Framework — Editor",
+  "description": "A themed, testable Avalonia save-editor shell wired to the Save Editor GUI Framework, with a replaceable sample codec and one populated example section.",
+  "shortName": "save-editor",
+  "sourceName": "SaveEditor.Generated",
+  "preferNameDirectory": true,
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "primaryOutputs": [
+    { "path": "SaveEditor.Generated.slnx" }
+  ],
+  "postActions": [
+    {
+      "condition": "true",
+      "description": "Restore NuGet packages.",
+      "manualInstructions": [
+        { "text": "Run 'dotnet restore'" }
+      ],
+      "actionId": "210D431B-A78B-4D2F-B762-4ED3E3EA9025",
+      "continueOnError": true
+    }
+  ]
+}

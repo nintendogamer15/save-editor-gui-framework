@@ -20,8 +20,15 @@ proves nothing about interaction.
 
 ## Manual part — required before release
 
-On a real Wayland session (GNOME or KDE, not XWayland — check with
-`echo $XDG_SESSION_TYPE`, which must print `wayland`):
+On a Wayland session (GNOME or KDE). Check with `echo $XDG_SESSION_TYPE`, which
+must print `wayland`.
+
+**You will be testing XWayland, and that is correct.** Avalonia 12.1.1 has no
+Wayland backend, so the app is an X11 client under XWayland on every Wayland
+desktop. Do not treat that as a misconfiguration to fix — it is what users run.
+Do keep it in mind when diagnosing: fractional scaling, clipboard behaviour, and
+drag-and-drop all differ under XWayland from a native Wayland client, so a
+surprise there is usually XWayland rather than a framework defect.
 
 ```sh
 dotnet run --project samples/SaveEditor.Ui.Gallery

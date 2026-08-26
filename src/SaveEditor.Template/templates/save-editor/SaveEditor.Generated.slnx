@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SaveEditor.Generated/SaveEditor.Generated.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SaveEditor.Generated.Tests/SaveEditor.Generated.Tests.csproj" />
+  </Folder>
+</Solution>
