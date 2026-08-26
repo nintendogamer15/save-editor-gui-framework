@@ -536,7 +536,11 @@ The screenshot clause is satisfied by a determinism assertion rather than a stor
 
 **Acceptance:** a test enumerates 14 accents × 2 modes and asserts every ratio in §5's table against the enumerated text-bearing surfaces; the resource-resolution test proves no view references a raw palette key; the generator reproduces committed resources with no drift; theme and accent survive a simulated restart; the gallery token page produces stable baselines in both modes; and the P1-owned rows of §12's security table pass — A3, A9, A10, B7, and B9.
 
-**Status: complete except the baseline clause.** Verification confirmed every other criterion, including that the contrast assertions read the committed XAML rather than recomputing (proved by mutating a shipped accent file), that the drift test catches a hand-edit, and that the accent swap changes what `Primary` actually resolves to at runtime rather than only a field on the controller.
+**Status: complete.** The baseline clause closed once Actions recovered: six references were seeded from an `ubuntu-latest` run and committed, and CI run `32988407970` compares them there with **zero skips in the headless suite** — the comparisons run rather than decline. Windows continues to skip them with its stated reason, since the platforms rasterise text differently and one golden set cannot serve both.
+
+References are stored as PNG. The raw frames were 6.4 MB each, which would have put 38 MB into the repository and another 38 MB on every reseed; the committed set is 472 KB, and PNG is lossless so the comparison stays byte-exact.
+
+Historic note on the original wording: Verification confirmed every other criterion, including that the contrast assertions read the committed XAML rather than recomputing (proved by mutating a shipped accent file), that the drift test catches a hand-edit, and that the accent swap changes what `Primary` actually resolves to at runtime rather than only a field on the controller.
 
 "Produces stable baselines" is currently met by reproducibility and cross-theme divergence, not by comparison against a committed reference — the same deferral as P0, and for the load-bearing half of that reasoning rather than the incidental half: §12 makes Ubuntu the golden baseline, so a Windows-rasterised reference committed from a development machine would fail CI on its first run and destroy trust in the gate at the moment it was introduced. What the present assertions prove is *reproducibility*; what a baseline proves is *correctness against a reviewed reference*. A page that renders wrongly but stably passes today. The colour half of that residual is independently covered by the contrast test against committed XAML; the uncovered part is layout, spacing, and typography — precisely what this slice's control themes and embedded font introduce.
 
@@ -578,7 +582,7 @@ One lesson is recorded here because it will recur: **a command-level test passes
 
 **Acceptance:** pending edits survive section navigation; per-field Apply produces exactly one history entry and Apply All exactly one transactional entry; the 1,000-entry cap holds; `FieldList` virtualizes under a large section; dirty/pending and validation-banner baselines are captured using the P0 harness.
 
-**Status: complete except the baseline clause**, which is deferred to the first Ubuntu CI run alongside P0's and P1's, for the same reason. `FieldList` realizes 5 of 2,000 fields, counted as actual containers rather than inferred.
+**Status: complete.** The baseline clause closed with P1's; the editing-surface references are seeded and compared on Ubuntu. `FieldList` realizes 5 of 2,000 fields, counted as actual containers rather than inferred.
 
 Two decisions recorded because they will look arbitrary later. **A numeric field holds the typed text, not a parsed number** — binding a numeric control directly makes `abc` indistinguishable from zero, and a save where a stat silently became zero is worse than one that refused to apply. Consequently **pending-ness compares the text**: comparing the parsed value reported no pending edit for a field containing unparseable text, and since the exit guard is driven by pending state, closing the editor would have discarded what the user typed without asking.
 
@@ -592,7 +596,9 @@ Two decisions recorded because they will look arbitrary later. **A numeric field
 - `SafeFileWorkflow` on the P0 `SafePath` primitive; codec registry and detection; backup, temp write, and atomic replace; permission preservation; round-trip verification; external-change guards; `IUserInteraction` default dialogs; progress, cancellation, and status announcements.
 - Replaces P2's stubbed document session with the real workflow.
 
-**Status: complete.** D1 through D7 now pass against the real workflow rather than the stub, which is what makes P2's deferral honest rather than a way of never proving the hard half. Writing them surfaced three gaps the plan had not anticipated: an immutable document type cannot be edited through a session that only exposes a getter, the status bar was composing its own sentences rather than reporting what the workflow did, and activating a recent that had been deleted left the entry in place.
+**Status: complete.** Verification refuted D7 on first pass: the status bar reported the workflow's sentence and path but not progress or the backup location — `SaveProgress` had no production consumer at all, and `SaveOutcome.BackupPath` was populated and never bound. Both are wired now, with a test asserting progress phases are observed during a real overwrite and cleared afterwards.
+
+D1 through D7 pass against the real workflow rather than the stub, which is what makes P2's deferral honest rather than a way of never proving the hard half. Writing them surfaced three gaps the plan had not anticipated: an immutable document type cannot be edited through a session that only exposes a getter, the status bar was composing its own sentences rather than reporting what the workflow did, and activating a recent that had been deleted left the entry in place.
 
 Two behaviours are asymmetric across platforms by design and are asserted as such rather than smoothed over. On Windows an external process **cannot** rewrite the open document at all, because the workflow holds it with write sharing denied; on Linux locks are advisory, so the write lands and the change guard catches it at save time. And a recent whose file is merely unreachable is kept while one confirmed missing is pruned — an unplugged drive is not a deleted save.
 
