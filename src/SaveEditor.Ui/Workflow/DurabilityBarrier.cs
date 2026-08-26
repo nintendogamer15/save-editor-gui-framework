@@ -78,9 +78,19 @@ public interface IDurabilityBarrier
     /// <summary>Replaces the destination with the temporary file, atomically or not at all.</summary>
     /// <param name="temporaryPath">The fully written, fsync'd temporary file.</param>
     /// <param name="temporaryIdentity">
-    /// Identity recorded when the temporary file was exclusively created. Re-asserted
-    /// before the rename on platforms where the rename needs its own handle, so that a
-    /// temporary path swapped in between is refused rather than renamed over the save.
+    /// Identity recorded when the temporary file was exclusively created, re-asserted before
+    /// the rename so that a temporary path swapped in between is refused rather than renamed
+    /// over the save.
+    /// <para>
+    /// <strong>The two platforms are not equally strong here, and the difference is stated
+    /// rather than left as a platform detail (finding F-7).</strong> Windows renames the
+    /// <em>handle</em>: the temporary file is re-opened, its identity compared, and the rename
+    /// issued against that same handle, so the object checked and the object renamed are the
+    /// same object by construction. Linux has no rename-by-descriptor, so the identity is
+    /// re-read from the path and <c>rename(2)</c> then acts on that name — two operations,
+    /// with a window between them that is narrowed to a few instructions but not closed.
+    /// Both refuse an identity mismatch; only Windows can prove there was no swap.
+    /// </para>
     /// </param>
     /// <param name="destinationPath">Where the bytes belong.</param>
     /// <param name="destinationExists">
@@ -139,7 +149,11 @@ public interface IDurabilityBarrier
 /// <strong>Linux</strong> replaces with <c>rename(2)</c>, or with
 /// <c>link(2)</c>+<c>unlink(2)</c> when the destination is not supposed to exist, so that
 /// an entry appearing in between is refused with <c>EEXIST</c> instead of clobbered.
-/// <c>EXDEV</c> is reported as non-atomic.
+/// <c>EXDEV</c> is reported as non-atomic. The temporary file's identity is re-read with
+/// <c>statx</c> and <c>AT_SYMLINK_NOFOLLOW</c> immediately beforehand, which narrows the
+/// race on the temporary name without closing it — see the remarks on
+/// <see cref="IDurabilityBarrier.ReplaceAsync"/> for why Windows can close it and Linux
+/// cannot.
 /// </para>
 /// <para>
 /// <strong>The directory flush is Linux-only</strong> and says so rather than pretending.
@@ -163,7 +177,6 @@ public sealed class PlatformDurabilityBarrier : IDurabilityBarrier
     private const int FileRenameInfoExClass = 22;
     private const uint RenameReplaceIfExists = 0x0000_0001;
     private const uint RenamePosixSemantics = 0x0000_0002;
-    private const int RenameInfoHeaderBytes = 20;
 
     private const int ErrorFileExists = 80;
     private const int ErrorAlreadyExists = 183;
@@ -210,7 +223,7 @@ public sealed class PlatformDurabilityBarrier : IDurabilityBarrier
         return new ValueTask<ReplaceResult>(Task.Run(
             () => OperatingSystem.IsWindows()
                 ? ReplaceOnWindows(temporaryPath, temporaryIdentity, destinationPath, destinationExists)
-                : ReplaceOnUnix(temporaryPath, destinationPath, destinationExists),
+                : ReplaceOnUnix(temporaryPath, temporaryIdentity, destinationPath, destinationExists),
             cancellationToken));
     }
 
@@ -287,11 +300,35 @@ public sealed class PlatformDurabilityBarrier : IDurabilityBarrier
         return ClassifyWindowsError(renameError, "FileRenameInfoEx with POSIX semantics");
     }
 
+    /// <summary>Field offsets within <c>FILE_RENAME_INFO</c> for a given pointer size.</summary>
+    /// <param name="RootDirectory">Offset of the <c>HANDLE RootDirectory</c> field.</param>
+    /// <param name="FileNameLength">Offset of the <c>DWORD FileNameLength</c> field.</param>
+    /// <param name="FileName">Offset of the <c>WCHAR FileName[]</c> array, and the header size.</param>
+    /// <remarks>
+    /// The <c>Flags</c> union sits at 0 and is four bytes. <c>RootDirectory</c> is a pointer,
+    /// so it is aligned to the pointer size — offset 8 on 64-bit, 4 on 32-bit — and the two
+    /// fields after it follow from that. Hardcoding the 64-bit values made every overwrite of
+    /// an existing file on 32-bit Windows fail with <c>ERROR_INVALID_PARAMETER</c>, which
+    /// <see cref="ClassifyWindowsError"/> then reported as the filesystem not supporting a
+    /// POSIX-semantics rename: a confusing dead end for a layout bug (finding F-14).
+    /// </remarks>
+    internal readonly record struct RenameInfoLayout(int RootDirectory, int FileNameLength, int FileName)
+    {
+        internal static RenameInfoLayout For(int pointerSize)
+        {
+            var rootDirectory = pointerSize;
+            var fileNameLength = rootDirectory + pointerSize;
+            return new RenameInfoLayout(rootDirectory, fileNameLength, fileNameLength + sizeof(uint));
+        }
+    }
+
     [SupportedOSPlatform("windows")]
     private static bool PosixRename(SafeFileHandle source, string destinationPath, out int error)
     {
+        var layout = RenameInfoLayout.For(IntPtr.Size);
+
         var nameBytes = Encoding.Unicode.GetByteCount(destinationPath);
-        var size = RenameInfoHeaderBytes + nameBytes + 2;
+        var size = layout.FileName + nameBytes + 2;
         var buffer = Marshal.AllocHGlobal(size);
 
         try
@@ -302,12 +339,12 @@ public sealed class PlatformDurabilityBarrier : IDurabilityBarrier
             }
 
             Marshal.WriteInt32(buffer, 0, unchecked((int)(RenameReplaceIfExists | RenamePosixSemantics)));
-            Marshal.WriteIntPtr(buffer, 8, IntPtr.Zero);
-            Marshal.WriteInt32(buffer, 16, nameBytes);
+            Marshal.WriteIntPtr(buffer, layout.RootDirectory, IntPtr.Zero);
+            Marshal.WriteInt32(buffer, layout.FileNameLength, nameBytes);
 
             for (var i = 0; i < destinationPath.Length; i++)
             {
-                Marshal.WriteInt16(buffer, RenameInfoHeaderBytes + (i * 2), (short)destinationPath[i]);
+                Marshal.WriteInt16(buffer, layout.FileName + (i * 2), (short)destinationPath[i]);
             }
 
             if (SetFileInformationByHandle(source, FileRenameInfoExClass, buffer, size))
@@ -350,8 +387,35 @@ public sealed class PlatformDurabilityBarrier : IDurabilityBarrier
         };
     }
 
-    private static ReplaceResult ReplaceOnUnix(string temporaryPath, string destinationPath, bool destinationExists)
+    [UnsupportedOSPlatform("windows")]
+    private static ReplaceResult ReplaceOnUnix(
+        string temporaryPath,
+        FileIdentity temporaryIdentity,
+        string destinationPath,
+        bool destinationExists)
     {
+        // Re-assert the temporary file's identity immediately before acting on its name.
+        // ReplaceOnWindows has always done this by re-opening the handle; this path took only
+        // paths, so a local attacker who won the race on the temp name got arbitrary content
+        // renamed over the save on Linux and not on Windows (finding F-7).
+        //
+        // This narrows the window rather than closing it: there is no rename-by-descriptor on
+        // Linux, so the check and the rename remain two operations on one name.
+        var current = UnixSafeOpen.ReadIdentityOfPath(temporaryPath);
+        if (current is null)
+        {
+            return new ReplaceResult(
+                ReplaceStatus.Failed,
+                "The identity of the temporary file could not be re-read before renaming it, so the replace was abandoned rather than acting on a name it could not vouch for.");
+        }
+
+        if (current.Value != temporaryIdentity)
+        {
+            return new ReplaceResult(
+                ReplaceStatus.Failed,
+                "The temporary file was replaced between its exclusive creation and the rename. The save was abandoned rather than renaming an unknown object over the target.");
+        }
+
         var source = NullTerminated(temporaryPath);
         var destination = NullTerminated(destinationPath);
 

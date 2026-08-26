@@ -46,6 +46,7 @@ internal static class UnixSafeOpen
     private const int O_CLOEXEC = 0x80000;
     private const int O_PATH = 0x200000;
 
+    private const int AT_FDCWD = -100;
     private const int AT_SYMLINK_NOFOLLOW = 0x100;
     private const int AT_EMPTY_PATH = 0x1000;
 
@@ -139,6 +140,28 @@ internal static class UnixSafeOpen
             }
         }
     }
+
+    /// <summary>Reads identity for a path, without following a final symbolic link.</summary>
+    /// <param name="path">An absolute path.</param>
+    /// <returns>The identity, or <see langword="null"/> if it could not be read.</returns>
+    /// <remarks>
+    /// <para>
+    /// Exists so the Unix replace can re-assert the temporary file's identity immediately
+    /// before <c>rename(2)</c>, which the Windows replace has always done and this one did
+    /// not (finding F-7). <c>AT_SYMLINK_NOFOLLOW</c> means a symbolic link planted at the
+    /// path yields the link's own identity, which will not match the regular file recorded at
+    /// exclusive creation, so the comparison fails and the replace is abandoned.
+    /// </para>
+    /// <para>
+    /// <strong>This narrows the window; it does not close it.</strong> Linux offers no
+    /// rename-by-descriptor, so the check and the rename are two operations on the same name
+    /// and something can still be swapped between them. Windows renames the handle itself, so
+    /// there the checked object and the renamed object are the same object by construction.
+    /// The asymmetry is real and is stated rather than glossed.
+    /// </para>
+    /// </remarks>
+    internal static FileIdentity? ReadIdentityOfPath(string path) =>
+        StatxAt(AT_FDCWD, path, out var stat) ? IdentityOf(stat) : null;
 
     /// <summary>Re-reads identity from a handle the caller already holds.</summary>
     internal static FileIdentity? ReadIdentity(SafeFileHandle handle)
