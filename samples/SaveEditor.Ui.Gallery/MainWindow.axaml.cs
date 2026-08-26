@@ -1,65 +1,83 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using SaveEditor.Ui.Gallery.Views;
+using SaveEditor.Ui.Hosting;
 using SaveEditor.Ui.Settings;
+using SaveEditor.Ui.Shell;
 using SaveEditor.Ui.Theming;
 
 namespace SaveEditor.Ui.Gallery;
 
-/// <summary>The gallery shell: appearance controls above the token catalogue.</summary>
+/// <summary>The gallery window: the framework shell hosting the catalogue pages.</summary>
 public partial class MainWindow : Window
 {
-    private readonly ThemeController _theme;
+    private readonly GalleryDocumentSession _session = new();
 
-    /// <summary>Creates the window and wires the appearance controls.</summary>
+    /// <summary>Creates the window and composes the shell.</summary>
     public MainWindow()
     {
         AvaloniaXamlLoader.Load(this);
 
-        // The gallery keeps preferences in memory. It is a catalogue, not an editor,
-        // and writing to a real settings file would let running it disturb an actual
-        // editor's stored preferences.
-        _theme = new ThemeController(
+        var theme = new ThemeController(
             Application.Current!.Styles.OfType<SaveEditorTheme>().Single(),
             new InMemorySettingsStore());
 
-        var themeSelector = this.FindControl<ComboBox>("ThemeSelector")!;
-        var accentSelector = this.FindControl<ComboBox>("AccentSelector")!;
-        var resetAccent = this.FindControl<Button>("ResetAccent")!;
+        var host = new WindowEditorHost(this);
 
-        themeSelector.ItemsSource = Enum.GetValues<ThemeMode>();
-        accentSelector.ItemsSource = Enum.GetValues<CatppuccinAccent>();
+        var viewModel = new EditorShellViewModel(
+            _session,
+            new GalleryUserInteraction(this),
+            new InMemorySettingsStore(),
+            host,
+            theme);
+
+        viewModel.RegisterSections(
+        [
+            new SectionDescriptor
+            {
+                Key = "tokens",
+                Title = "Semantic tokens",
+                Subtitle = "Colours, type, and metrics",
+                BodyMode = SectionBodyMode.Custom,
+                Body = new TokenGalleryView(),
+            },
+            new SectionDescriptor
+            {
+                Key = "controls",
+                Title = "Controls",
+                Subtitle = "Framework control themes",
+                BodyMode = SectionBodyMode.Custom,
+                Body = new ControlGalleryView(),
+            },
+        ]);
+
+        var shell = this.FindControl<EditorShell>("Shell")!;
+        shell.DataContext = viewModel;
+        DragDropAdapter.Attach(shell, viewModel);
+
+        this.FindControl<Button>("SimulateEdit")!.Click += (_, _) =>
+        {
+            _session.SimulateEdit();
+            viewModel.StatusMessage =
+                "Simulated an unapplied edit. Try File > Exit, or close the window, to see the guard.";
+        };
 
         Loaded += async (_, _) =>
         {
-            await _theme.InitializeAsync().ConfigureAwait(true);
-            themeSelector.SelectedItem = _theme.Mode;
-            accentSelector.SelectedItem = _theme.Accent;
-        };
-
-        themeSelector.SelectionChanged += async (_, _) =>
-        {
-            if (themeSelector.SelectedItem is ThemeMode mode && mode != _theme.Mode)
-            {
-                await _theme.SetModeAsync(mode).ConfigureAwait(true);
-            }
-        };
-
-        accentSelector.SelectionChanged += async (_, _) =>
-        {
-            if (accentSelector.SelectedItem is CatppuccinAccent accent && accent != _theme.Accent)
-            {
-                await _theme.SetAccentAsync(accent).ConfigureAwait(true);
-            }
-        };
-
-        resetAccent.Click += async (_, _) =>
-        {
-            await _theme.ResetAccentAsync().ConfigureAwait(true);
-            accentSelector.SelectedItem = _theme.Accent;
+            await theme.InitializeAsync().ConfigureAwait(true);
+            await viewModel.InitializeAsync().ConfigureAwait(true);
+            viewModel.StatusMessage = "Ready. The gallery performs no file I/O.";
         };
     }
 
+    /// <summary>
+    /// Keeps gallery preferences in memory.
+    /// </summary>
+    /// <remarks>
+    /// Writing to a real settings file would let running the catalogue disturb an
+    /// actual editor's stored theme and recents.
+    /// </remarks>
     private sealed class InMemorySettingsStore : IEditorSettingsStore
     {
         private EditorSettings _settings = new();

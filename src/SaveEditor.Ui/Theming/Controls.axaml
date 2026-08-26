@@ -109,8 +109,8 @@
                 BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="{TemplateBinding CornerRadius}">
           <Panel>
-            <TextBlock Name="PART_Watermark"
-                       Text="{TemplateBinding Watermark}"
+            <TextBlock Name="PART_Placeholder"
+                       Text="{TemplateBinding PlaceholderText}"
                        Foreground="{DynamicResource SubtleForeground}"
                        Margin="{TemplateBinding Padding}"
                        IsVisible="{TemplateBinding Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"

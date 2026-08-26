@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SaveEditor.Ui.Display;
 using SaveEditor.Ui.Hosting;
 using SaveEditor.Ui.Interaction;
 using SaveEditor.Ui.Settings;
@@ -29,6 +30,7 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     private readonly IEditorSettingsStore _settings;
     private readonly IEditorHost? _host;
     private readonly ThemeController? _theme;
+    private readonly PathDisplayFormatter _formatter = PathDisplayFormatter.Default;
     private readonly List<SectionDescriptor> _allSections = [];
     private bool _disposed;
 
@@ -84,8 +86,17 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     /// <summary>Sections currently visible, in registration order.</summary>
     public ObservableCollection<SectionDescriptor> Sections { get; } = [];
 
-    /// <summary>Recent file paths, most recent first.</summary>
-    public ObservableCollection<string> RecentFiles { get; } = [];
+    /// <summary>Recent entries, most recent first.</summary>
+    /// <remarks>
+    /// Each entry carries the raw path used to open it and the neutralised label
+    /// used to show it. Pairing them means the string a user reads and the string
+    /// the framework opens can never drift apart, which is the whole point of
+    /// formatting paths for display in the first place.
+    /// </remarks>
+    public ObservableCollection<RecentEntry> Recents { get; } = [];
+
+    /// <summary>The open document's path, neutralised for display.</summary>
+    public PathLabel CurrentPathLabel => _formatter.Format(_session.CurrentPath);
 
     /// <summary>Whether Exit is offered at all.</summary>
     public bool CanExit => _host is not null;
@@ -159,10 +170,10 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     {
         var settings = await _settings.LoadAsync(cancellationToken).ConfigureAwait(true);
 
-        RecentFiles.Clear();
+        Recents.Clear();
         foreach (var path in settings.RecentFiles)
         {
-            RecentFiles.Add(path);
+            Recents.Add(new RecentEntry(path, _formatter.Format(path)));
         }
 
         if (settings.LastSectionKey is { } key)
@@ -249,6 +260,12 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
             await OpenPathAsync(chosen, cancellationToken).ConfigureAwait(true);
         }
     }
+
+    [RelayCommand]
+    private Task OpenRecentAsync(RecentEntry? entry, CancellationToken cancellationToken) =>
+        entry is null
+            ? Task.CompletedTask
+            : OpenPathAsync(entry.Path, cancellationToken).AsTask();
 
     [RelayCommand]
     private async Task SaveAsAsync(CancellationToken cancellationToken)
@@ -359,6 +376,7 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     private void NotifyDocumentState()
     {
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(CurrentPathLabel));
         OnPropertyChanged(nameof(HasUnsavedWork));
         OnPropertyChanged(nameof(IsWelcomeVisible));
         UndoCommand.NotifyCanExecuteChanged();

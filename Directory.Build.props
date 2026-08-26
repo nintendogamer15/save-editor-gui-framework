@@ -10,6 +10,13 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <!--
+      TreatWarningsAsErrors covers the C# compiler only. Avalonia's XAML
+      diagnostics (AVLN*) and NuGet's (NU*) are emitted by MSBuild tasks and
+      slip past it, which is how an obsolete-API warning sat in a XAML file
+      while the build reported success.
+    -->
+    <MSBuildTreatWarningsAsErrors>true</MSBuildTreatWarningsAsErrors>
+    <!--
       A bare Version="12.1.1" is a lower bound, not a pin: NuGet reads it as "at
       least", and it would float if that exact version were ever unlisted. The lock
       file is what actually makes restore reproducible, and CI restores in locked

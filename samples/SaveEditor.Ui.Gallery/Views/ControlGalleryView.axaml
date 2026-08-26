@@ -1,0 +1,100 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SaveEditor.Ui.Gallery.Views.ControlGalleryView"
+             FontFamily="{DynamicResource FontFamilyDefault}">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.heading">
+      <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,16,0,8" />
+    </Style>
+    <Style Selector="TextBlock.caption">
+      <Setter Property="Foreground" Value="{DynamicResource SubtleForeground}" />
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource RadiusMd}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Spacing="6">
+
+      <TextBlock Text="Controls"
+                 Foreground="{DynamicResource Foreground}"
+                 FontSize="22" FontWeight="Bold" />
+      <TextBlock Classes="caption"
+                 Text="Framework-owned control themes. Tab through these to check the focus ring; it uses the derived accent ramp, not the raw accent." />
+
+      <TextBlock Classes="heading" Text="Buttons" />
+      <Border Classes="card">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Default" />
+          <Button Content="Accent" Classes="accent" />
+          <Button Content="Overwrite save file" Classes="danger" />
+          <Button Content="Disabled" IsEnabled="False" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="heading" Text="Text input" />
+      <Border Classes="card">
+        <StackPanel Spacing="10" MaxWidth="420" HorizontalAlignment="Left">
+          <TextBox Text="Aerith" />
+          <TextBox PlaceholderText="Empty, showing its placeholder" />
+          <TextBox Text="9999999" Classes="invalid" />
+          <TextBlock Classes="caption"
+                     Text="Invalid state carries both colour and border weight, never colour alone." />
+          <TextBox Text="Read only" IsEnabled="False" />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="heading" Text="Boolean and choice" />
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <CheckBox Content="Unchecked" />
+          <CheckBox Content="Checked" IsChecked="True" />
+          <CheckBox Content="Disabled" IsEnabled="False" IsChecked="True" />
+          <ComboBox SelectedIndex="0" Width="220" HorizontalAlignment="Left">
+            <ComboBoxItem>Normal</ComboBoxItem>
+            <ComboBoxItem>Hard</ComboBoxItem>
+            <ComboBoxItem>Nightmare</ComboBoxItem>
+          </ComboBox>
+          <TextBlock Classes="caption"
+                     Text="ComboBox keeps Avalonia's template and takes framework colours; a full template lands with the choice field in P3." />
+        </StackPanel>
+      </Border>
+
+      <TextBlock Classes="heading" Text="Status messaging" />
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <Border Padding="12" CornerRadius="{DynamicResource RadiusSm}"
+                  Background="{DynamicResource DangerBackground}"
+                  BorderBrush="{DynamicResource Danger}" BorderThickness="1">
+            <TextBlock Text="Validation failed. The save was not written."
+                       Foreground="{DynamicResource DangerText}" />
+          </Border>
+          <Border Padding="12" CornerRadius="{DynamicResource RadiusSm}"
+                  Background="{DynamicResource WarningBackground}"
+                  BorderBrush="{DynamicResource Warning}" BorderThickness="1">
+            <TextBlock Text="This codec cannot preserve unknown data."
+                       Foreground="{DynamicResource WarningText}" />
+          </Border>
+          <Border Padding="12" CornerRadius="{DynamicResource RadiusSm}"
+                  Background="{DynamicResource SuccessBackground}"
+                  BorderBrush="{DynamicResource Success}" BorderThickness="1">
+            <TextBlock Text="Saved to slot1.dat. A backup was written alongside it."
+                       Foreground="{DynamicResource SuccessText}" />
+          </Border>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

@@ -27,12 +27,17 @@
       <MenuItem Header="_File">
         <MenuItem Header="_Open Save…" Command="{Binding OpenSaveCommand}" InputGesture="Ctrl+O" />
         <MenuItem Header="Open _Folder…" Command="{Binding OpenSaveCommand}" />
-        <MenuItem Header="_Recent" ItemsSource="{Binding RecentFiles}">
-          <MenuItem.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Text="{Binding}" />
-            </DataTemplate>
-          </MenuItem.ItemTemplate>
+        <MenuItem Header="_Recent" ItemsSource="{Binding Recents}">
+          <MenuItem.ItemContainerTheme>
+            <ControlTheme TargetType="MenuItem" x:DataType="shell:RecentEntry">
+              <Setter Property="Header" Value="{Binding Label.Label}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding Label.FullLabel}" />
+              <Setter Property="AutomationProperties.HelpText" Value="{Binding Label.FullLabel}" />
+              <Setter Property="Command"
+                      Value="{Binding $parent[shell:EditorShell].DataContext.OpenRecentCommand}" />
+              <Setter Property="CommandParameter" Value="{Binding}" />
+            </ControlTheme>
+          </MenuItem.ItemContainerTheme>
         </MenuItem>
         <Separator />
         <MenuItem Header="Save _As…" Command="{Binding SaveAsCommand}" InputGesture="Ctrl+S" />
@@ -104,9 +109,13 @@
                         Content="{Binding StatusBarExtension, ElementName=Root}"
                         Margin="12,0,0,0" />
         <TextBlock Grid.Column="2"
-                   Text="{Binding Title}"
+                   Text="{Binding CurrentPathLabel.Label}"
+                   ToolTip.Tip="{Binding CurrentPathLabel.FullLabel}"
+                   AutomationProperties.HelpText="{Binding CurrentPathLabel.FullLabel}"
+                   AutomationProperties.Name="Current save"
                    Foreground="{DynamicResource MutedForeground}"
                    Margin="12,0,0,0"
+                   ClipToBounds="True"
                    VerticalAlignment="Center" />
       </Grid>
     </Border>
@@ -198,15 +207,21 @@
         <TextBlock Text="Recent"
                    Foreground="{DynamicResource MutedForeground}"
                    FontSize="12"
-                   IsVisible="{Binding RecentFiles.Count}" />
-        <ItemsControl ItemsSource="{Binding RecentFiles}"
+                   IsVisible="{Binding Recents.Count}" />
+        <ItemsControl ItemsSource="{Binding Recents}"
                       AutomationProperties.Name="Recent files">
           <ItemsControl.ItemTemplate>
-            <DataTemplate x:DataType="x:String">
-              <TextBlock Text="{Binding}"
-                         Foreground="{DynamicResource PrimaryText}"
-                         TextTrimming="CharacterEllipsis"
-                         Margin="0,2" />
+            <DataTemplate x:DataType="shell:RecentEntry">
+              <Button Content="{Binding Label.Label}"
+                      ToolTip.Tip="{Binding Label.FullLabel}"
+                      AutomationProperties.HelpText="{Binding Label.FullLabel}"
+                      Command="{Binding $parent[shell:EditorShell].DataContext.OpenRecentCommand}"
+                      CommandParameter="{Binding}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      HorizontalContentAlignment="Left"
+                      Foreground="{DynamicResource PrimaryText}"
+                      Margin="0,1" />
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

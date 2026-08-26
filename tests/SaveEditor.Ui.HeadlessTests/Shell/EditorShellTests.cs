@@ -145,7 +145,13 @@ public class EditorShellTests
         await withRecents.InitializeAsync(TestContext.Current.CancellationToken);
 
         Assert.True(withRecents.IsWelcomeVisible);
-        Assert.Equal(["/saves/a.dat", "/saves/b.dat"], withRecents.RecentFiles);
+
+        // The raw path is what gets opened; the label is what gets shown. They are
+        // paired so they cannot drift apart.
+        Assert.Equal(["/saves/a.dat", "/saves/b.dat"], withRecents.Recents.Select(r => r.Path));
+        // Labels are isolate-wrapped, so they never equal the path they describe -
+        // which is what stops a displayed string being fed back to the filesystem.
+        Assert.All(withRecents.Recents, r => Assert.NotEqual(r.Path, r.Label.FullLabel));
 
         Assert.True(vm.IsWelcomeVisible);
         await vm.OpenSaveCommand.ExecuteAsync(null);

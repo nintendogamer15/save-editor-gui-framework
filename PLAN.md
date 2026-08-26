@@ -397,6 +397,10 @@ Codec-supplied strings — validation messages and unknown-data warnings — are
 
 One shared path-display formatter serves the recents menu, status bar, announcement region, and every confirmation dialog. It strips or replaces control and bidi characters, isolates with directional-isolate marks, truncates in the middle while always showing the full final two components, and exposes the full raw path through the tooltip and accessible description.
 
+**The final-two-components invariant outranks the length budget**, so a formatted label may overrun the width it was given; the formatter reports this. A surface receiving an overrunning label must wrap, scroll, or clip — **never end-trim it**. Trimming the tail removes the filename, which is exactly the end-truncation the formatter refuses to perform, and doing it at the display layer would reintroduce the substitution hazard the formatter exists to prevent. Framework-authored status sentences may still be trimmed; paths may not.
+
+Formatter output is not a path and cannot be used as one: the isolate wrapping is unconditional, so a label never equals the path it describes and names no file on any filesystem.
+
 Keep the status bar as the canonical outcome channel, with full-sentence status, current path, last backup, progress, and cancellation. Add a persistent accessible inline announcement region for important errors and outcomes instead of transient toasts.
 
 Include a reusable themed About/Credits dialog with consumer slots for app identity, credits, and licenses. Raw/advanced data presentation remains editor-owned.
