@@ -1,12 +1,22 @@
 # Save Editor GUI Framework — V1 Implementation Plan
 
-> **Revision 2 — 2026-08-26.** Supersedes revision 1. This revision closes seven
-> readiness blockers raised by plan review and folds in a pre-approval security
-> review of the state and file-workflow surfaces (findings and dispositions in §9).
-> Material changes: pinned dependencies (§3), host lifecycle seam (§4), a measurable
-> contrast contract (§5), hardened settings and file workflow (§6–§7), an explicit
-> threat model (§8), and phases restructured into independently approvable slices
-> with explicit prerequisites and acceptance checks (§13).
+> **Revision 3 — 2026-08-26.** Supersedes revisions 1 and 2.
+>
+> Revision 2 closed seven readiness blockers from the first review and folded in a
+> pre-approval security review of the state and file-workflow surfaces (findings and
+> dispositions in §9). Material changes there: pinned dependencies (§3), host
+> lifecycle seam (§4), a measurable contrast contract (§5), hardened settings and
+> file workflow (§6–§7), an explicit threat model (§8), and phases restructured into
+> independently approvable slices (§13).
+>
+> Revision 3 closes five internal-consistency defects found in revision 2 itself:
+> §5's assertion table named surfaces its derivation rule did not cover; §9 claimed
+> universal test backing it did not have; P4 omitted P1 from its prerequisites while
+> depending on it; P2's deferred acceptance checks were referenced but never
+> enumerated; and P0's acceptance named CI that P6 owned. Recomputing §5 against the
+> full surface set also corrected two figures revision 2 got wrong — `MutedForeground`
+> needs derivation in Latte, and `OnPrimaryForeground` requires pure rather than
+> palette endpoints.
 
 ## 1. Objective
 
@@ -58,6 +68,7 @@ tests/SaveEditor.Ui.Tests
 tests/SaveEditor.Ui.HeadlessTests
 tests/SaveEditor.Template.Tests
 eng/
+.github/workflows/
 mockup/index.html
 README.md
 PLAN.md
@@ -170,24 +181,42 @@ The text, status-background, elevation, typography, and metric roles exist becau
 
 ### Contrast contract
 
-Measured against the pinned palette, raw Catppuccin accents are **not** usable as text in Latte: only `mauve` (4.79:1) and `red` (4.80:1) reach 4.5:1 on `base`, nine of fourteen fail even the 3:1 non-text floor, and none reaches 4.5:1 on `surface0`. Mocha accents all pass comfortably (7.08:1 worst on `base`). The theme therefore separates accent-as-fill from accent-as-text.
+**Text-bearing surfaces.** Every text-role assertion below is made against exactly this enumerated set, and against no others:
+
+| Token | Latte | Mocha |
+| --- | --- | --- |
+| `WindowBackground` | `base` | `base` |
+| `PanelBackground` | `mantle` | `mantle` |
+| `InputBackground` | `crust` | `crust` |
+| `CardBackground` | `surface0` | `surface0` |
+
+`CardBackground` is the binding constraint in both flavors — it is the darkest surface in Latte and the lightest in Mocha — so a role that passes on `CardBackground` passes on all four.
+
+`OverlayBackground` is a scrim, never a text surface, and is excluded. `Border` is a decorative separator, not a UI-component boundary, and is likewise excluded from the gate; `BorderStrong` carries any boundary that conveys state.
+
+Measured against the pinned palette, raw Catppuccin accents are **not** usable as text in Latte: only `mauve` (4.79:1) and `red` (4.80:1) reach 4.5:1 even on `base`, and none reaches it on `CardBackground`. They also fail as *indicators*: eleven of fourteen fall below the 3:1 non-text floor (`yellow` is 1.70:1 on `CardBackground`), so a raw-accent focus ring is unusable in the light theme. Mocha accents pass everywhere (5.43:1 worst). The theme therefore separates accent-as-fill from accent-as-line-and-text.
 
 Required ratios, asserted by test across all 14 accents × 2 modes:
 
 | Role | Measured against | Minimum |
 | --- | --- | --- |
-| `Foreground`, `MutedForeground` | `WindowBackground`, `PanelBackground`, `CardBackground` | 4.5:1 |
-| `PrimaryText`, `DangerText`, `WarningText`, `SuccessText` | `WindowBackground`, `PanelBackground`, `CardBackground` | 4.5:1 |
-| `SubtleForeground` (non-essential text only) | `WindowBackground` | 3.0:1 |
+| `Foreground` | all four text-bearing surfaces | 4.5:1 |
+| `MutedForeground` | all four text-bearing surfaces | 4.5:1 |
+| `PrimaryText`, `DangerText`, `WarningText`, `SuccessText` | all four text-bearing surfaces | 4.5:1 |
+| `DangerText`, `WarningText`, `SuccessText` | their own `…Background` token | 4.5:1 |
+| `SubtleForeground` (non-essential text only) | all four text-bearing surfaces | 3.0:1 |
 | `OnPrimaryForeground` | `Primary` | 4.5:1 |
-| `FocusRing`, `BorderStrong`, `Primary` as fill or indicator | adjacent surface | 3.0:1 |
+| `FocusRing`, `BorderStrong` | all four text-bearing surfaces | 4.5:1 (see below) |
 
 Resolution rules:
 
-- **`Primary`** is the raw accent, used for fills, indicators, borders, and focus rings only — never for text.
-- **`PrimaryText`** is derived: darken the raw accent in sRGB toward black by the smallest factor achieving ≥4.5:1 against *both* `WindowBackground` and `PanelBackground`. Verified achievable for all 14 Latte accents (factors 0.561–0.853, all landing ≥4.50:1) and a no-op in Mocha (factor 1.0, worst 5.43:1). Hue is preserved.
-- **`OnPrimaryForeground`** is chosen per accent per mode as whichever neutral endpoint yields the higher ratio against `Primary`. Verified to always clear 4.5:1 (worst case Latte `blue`, 4.91:1).
-- `DangerText`, `WarningText`, and `SuccessText` derive by the same rule, since Latte `yellow` (2.31:1) and `green` (2.96:1) fail as text for the same reason.
+- **`Primary`** is the raw accent. It is used only for fill interiors and decorative wash — never for text, lines, focus rings, or any boundary that conveys state.
+- **`PrimaryText`** is derived: darken the raw accent in sRGB toward black by the smallest factor achieving ≥4.5:1 against *all four* text-bearing surfaces. Verified for all 14 Latte accents (factors 0.561–0.853, all landing ≥4.50:1) and a no-op in Mocha (factor 1.0, worst 5.43:1). Hue is preserved.
+- **`FocusRing` and `BorderStrong` resolve to `PrimaryText`, not `Primary`.** Their WCAG requirement is 3.0:1, but reusing the 4.5:1 ramp satisfies it with margin and avoids a second derivation. In Mocha this is the raw accent (factor 1.0), matching the mockup; in Latte it is the darkened variant, which is also the better design — a pale yellow focus ring on a light surface is not perceivable.
+- **`MutedForeground`** is derived by the same rule. Raw Latte `subtext1` reaches only 4.05:1 on `CardBackground`, so it is darkened by factor 0.929; Mocha is a no-op (7.10:1).
+- **`SubtleForeground`** uses raw `subtext0` in both modes (Latte 3.20:1, Mocha 5.65:1) and is restricted to non-essential text.
+- **`OnPrimaryForeground`** is chosen per accent per mode as whichever of **pure white or pure black** yields the higher ratio against `Primary`. The endpoints are deliberately pure rather than palette neutrals: against `base`/`crust` twelve of fourteen Latte accents fail (worst 2.31:1), whereas pure endpoints always clear 4.5:1 (worst Latte `blue`, 4.91:1; worst Mocha `red`, 9.07:1). The mockup's single `--accent-contrast` value per theme is a simplification that holds only for the two accents it demonstrates; the framework computes it per accent.
+- `DangerText`, `WarningText`, and `SuccessText` derive by the same rule and are additionally asserted against their own status background, since Latte `yellow` (2.31:1) and `green` (2.96:1) fail as text for the same reason accents do.
 
 Derived values are produced by the `eng/` generator and asserted by test; they are not hand-authored constants. No accent is excluded from the picker — the derivation makes all 14 usable in both modes.
 
@@ -310,11 +339,20 @@ Concurrent writers outside this process — the game itself rewriting saves on e
 
 ## 9. Security findings and dispositions
 
-Recorded 2026-08-26 from a read-only pre-approval review of §6–§7. Every finding carries an explicit disposition. `FIX` items are closed by the corresponding text in §6–§8 and are each backed by a named test in §12.
+Recorded 2026-08-26 from a read-only pre-approval review of §6–§7. Every finding carries an explicit disposition.
+
+Dispositions use four labels:
+
+- **`FIX`** — closed by the cited text *and* backed by a named test in §12.
+- **`FIX (narrow)`** — the risk cannot be eliminated on every platform, so the design reduces it as far as the platform allows and the plan states the residual honestly rather than claiming closure. Test-backed like `FIX`. Applies only to A5.
+- **`FIX (wording)`** — the finding was a claim the plan overstated; corrected text closes it and there is no behavior to test. These rows are deliberately excluded from the "every `FIX` row maps to a passing test" gate in §13 and §14.
+- **`DEFER`** — accepted but not addressed in v1, with rationale.
+
+Counts: 24 `FIX`, 1 `FIX (narrow)`, 2 `FIX (wording)`, 1 `DEFER` — 28 findings total.
 
 | ID | Finding | Pri | Disposition | Closed by |
 | --- | --- | --- | --- | --- |
-| GAP | No stated adversary for the safety claims | — | FIX | §8 |
+| GAP | No stated adversary for the safety claims | — | FIX (wording) | §8 |
 | A1 | Path resolution order undefined; leaf-only checks; incomplete link taxonomy | P0 | FIX | §7 SafePath 1–4 |
 | A2 | Predictable backup/temp names allow symlink or hardlink planting | P1 | FIX | §7 step 7 |
 | A3 | Settings path values untrusted; startup probe of a UNC path leaks NTLM | P1 | FIX | §6 trust boundary; lazy recents |
@@ -340,7 +378,7 @@ Recorded 2026-08-26 from a read-only pre-approval review of §6–§7. Every fin
 | B9 | Settings backup overwrites the last good copy | P2 | FIX | §6 settings storage |
 | B10 | Two write paths with opposite failure policies share a helper | P2 | FIX | §7 guarantee wording |
 | B11 | Validation blocking asymmetry between Save As and Overwrite | P3 | FIX | §7 step 4 (decision recorded) |
-| B12 | Concurrent writers outside the process | P3 | FIX (wording) | §8 |
+| B12 | Concurrent writers outside the process; status overclaims coverage | P3 | FIX (wording) | §8 |
 | B13 | Drag-dropped temp path later used as an overwrite target | P3 | **DEFER** | Post-1.0 — see below |
 
 **B13 deferral rationale.** Detecting "a known temp location" requires a platform-specific directory list that is incomplete by construction and would produce false positives on legitimate save locations. The existing posture already covers the substance of the risk: Save As is the default write path, Overwrite is a separately named command, and §10's path formatter shows the full final two path components in every destructive confirmation. Revisit if real usage shows users overwriting into browser-download or archive-extraction directories.
@@ -379,18 +417,54 @@ Cover settings migration and failure, recent pruning and deduplication, revision
 
 ### Security test corpus
 
-Each `FIX` disposition in §9 is backed by at least one named test:
+Every §9 row dispositioned `FIX` maps to a named test below. Rows dispositioned `FIX (wording)` (GAP, B12) have no behavior to test and are excluded by construction; B13 is deferred. This table *is* the gate referenced by P4's acceptance and by §14 — a `FIX` row absent from it is a plan defect, not an implementation detail.
 
-- Link in an **intermediate directory component**, not only the leaf; hardlinked original; Windows junction and non-symlink reparse tags (A1).
-- Pre-planted temp and backup paths as symlink, hardlink, and plain file (A2).
-- Non-regular open targets: FIFO, device, named pipe, oversized file (A4).
-- Tampered `settings.json` corpus: UNC path, device path, oversized and deeply nested JSON, negative and `int.MaxValue` window size, 100k recents, bidi and control characters in paths, unknown schema version (A3, A9, A10).
-- Cross-volume, removable-media, and destination-held-open replace; durability ordering including directory fsync (B2).
-- Backup write failing mid-way on a full or read-only volume, with the overwrite correctly refusing (B1).
-- Round-trip falsification: a deliberately lossy codec that *declares* unknown-data preservation must be caught and downgraded (B4).
-- Codec throwing from `Validate` after backup, and from `Serialize` at 90% completion (B5); codec ignoring the cancellation token and returning late (B6).
-- Linux case-sensitive recents deduplication (B7).
-- Mode preservation across replace: a `0600` original stays `0600` (A6).
+| Finding | Named test | Owning phase |
+| --- | --- | --- |
+| A1 | `SafePath_RejectsLinkInIntermediateComponent` | P0 |
+| A1 | `SafePath_RejectsJunctionAndNonSymlinkReparseTags` | P0 |
+| A1 | `SafePath_ConfirmsWhenHardlinkCountExceedsOne` | P0 |
+| A4 | `SafePath_RefusesFifoDeviceAndNamedPipe` | P0 |
+| A4 | `SafePath_RefusesInputAboveConfiguredSizeCap` | P0 |
+| A3 | `Settings_RejectsUncAndDeviceNamespacePaths` | P1 |
+| A3 | `Recents_DoesNotProbeFilesystemDuringStartup` | P1 |
+| A9 | `ApplicationId_RejectsTraversalReservedNamesAndSeparators` | P1 |
+| A10 | `Settings_RejectsPolymorphicTypeDiscriminators` | P1 |
+| A10 | `Settings_EnforcesSizeDepthAndCountCapsOnRead` | P1 |
+| A10 | `Settings_ClampsWindowSizeToScreenBounds` | P1 |
+| A10 | `Settings_UnknownSchemaVersionRoutesToMalformedPath` | P1 |
+| B7 | `Recents_DeduplicatesOrdinallyOnLinuxAndIgnoreCaseOnWindows` | P1 |
+| B9 | `Settings_SecondMalformedStartupPreservesFirstBackup` | P1 |
+| A13 | `PathFormatter_StripsBidiAndShowsFinalTwoComponents` | P2 |
+| A2 | `Workflow_AbortsWhenTempOrBackupPathPrePlantedAsLink` | P4 |
+| A2 | `Workflow_TempNameCarriesEntropyAndUsesExclusiveCreate` | P4 |
+| A5 | `Workflow_AbortsWhenContentChangesBetweenCheckAndReplace` | P4 |
+| A5 | `Workflow_MetadataOnlyMatchDoesNotSatisfyPositiveGuard` | P4 |
+| A6 | `Workflow_PreservesModeSoZeroSixHundredStaysZeroSixHundred` | P4 |
+| A6 | `Workflow_AbortsWhenReplaceWouldWidenPermissions` | P4 |
+| A7 | `Workflow_ConfirmsOverwriteEvenWhenPickerDeclaresConfirmation` | P4 |
+| A8 | `Dialogs_SanitizeAndCapCodecSuppliedWarningText` | P4 |
+| A8 | `Dialogs_ShowMostSevereEightWarningsNotFirstEight` | P4 |
+| A11 | `Detection_ThrowingDetectorIsDeclinedNotFatal` | P4 |
+| A11 | `Detection_DetectorReceivesBoundedHeaderSliceOnly` | P4 |
+| A12 | `Workflow_RefusesReadOnlyTargetWithoutClearingAttribute` | P4 |
+| A14 | `Workflow_StartupSweepRemovesOnlyPrefixedAgedTempFiles` | P4 |
+| B1 | `Workflow_AbortsOverwriteWhenBackupWriteFailsMidway` | P4 |
+| B1 | `Workflow_AbortsOverwriteWhenBackupHashMismatchesBaseline` | P4 |
+| B2 | `Workflow_FsyncsFileAndContainingDirectoryInOrder` | P4 |
+| B2 | `Workflow_AbortsRatherThanFallingBackToDeleteThenMove` | P4 |
+| B3 | `Workflow_TargetBytesUnchangedAfterFailureAtEveryStage` | P4 |
+| B4 | `Workflow_DowngradesFalsifiedUnknownDataCapabilityClaim` | P4 |
+| B4 | `Workflow_DetectsLossySerializerViaPreReplaceRoundTrip` | P4 |
+| B5 | `Workflow_CodecThrowFromValidateAfterBackupLeavesTargetIntact` | P4 |
+| B5 | `Workflow_CodecThrowMidSerializeNeverReachesReplace` | P4 |
+| B6 | `Workflow_DiscardsLateResultFromCancelledOperation` | P4 |
+| B8 | `Backup_TwoOverwritesWithinOneSecondDoNotCollide` | P4 |
+| B8 | `Backup_RetentionCapAppliesOnlyToFrameworkGrammar` | P4 |
+| B10 | `FailurePolicy_SettingsFailSoftWhileSaveFailsLoud` | P4 |
+| B11 | `Validation_ErrorsBlockSaveAsToNewPathAndOverwriteAlike` | P4 |
+
+Platform-specific rows run on the platform they describe; cross-volume, removable-media, and destination-held-open replace cases (B2) run on both.
 
 ### Headless UI tests
 
@@ -428,8 +502,9 @@ Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance 
 - **`SafePath` implementation** — moved here from revision 1's Phase 4 because the workflow, settings, recents, and backup paths all depend on it, and because A1 changes the shape of the primitive rather than adding tests to it.
 - Palette pin plus the `eng/` generator and semantic resource names.
 - Test fixtures, the headless harness, and the screenshot harness skeleton — moved here from revision 1's Phase 6 so later phases can assert visually as they land.
+- **Minimal two-platform CI bootstrap** in `.github/workflows/` — restore, build, and test on Windows and Ubuntu, nothing else. Moved here from revision 1's Phase 6 because P0's acceptance asserts two-platform behavior and cannot demonstrate it otherwise. P6 extends this same workflow with the screenshot review gate, the manual Wayland job, and packaging; it does not create CI from scratch.
 
-**Acceptance:** solution restores and builds on Windows and Ubuntu with every dependency at its pinned version; `SafePath` unit tests pass including intermediate-component link rejection, non-regular-file refusal, and identity re-assertion; one placeholder headless test and one placeholder screenshot comparison both run in CI.
+**Acceptance:** solution restores and builds on Windows and Ubuntu with every dependency at its pinned version; `SafePath` tests pass on both platforms, including `SafePath_RejectsLinkInIntermediateComponent`, `SafePath_RejectsJunctionAndNonSymlinkReparseTags`, `SafePath_ConfirmsWhenHardlinkCountExceedsOne`, `SafePath_RefusesFifoDeviceAndNamedPipe`, and `SafePath_RefusesInputAboveConfiguredSizeCap`; one placeholder headless test and one placeholder screenshot comparison run green in the P0 CI workflow. Every artifact named here is delivered by P0 itself.
 
 ### P1 — Theme and primitives
 
@@ -437,10 +512,11 @@ Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance 
 **Outcome:** both themes and all 14 accents render correctly, meet the §5 contrast contract, and persist across restart.
 
 - Generated Latte/Mocha resources, derived accent ramps, semantic styles, embedded Inter, custom default control themes.
-- Settings store *implementation* (interface came from P0) — needed here, not in Phase 4, because §5 requires theme and accent to persist.
+- Settings store *implementation* (interface came from P0) — needed here, not in P4, because §5 requires theme and accent to persist.
+- **The settings trust boundary of §6 in full**, including `ApplicationId` validation, bounded deserialization, path validation, lazy recents, and backup preservation. P1 owns this because P1 ships the implementation; leaving the hardening to P4 would ship a security-relevant trust boundary with acceptance covering only theme persistence.
 - Gallery token and control pages.
 
-**Acceptance:** a test enumerates 14 accents × 2 modes and asserts every ratio in §5's table; the resource-resolution test proves no view references a raw palette key; the generator reproduces committed resources with no drift; theme and accent survive a simulated restart; the gallery token page produces stable baselines in both modes.
+**Acceptance:** a test enumerates 14 accents × 2 modes and asserts every ratio in §5's table against the enumerated text-bearing surfaces; the resource-resolution test proves no view references a raw palette key; the generator reproduces committed resources with no drift; theme and accent survive a simulated restart; the gallery token page produces stable baselines in both modes; and the P1-owned rows of §12's security table pass — A3, A9, A10, B7, and B9.
 
 ### P2 — Shell
 
@@ -449,8 +525,21 @@ Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance 
 
 - `EditorShell`, menus, slots, section descriptors, welcome state, sidebar, status bar, responsive behavior, keyboard commands, drag/drop adapter, and the `IEditorHost` seam.
 - Open and save commands route through a stubbed `IDocumentSession`; the real codec registry and `SafeFileWorkflow` arrive in P4. Recents render from the P1 settings store.
+- The shared path-display formatter of §10, used by the sidebar, status bar, and recents menu.
 
-**Acceptance:** headless tests prove Exit with pending edits raises the guard and does *not* shut down; every menu command routes to its handler; tab order and accessible names are correct; the welcome state lists recents; an injected drop path reaches the same open entry point as the menu. Stubbed behavior is named explicitly, and the acceptance checks it defers are recorded against P4.
+**Acceptance:** headless tests prove Exit with pending edits raises the guard and does *not* shut down; every menu command routes to its handler; tab order and accessible names are correct; the welcome state lists recents; an injected drop path reaches the same open entry point as the menu; `PathFormatter_StripsBidiAndShowsFinalTwoComponents` passes (A13).
+
+**Checks deferred to P4.** The stubbed `IDocumentSession` cannot prove the following. This list is finite and is the exact set P4's acceptance refers to:
+
+| ID | Deferred check |
+| --- | --- |
+| D1 | Open Save decodes a real file through the codec registry and reports detected format |
+| D2 | Save As writes through `SafeFileWorkflow` and reports a definitive success or failure status |
+| D3 | Overwrite + Backup produces a verified backup and refuses when the backup cannot be verified |
+| D4 | Reload re-reads from disk and guards pending edits |
+| D5 | A dropped path opens through the real workflow, not merely reaching the entry point |
+| D6 | Activating a recent entry opens a real document and prunes a confirmed-missing path at that moment |
+| D7 | The status bar reports real path, last backup, progress, and cancellation sourced from the workflow |
 
 ### P3 — Editing surface
 
@@ -463,13 +552,13 @@ Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance 
 
 ### P4 — Services and safety
 
-**Prerequisites:** P0, P2, P3.
-**Outcome:** the safe file workflow is implemented and every `FIX` disposition in §9 is closed by a passing test.
+**Prerequisites:** P0, P1, P2, P3. P1 is required because the workflow consumes the settings and recents store it delivers, and because §12's settings rows are owned there.
+**Outcome:** the safe file workflow is implemented and every test-backed `FIX` disposition in §9 is closed by a passing test.
 
 - `SafeFileWorkflow` on the P0 `SafePath` primitive; codec registry and detection; backup, temp write, and atomic replace; permission preservation; round-trip verification; external-change guards; `IUserInteraction` default dialogs; progress, cancellation, and status announcements.
 - Replaces P2's stubbed document session with the real workflow.
 
-**Acceptance:** the full security corpus in §12 passes on both platforms; every §9 `FIX` row maps to a named passing test; the P2 acceptance checks deferred to this phase now pass against the real workflow.
+**Acceptance:** every P4-owned row of §12's security table passes on both platforms; every §9 row dispositioned `FIX` (excluding the two `FIX (wording)` rows, which have no test by construction) maps to a passing test in that table; and P2's deferred checks D1 through D7 all pass against the real workflow.
 
 ### P5 — Template and adoption
 
@@ -483,11 +572,11 @@ Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance 
 **Prerequisites:** P5.
 **Outcome:** the `1.0` public contract is frozen and every release gate is green.
 
-- Ubuntu/Windows CI, screenshot review workflow, manual Wayland job, accessibility checklist, third-party notices, package metadata.
+- Extend P0's CI workflow with the screenshot review gate, the manual Wayland job, packaging, and the accessibility checklist; finalize third-party notices and package metadata.
 - Design review of the gallery against `mockup/index.html`.
 
 **Acceptance:** all gates in §14 pass on a clean checkout.
 
 ## 14. Definition of done
 
-V1 is complete when both packages pack and install, the generated app runs without manual framework wiring, the gallery demonstrates every promised control in Latte and Mocha across all 14 accents, the §5 contrast contract passes for every accent and mode, every `FIX` disposition in §9 is closed by a passing test, the safe workflow and its failure paths are tested on both platforms, the Ubuntu screenshot baselines compare clean and reproducibly, the Ubuntu/Windows behavioral checks pass, the Wayland smoke checklist is executable, accessibility gates pass, and the README is sufficient for a new editor author to replace the demo codec — and to understand, from §8, exactly what the framework does and does not defend against.
+V1 is complete when both packages pack and install, the generated app runs without manual framework wiring, the gallery demonstrates every promised control in Latte and Mocha across all 14 accents, the §5 contrast contract passes for every accent and mode against the enumerated text-bearing surfaces, every row of §12's security table passes on its owning platform, every §9 row dispositioned `FIX` appears in that table and passes (the two `FIX (wording)` rows are closed by §8's text and carry no test), P2's deferred checks D1–D7 pass, the Ubuntu screenshot baselines compare clean and reproducibly, the Ubuntu/Windows behavioral checks pass, the Wayland smoke checklist is executable, accessibility gates pass, and the README is sufficient for a new editor author to replace the demo codec — and to understand, from §8, exactly what the framework does and does not defend against.
