@@ -82,6 +82,14 @@ public enum SaveFailureReason
     /// <summary>The input exceeded a configured bound.</summary>
     TooLarge,
 
+    /// <summary>Another operation is already using this document's retained handle.</summary>
+    /// <remarks>
+    /// Refused rather than queued. Two operations on one open document would race the shared
+    /// stream position, and a save that silently waited its turn would report success for a
+    /// document state the user never asked to write.
+    /// </remarks>
+    Busy,
+
     /// <summary>An unexpected fault was contained at the workflow boundary.</summary>
     Unexpected,
 }

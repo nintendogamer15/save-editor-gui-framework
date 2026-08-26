@@ -74,6 +74,7 @@ public enum UnknownDataVerification
 public sealed class OpenSaveFile<TDocument> : IDisposable
 {
     private ResolvedFile _file;
+    private int _busy;
     private bool _disposed;
 
     internal OpenSaveFile(
@@ -130,6 +131,27 @@ public sealed class OpenSaveFile<TDocument> : IDisposable
     public bool IsStale { get; internal set; }
 
     internal ResolvedFile File => _file;
+
+    /// <summary>Claims exclusive use of this file for one operation.</summary>
+    /// <returns><see langword="false"/> when another operation already holds it.</returns>
+    /// <remarks>
+    /// <para>
+    /// Every workflow operation that touches this document's handle reads or writes the
+    /// <em>shared</em> <see cref="FileStream"/> position: the change guard seeks to zero to
+    /// re-hash, and the backup copy seeks to zero to read. Two concurrent operations would
+    /// interleave those seeks and produce a backup or a baseline covering part of one read and
+    /// part of another — with nothing detecting it, because each step individually succeeded.
+    /// </para>
+    /// <para>
+    /// So it fails fast rather than queuing. A save that silently waited behind another save
+    /// would report success for a document state the user never asked to write, and the
+    /// correct answer to "two saves at once" is that the second one did not happen.
+    /// </para>
+    /// </remarks>
+    internal bool TryEnter() => Interlocked.CompareExchange(ref _busy, 1, 0) == 0;
+
+    /// <summary>Releases the claim taken by <see cref="TryEnter"/>.</summary>
+    internal void Exit() => Interlocked.Exchange(ref _busy, 0);
 
     internal void Rebind(ResolvedFile file, ContentBaseline baseline)
     {
