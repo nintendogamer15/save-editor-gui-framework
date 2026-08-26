@@ -1,0 +1,218 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="clr-namespace:SaveEditor.Ui.Shell"
+             x:Class="SaveEditor.Ui.Shell.EditorShell"
+             x:DataType="shell:EditorShellViewModel"
+             x:Name="Root"
+             Background="{DynamicResource WindowBackground}"
+             FontFamily="{DynamicResource FontFamilyDefault}">
+
+  <UserControl.KeyBindings>
+    <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenSaveCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveAsCommand}" />
+    <KeyBinding Gesture="Ctrl+R" Command="{Binding ReloadCommand}" />
+    <KeyBinding Gesture="Ctrl+W" Command="{Binding CloseCommand}" />
+    <KeyBinding Gesture="Ctrl+Z" Command="{Binding UndoCommand}" />
+    <KeyBinding Gesture="Ctrl+Y" Command="{Binding RedoCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+Z" Command="{Binding RedoCommand}" />
+  </UserControl.KeyBindings>
+
+  <DockPanel>
+
+    <!-- Menus are always in-window, on every platform. -->
+    <Menu DockPanel.Dock="Top"
+          Background="{DynamicResource PanelBackground}"
+          Padding="6,2">
+
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open Save…" Command="{Binding OpenSaveCommand}" InputGesture="Ctrl+O" />
+        <MenuItem Header="Open _Folder…" Command="{Binding OpenSaveCommand}" />
+        <MenuItem Header="_Recent" ItemsSource="{Binding RecentFiles}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}" />
+            </DataTemplate>
+          </MenuItem.ItemTemplate>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="Save _As…" Command="{Binding SaveAsCommand}" InputGesture="Ctrl+S" />
+        <MenuItem Header="Over_write + Backup…" Command="{Binding OverwriteWithBackupCommand}" />
+        <Separator />
+        <MenuItem Header="Re_load" Command="{Binding ReloadCommand}" InputGesture="Ctrl+R" />
+        <MenuItem Header="_Close" Command="{Binding CloseCommand}" InputGesture="Ctrl+W" />
+        <Separator />
+        <MenuItem Header="E_xit"
+                  Command="{Binding ExitCommand}"
+                  IsVisible="{Binding CanExit}" />
+      </MenuItem>
+
+      <MenuItem Header="_Edit">
+        <MenuItem Header="_Undo" Command="{Binding UndoCommand}" InputGesture="Ctrl+Z" />
+        <MenuItem Header="_Redo" Command="{Binding RedoCommand}" InputGesture="Ctrl+Y" />
+      </MenuItem>
+
+      <MenuItem Header="_View">
+        <MenuItem Header="_Appearance" IsVisible="{Binding CanChangeAppearance}">
+          <MenuItem Header="_Themes" ItemsSource="{Binding ThemeModes}">
+            <MenuItem.ItemContainerTheme>
+              <ControlTheme TargetType="MenuItem">
+                <Setter Property="Header" Value="{Binding}" />
+                <Setter Property="Command"
+                        Value="{Binding $parent[shell:EditorShell].DataContext.SetThemeCommand}" />
+                <Setter Property="CommandParameter" Value="{Binding}" />
+              </ControlTheme>
+            </MenuItem.ItemContainerTheme>
+          </MenuItem>
+          <MenuItem Header="A_ccent" ItemsSource="{Binding Accents}">
+            <MenuItem.ItemContainerTheme>
+              <ControlTheme TargetType="MenuItem">
+                <Setter Property="Header" Value="{Binding}" />
+                <Setter Property="Command"
+                        Value="{Binding $parent[shell:EditorShell].DataContext.SetAccentCommand}" />
+                <Setter Property="CommandParameter" Value="{Binding}" />
+              </ControlTheme>
+            </MenuItem.ItemContainerTheme>
+          </MenuItem>
+          <Separator />
+          <MenuItem Header="_Reset accent to editor default" Command="{Binding ResetAccentCommand}" />
+        </MenuItem>
+      </MenuItem>
+
+      <MenuItem Header="_Help">
+        <MenuItem Header="_About and credits" />
+        <MenuItem Header="_Safety and manual testing" />
+      </MenuItem>
+
+      <ContentControl Content="{Binding MenuExtensions, ElementName=Root}" />
+    </Menu>
+
+    <!-- Status bar is the canonical outcome channel. -->
+    <Border DockPanel.Dock="Bottom"
+            Background="{DynamicResource PanelBackground}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,1,0,0"
+            Padding="12,6">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Grid.Column="0"
+                   Text="{Binding StatusMessage}"
+                   Foreground="{DynamicResource Foreground}"
+                   TextTrimming="CharacterEllipsis"
+                   VerticalAlignment="Center"
+                   AutomationProperties.LiveSetting="Polite"
+                   AutomationProperties.Name="Status" />
+        <ContentControl Grid.Column="1"
+                        Content="{Binding StatusBarExtension, ElementName=Root}"
+                        Margin="12,0,0,0" />
+        <TextBlock Grid.Column="2"
+                   Text="{Binding Title}"
+                   Foreground="{DynamicResource MutedForeground}"
+                   Margin="12,0,0,0"
+                   VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <!-- Header actions: the framework's four, then the editor's. -->
+    <Border DockPanel.Dock="Top"
+            Background="{DynamicResource PanelBackground}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,0,1"
+            Padding="12,8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Open Save"
+                Classes="accent"
+                Command="{Binding OpenSaveCommand}"
+                AutomationProperties.Name="Open Save" />
+        <Button Content="Save As"
+                Command="{Binding SaveAsCommand}"
+                AutomationProperties.Name="Save As" />
+        <Button Content="Undo"
+                Command="{Binding UndoCommand}"
+                AutomationProperties.Name="Undo" />
+        <Button Content="Redo"
+                Command="{Binding RedoCommand}"
+                AutomationProperties.Name="Redo" />
+        <ContentControl Content="{Binding HeaderActions, ElementName=Root}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Sidebar: framework navigation, then editor content. -->
+    <Border DockPanel.Dock="Left"
+            Width="248"
+            Background="{DynamicResource PanelBackground}"
+            BorderBrush="{DynamicResource Border}"
+            BorderThickness="0,0,1,0">
+      <DockPanel>
+        <ContentControl DockPanel.Dock="Top"
+                        Content="{Binding Branding, ElementName=Root}"
+                        Margin="14,14,14,8" />
+
+        <ContentControl DockPanel.Dock="Bottom"
+                        Content="{Binding SidebarExtension, ElementName=Root}"
+                        Margin="14,8,14,14" />
+
+        <ListBox ItemsSource="{Binding Sections}"
+                 SelectedItem="{Binding SelectedSection}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Margin="6"
+                 AutomationProperties.Name="Sections">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="shell:SectionDescriptor">
+              <StackPanel Margin="6,4">
+                <TextBlock Text="{Binding Title}" Foreground="{DynamicResource Foreground}" />
+                <TextBlock Text="{Binding Subtitle}"
+                           Foreground="{DynamicResource SubtleForeground}"
+                           FontSize="11"
+                           IsVisible="{Binding Subtitle, Converter={x:Static ObjectConverters.IsNotNull}}" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <!-- Content: welcome state until a document is open. -->
+    <Panel>
+      <ScrollViewer IsVisible="{Binding !IsWelcomeVisible}">
+        <ContentControl Content="{Binding SelectedSection.Body}" Margin="20" />
+      </ScrollViewer>
+
+      <StackPanel IsVisible="{Binding IsWelcomeVisible}"
+                  VerticalAlignment="Center"
+                  HorizontalAlignment="Center"
+                  MaxWidth="420"
+                  Spacing="10">
+        <TextBlock Text="No save open"
+                   Foreground="{DynamicResource Foreground}"
+                   FontSize="22"
+                   HorizontalAlignment="Center" />
+        <TextBlock Text="Open a save file to begin editing."
+                   Foreground="{DynamicResource MutedForeground}"
+                   HorizontalAlignment="Center" />
+        <Button Content="Open Save…"
+                Classes="accent"
+                Command="{Binding OpenSaveCommand}"
+                HorizontalAlignment="Center"
+                Margin="0,6,0,10" />
+
+        <TextBlock Text="Recent"
+                   Foreground="{DynamicResource MutedForeground}"
+                   FontSize="12"
+                   IsVisible="{Binding RecentFiles.Count}" />
+        <ItemsControl ItemsSource="{Binding RecentFiles}"
+                      AutomationProperties.Name="Recent files">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="x:String">
+              <TextBlock Text="{Binding}"
+                         Foreground="{DynamicResource PrimaryText}"
+                         TextTrimming="CharacterEllipsis"
+                         Margin="0,2" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Panel>
+
+  </DockPanel>
+
+</UserControl>

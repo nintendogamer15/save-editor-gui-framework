@@ -1,0 +1,367 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using SaveEditor.Ui.Hosting;
+using SaveEditor.Ui.Interaction;
+using SaveEditor.Ui.Settings;
+using SaveEditor.Ui.Theming;
+
+namespace SaveEditor.Ui.Shell;
+
+/// <summary>
+/// Drives the editor shell: sections, menu commands, dirty state, and the guard
+/// that stands between unsaved work and losing it.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Every destructive navigation — open, reload, close, exit — funnels through
+/// <see cref="ConfirmDiscardAsync"/>. One guard rather than four means a new entry
+/// point cannot quietly bypass it, which is the usual way this class of bug ships.
+/// </para>
+/// <para>
+/// The view-model holds no Avalonia controls and can be driven entirely from tests.
+/// </para>
+/// </remarks>
+public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
+{
+    private readonly IDocumentSession _session;
+    private readonly IUserInteraction _interaction;
+    private readonly IEditorSettingsStore _settings;
+    private readonly IEditorHost? _host;
+    private readonly ThemeController? _theme;
+    private readonly List<SectionDescriptor> _allSections = [];
+    private bool _disposed;
+
+    /// <summary>Creates a shell view-model.</summary>
+    /// <param name="session">The document seam.</param>
+    /// <param name="interaction">Dialogs and pickers.</param>
+    /// <param name="settings">Where recents and the last section live.</param>
+    /// <param name="host">
+    /// Window and application authority, or <see langword="null"/> when the shell is
+    /// embedded somewhere that owns neither. With no host, Exit is unavailable rather
+    /// than present and inert.
+    /// </param>
+    /// <param name="theme">
+    /// Appearance control, or <see langword="null"/> to omit the appearance menus.
+    /// </param>
+    public EditorShellViewModel(
+        IDocumentSession session,
+        IUserInteraction interaction,
+        IEditorSettingsStore settings,
+        IEditorHost? host = null,
+        ThemeController? theme = null)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(interaction);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        _session = session;
+        _interaction = interaction;
+        _settings = settings;
+        _host = host;
+        _theme = theme;
+
+        _session.StateChanged += OnSessionStateChanged;
+        _host?.SetShutdownGuard(ct => ConfirmDiscardAsync(DiscardReason.Exit, ct));
+    }
+
+    /// <summary>What the user is about to do that could lose uncommitted work.</summary>
+    public enum DiscardReason
+    {
+        /// <summary>Opening a different document.</summary>
+        Open,
+
+        /// <summary>Re-reading the current document from disk.</summary>
+        Reload,
+
+        /// <summary>Closing the current document.</summary>
+        Close,
+
+        /// <summary>Leaving the application.</summary>
+        Exit,
+    }
+
+    /// <summary>Sections currently visible, in registration order.</summary>
+    public ObservableCollection<SectionDescriptor> Sections { get; } = [];
+
+    /// <summary>Recent file paths, most recent first.</summary>
+    public ObservableCollection<string> RecentFiles { get; } = [];
+
+    /// <summary>Whether Exit is offered at all.</summary>
+    public bool CanExit => _host is not null;
+
+    /// <summary>Whether the appearance menus are offered.</summary>
+    public bool CanChangeAppearance => _theme is not null;
+
+    /// <summary>The two theme modes, for the Appearance menu.</summary>
+    public IReadOnlyList<ThemeMode> ThemeModes { get; } = Enum.GetValues<ThemeMode>();
+
+    /// <summary>All fourteen accents, for the Appearance menu.</summary>
+    public IReadOnlyList<CatppuccinAccent> Accents { get; } = Enum.GetValues<CatppuccinAccent>();
+
+    /// <summary>Whether the welcome state is showing instead of a document.</summary>
+    public bool IsWelcomeVisible => !_session.HasDocument;
+
+    /// <summary>Whether there is uncommitted or unsaved work.</summary>
+    public bool HasUnsavedWork => _session.IsDirty || _session.HasPendingEdits;
+
+    /// <summary>Window title, carrying a dirty marker.</summary>
+    public string Title
+    {
+        get
+        {
+            var name = _session.CurrentPath is { } path ? Path.GetFileName(path) : "No save open";
+            return HasUnsavedWork ? $"{name} *" : name;
+        }
+    }
+
+    /// <summary>The currently selected section.</summary>
+    [ObservableProperty]
+    public partial SectionDescriptor? SelectedSection { get; set; }
+
+    /// <summary>Full-sentence outcome of the last operation.</summary>
+    [ObservableProperty]
+    public partial string StatusMessage { get; set; } = "Ready.";
+
+    /// <summary>Registers the editor's sections and evaluates their visibility.</summary>
+    /// <param name="sections">Descriptors, in the order they should appear.</param>
+    public void RegisterSections(IEnumerable<SectionDescriptor> sections)
+    {
+        ArgumentNullException.ThrowIfNull(sections);
+
+        _allSections.Clear();
+        _allSections.AddRange(sections);
+        RefreshSections();
+    }
+
+    /// <summary>Re-evaluates section visibility predicates and the selection.</summary>
+    public void RefreshSections()
+    {
+        var visible = _allSections.Where(s => s.EvaluateVisibility()).ToList();
+
+        Sections.Clear();
+        foreach (var section in visible)
+        {
+            Sections.Add(section);
+        }
+
+        // A selection that just became invisible would otherwise leave the content
+        // pane showing a section the sidebar no longer offers.
+        if (SelectedSection is null || !visible.Contains(SelectedSection))
+        {
+            SelectedSection = visible.FirstOrDefault();
+        }
+    }
+
+    /// <summary>Loads persisted recents and the last selected section.</summary>
+    /// <param name="cancellationToken">Cancels the load.</param>
+    public async ValueTask InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        var settings = await _settings.LoadAsync(cancellationToken).ConfigureAwait(true);
+
+        RecentFiles.Clear();
+        foreach (var path in settings.RecentFiles)
+        {
+            RecentFiles.Add(path);
+        }
+
+        if (settings.LastSectionKey is { } key)
+        {
+            var match = Sections.FirstOrDefault(s => string.Equals(s.Key, key, StringComparison.Ordinal));
+            if (match is not null)
+            {
+                SelectedSection = match;
+            }
+        }
+
+        NotifyDocumentState();
+    }
+
+    /// <summary>
+    /// Asks the user to accept losing uncommitted work, if there is any.
+    /// </summary>
+    /// <param name="reason">What the user is about to do.</param>
+    /// <param name="cancellationToken">Cancels the prompt.</param>
+    /// <returns><see langword="true"/> when it is safe to proceed.</returns>
+    /// <remarks>
+    /// Returns <see langword="true"/> immediately when nothing would be lost, so the
+    /// common path shows no dialog. The accept label names the outcome rather than
+    /// saying "OK", because this is the last thing standing between a user and their
+    /// unsaved edits.
+    /// </remarks>
+    public async ValueTask<bool> ConfirmDiscardAsync(
+        DiscardReason reason,
+        CancellationToken cancellationToken = default)
+    {
+        if (!HasUnsavedWork)
+        {
+            return true;
+        }
+
+        var what = _session.HasPendingEdits && _session.IsDirty
+            ? "unapplied edits and unsaved changes"
+            : _session.HasPendingEdits ? "unapplied edits" : "unsaved changes";
+
+        var request = new ConfirmationRequest
+        {
+            Title = "Discard changes?",
+            Message = $"This save has {what}. They will be lost if you continue.",
+            AcceptLabel = reason switch
+            {
+                DiscardReason.Open => "Discard and open",
+                DiscardReason.Reload => "Discard and reload",
+                DiscardReason.Close => "Discard and close",
+                _ => "Discard and exit",
+            },
+            IsDestructive = true,
+        };
+
+        return await _interaction.ConfirmAsync(request, cancellationToken).ConfigureAwait(true);
+    }
+
+    /// <summary>Opens a path that did not come from a picker — a recent entry or a drop.</summary>
+    /// <param name="path">The path to open.</param>
+    /// <param name="cancellationToken">Cancels the open.</param>
+    /// <remarks>
+    /// Drag-and-drop, the recents menu, and the File menu all land here, so a dropped
+    /// file cannot skip the discard guard that a menu open would have raised.
+    /// </remarks>
+    public async ValueTask OpenPathAsync(string path, CancellationToken cancellationToken = default)
+    {
+        if (!await ConfirmDiscardAsync(DiscardReason.Open, cancellationToken).ConfigureAwait(true))
+        {
+            StatusMessage = "Open cancelled. The current save is unchanged.";
+            return;
+        }
+
+        await _session.OpenAsync(path, cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private async Task OpenSaveAsync(CancellationToken cancellationToken)
+    {
+        var request = new FilePickerRequest("Open save", []);
+        var chosen = await _interaction.PickOpenFileAsync(request, cancellationToken).ConfigureAwait(true);
+
+        if (chosen is not null)
+        {
+            await OpenPathAsync(chosen, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SaveAsAsync(CancellationToken cancellationToken)
+    {
+        await _session.SaveAsAsync(cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private async Task OverwriteWithBackupAsync(CancellationToken cancellationToken)
+    {
+        await _session.OverwriteWithBackupAsync(cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private async Task ReloadAsync(CancellationToken cancellationToken)
+    {
+        if (!await ConfirmDiscardAsync(DiscardReason.Reload, cancellationToken).ConfigureAwait(true))
+        {
+            StatusMessage = "Reload cancelled. The current save is unchanged.";
+            return;
+        }
+
+        await _session.ReloadAsync(cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private async Task CloseAsync(CancellationToken cancellationToken)
+    {
+        if (!await ConfirmDiscardAsync(DiscardReason.Close, cancellationToken).ConfigureAwait(true))
+        {
+            StatusMessage = "Close cancelled. The current save is unchanged.";
+            return;
+        }
+
+        await _session.CloseAsync(cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private async Task ExitAsync(CancellationToken cancellationToken)
+    {
+        // The host consults the guard installed in the constructor, so Exit and the
+        // window close button take the same path and neither can skip it.
+        if (_host is not null)
+        {
+            await _host.RequestShutdownAsync(cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SetThemeAsync(ThemeMode mode, CancellationToken cancellationToken)
+    {
+        if (_theme is not null)
+        {
+            await _theme.SetModeAsync(mode, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task SetAccentAsync(CatppuccinAccent accent, CancellationToken cancellationToken)
+    {
+        if (_theme is not null)
+        {
+            await _theme.SetAccentAsync(accent, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ResetAccentAsync(CancellationToken cancellationToken)
+    {
+        if (_theme is not null)
+        {
+            await _theme.ResetAccentAsync(cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    [RelayCommand]
+    private void Undo()
+    {
+        _session.Undo();
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private void Redo()
+    {
+        _session.Redo();
+        NotifyDocumentState();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _session.StateChanged -= OnSessionStateChanged;
+    }
+
+    private void OnSessionStateChanged(object? sender, EventArgs e) => NotifyDocumentState();
+
+    private void NotifyDocumentState()
+    {
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(HasUnsavedWork));
+        OnPropertyChanged(nameof(IsWelcomeVisible));
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
+    }
+}
