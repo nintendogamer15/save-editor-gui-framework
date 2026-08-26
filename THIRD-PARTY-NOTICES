@@ -1,0 +1,58 @@
+THIRD-PARTY NOTICES
+===================
+
+This product bundles or depends on the following third-party components.
+The framework's own source is licensed 0BSD (see LICENSE).
+
+
+Catppuccin Palette
+------------------
+Colour values are generated from the Catppuccin palette at a pinned revision.
+
+  Source:   https://github.com/catppuccin/palette
+  File:     palette.json
+  Revision: 07d02aa110ef9eb7e7427afca5c73ba9cf7f8ebd
+  License:  MIT
+
+Generated theme resources are derived values. Where a raw palette colour did
+not meet the contrast requirements of PLAN.md section 5, a darkened variant is
+generated; hue is preserved and the origin colour is recorded in the generated
+file.
+
+
+Inter (font)
+------------
+Inter is embedded via the Avalonia.Fonts.Inter package and shipped inside
+SaveEditor.Ui. Embedding is required for deterministic rendering: Inter is not
+present on a default Ubuntu image, and a name-resolved default would silently
+fall back and invalidate the screenshot baseline.
+
+  Source:  https://github.com/rsms/inter
+  License: SIL Open Font License 1.1 (OFL-1.1)
+
+The OFL requires that this notice accompany the font. The full licence text is
+distributed with the Avalonia.Fonts.Inter package.
+
+
+Avalonia
+--------
+  Source:  https://github.com/AvaloniaUI/Avalonia
+  License: MIT
+
+
+.NET Community Toolkit (CommunityToolkit.Mvvm)
+----------------------------------------------
+  Source:  https://github.com/CommunityToolkit/dotnet
+  License: MIT
+
+
+Microsoft.Extensions.DependencyInjection
+----------------------------------------
+  Source:  https://github.com/dotnet/runtime
+  License: MIT
+
+
+xUnit.net (test-time only; not redistributed)
+---------------------------------------------
+  Source:  https://github.com/xunit/xunit
+  License: Apache-2.0
