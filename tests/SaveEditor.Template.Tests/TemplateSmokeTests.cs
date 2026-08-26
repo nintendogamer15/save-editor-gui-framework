@@ -76,9 +76,8 @@ public sealed class TemplateSmokeTests
 
             var cancellationToken = TestContext.Current.CancellationToken;
 
-            var generatedCsproj = Directory
-                .GetFiles(generatedRoot, $"{GeneratedProjectName}.csproj", SearchOption.AllDirectories)
-                .Single();
+            var generatedCsproj = FindSingleFile(
+                generatedRoot, $"{GeneratedProjectName}.csproj", "the generated application project");
             Assert.Contains(
                 "PackageReference Include=\"SaveEditor.Ui\"",
                 await File.ReadAllTextAsync(generatedCsproj, cancellationToken));
@@ -106,9 +105,8 @@ public sealed class TemplateSmokeTests
 
             // 6. Run the generated project's own headless tests: a sample field
             // edit and a theme switch, exercised inside the generated app itself.
-            var generatedTestProject = Directory
-                .GetFiles(generatedRoot, "*.Tests.csproj", SearchOption.AllDirectories)
-                .Single();
+            var generatedTestProject = FindSingleFile(
+                generatedRoot, "*.Tests.csproj", "the generated test project");
 
             // dotnet test exits non-zero on any test failure, which RunAsync
             // above already turns into a thrown exception with the captured
@@ -133,10 +131,11 @@ public sealed class TemplateSmokeTests
                 ? $"{GeneratedProjectName}.exe"
                 : GeneratedProjectName;
 
-            var generatedExe = Directory
-                .GetFiles(Path.Combine(generatedRoot, "src"), appHostName, SearchOption.AllDirectories)
-                .Where(path => path.Contains(Path.Combine("bin", "Release"), StringComparison.OrdinalIgnoreCase))
-                .Single();
+            var generatedExe = FindSingleFile(
+                Path.Combine(generatedRoot, "src"),
+                appHostName,
+                "the generated apphost",
+                path => path.Contains(Path.Combine("bin", "Release"), StringComparison.OrdinalIgnoreCase));
 
             // Launching is a windowed process. The generated project's own headless
             // tests have already run above and cover the composition; this last step
@@ -164,6 +163,54 @@ public sealed class TemplateSmokeTests
             TryDeleteDirectory(workDirectory);
             TryDeleteDirectory(feedDirectory);
         }
+    }
+
+    /// <summary>
+    /// Locates exactly one file, and on failure says what was actually there.
+    /// </summary>
+    /// <remarks>
+    /// A bare <c>Single()</c> reports "Sequence contains no elements", which names
+    /// neither the pattern nor the directory and is close to useless when the
+    /// failure only reproduces on a platform you are not sitting at. Generation
+    /// is a black box driven through the real CLI, so when it produces something
+    /// unexpected the tree it produced is the whole diagnosis.
+    /// </remarks>
+    private static string FindSingleFile(
+        string root, string pattern, string what, Func<string, bool>? filter = null)
+    {
+        if (!Directory.Exists(root))
+        {
+            throw new InvalidOperationException(
+                $"Looking for {what} ('{pattern}'), but '{root}' does not exist at all.");
+        }
+
+        var all = Directory.GetFiles(root, pattern, SearchOption.AllDirectories);
+        var matches = filter is null ? all : all.Where(filter).ToArray();
+
+        if (matches.Length == 1)
+        {
+            return matches[0];
+        }
+
+        var tree = Directory
+            .GetFiles(root, "*", SearchOption.AllDirectories)
+            .Select(path => Path.GetRelativePath(root, path))
+            .Order(StringComparer.Ordinal)
+            .Take(60)
+            .ToList();
+
+        var listing = tree.Count == 0
+            ? "  (the directory is empty)"
+            : string.Join(Environment.NewLine, tree.Select(line => "  " + line));
+
+        var filtered = filter is not null && all.Length != matches.Length
+            ? $" ({all.Length} matched the pattern before filtering)"
+            : string.Empty;
+
+        throw new InvalidOperationException(
+            $"Expected exactly one file for {what} matching '{pattern}' under '{root}', "
+            + $"but found {matches.Length}{filtered}.{Environment.NewLine}"
+            + $"What is actually there:{Environment.NewLine}{listing}");
     }
 
     /// <summary>Whether a windowed process could actually start here.</summary>

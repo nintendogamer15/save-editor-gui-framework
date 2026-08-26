@@ -18,7 +18,7 @@
   },
   "primaryOutputs": [
     {
-      "path": "SaveEditor.Generated.slnx"
+      "path": "src/SaveEditor.Generated/SaveEditor.Generated.csproj"
     }
   ],
   "postActions": [
