@@ -8,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="../../src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
     <ProjectReference Include="../../eng/SaveEditor.ScreenshotDiff/SaveEditor.ScreenshotDiff.csproj" />
+    <ProjectReference Include="../../samples/SaveEditor.Ui.Gallery/SaveEditor.Ui.Gallery.csproj" />
   </ItemGroup>
 
 </Project>

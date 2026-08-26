@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
+using Avalonia.Styling;
 using Avalonia.Threading;
 
 namespace SaveEditor.Ui.HeadlessTests.Screenshots;
@@ -40,8 +41,13 @@ public static class ScreenshotHarness
 
     /// <summary>Renders a control and returns its pixels as BGRA8888.</summary>
     /// <param name="content">The control to render.</param>
+    /// <param name="variant">
+    /// Theme variant to render under, or <see langword="null"/> to inherit the
+    /// application's. Baselines are captured per variant, so this is how the same
+    /// screen produces both a Latte and a Mocha reference.
+    /// </param>
     /// <returns>Raw pixel buffer, <see cref="Width"/> by <see cref="Height"/>.</returns>
-    public static byte[] Capture(Control content)
+    public static byte[] Capture(Control content, ThemeVariant? variant = null)
     {
         ArgumentNullException.ThrowIfNull(content);
 
@@ -51,6 +57,11 @@ public static class ScreenshotHarness
             Height = Height,
             Content = content,
         };
+
+        if (variant is not null)
+        {
+            window.RequestedThemeVariant = variant;
+        }
 
         window.Show();
         Dispatcher.UIThread.RunJobs();

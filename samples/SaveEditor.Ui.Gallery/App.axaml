@@ -1,0 +1,12 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theming="clr-namespace:SaveEditor.Ui.Theming;assembly=SaveEditor.Ui"
+             x:Class="SaveEditor.Ui.Gallery.App"
+             RequestedThemeVariant="Dark">
+
+  <Application.Styles>
+    <FluentTheme />
+    <theming:SaveEditorTheme />
+  </Application.Styles>
+
+</Application>

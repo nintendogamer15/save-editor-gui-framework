@@ -3,6 +3,9 @@
     <Project Path="eng/SaveEditor.PaletteGen/SaveEditor.PaletteGen.csproj" />
     <Project Path="eng/SaveEditor.ScreenshotDiff/SaveEditor.ScreenshotDiff.csproj" />
   </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/SaveEditor.Ui.Gallery/SaveEditor.Ui.Gallery.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
   </Folder>

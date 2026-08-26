@@ -1,0 +1,244 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Framework-owned control themes. Avalonia's base theme supplies behaviour;
+    these supply the visual contract, so a control's appearance does not change
+    when the base theme is updated.
+
+    Every value here is a semantic resource. Nothing references a raw palette
+    name, and a resource-resolution test enforces that.
+
+    Focus uses FocusRing, which resolves to the derived accent ramp rather than
+    the raw accent: eleven of the fourteen raw Latte accents fall below the 3:1
+    non-text floor, so a raw-accent focus ring is invisible in the light theme.
+  -->
+
+  <Styles.Resources>
+
+  <ControlTheme x:Key="{x:Type Button}" TargetType="Button">
+    <Setter Property="Background" Value="{DynamicResource CardBackground}" />
+    <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamilyDefault}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="PART_Surface"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <ContentPresenter Name="PART_ContentPresenter"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+        </Border>
+      </ControlTemplate>
+    </Setter>
+
+    <Style Selector="^:pointerover /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource PanelBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
+    <Style Selector="^:pressed /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+    </Style>
+
+    <Style Selector="^:focus-visible /template/ Border#PART_Surface">
+      <Setter Property="BorderBrush" Value="{DynamicResource FocusRing}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <!-- Accent button: the accent is a fill here, and its text is the paired
+         on-accent foreground, never Foreground. -->
+    <Style Selector="^.accent">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimaryForeground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    </Style>
+    <Style Selector="^.accent:pointerover /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource PrimaryHover}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryHover}" />
+    </Style>
+    <Style Selector="^.accent:pressed /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource PrimaryPressed}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource PrimaryPressed}" />
+    </Style>
+
+    <!-- Destructive button: verb-specific labels are the caller's job; the colour
+         is ours. -->
+    <Style Selector="^.danger">
+      <Setter Property="Background" Value="{DynamicResource Danger}" />
+      <Setter Property="Foreground" Value="{DynamicResource OnPrimaryForeground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type TextBox}" TargetType="TextBox">
+    <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+    <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource Foreground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamilyDefault}" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Primary}" />
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource OnPrimaryForeground}" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Border Name="PART_Surface"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{TemplateBinding CornerRadius}">
+          <Panel>
+            <TextBlock Name="PART_Watermark"
+                       Text="{TemplateBinding Watermark}"
+                       Foreground="{DynamicResource SubtleForeground}"
+                       Margin="{TemplateBinding Padding}"
+                       IsVisible="{TemplateBinding Text, Converter={x:Static StringConverters.IsNullOrEmpty}}"
+                       VerticalAlignment="Center" />
+            <TextPresenter Name="PART_TextPresenter"
+                           Text="{TemplateBinding Text, Mode=TwoWay}"
+                           CaretBrush="{TemplateBinding CaretBrush}"
+                           SelectionBrush="{TemplateBinding SelectionBrush}"
+                           SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                           SelectionStart="{TemplateBinding SelectionStart}"
+                           SelectionEnd="{TemplateBinding SelectionEnd}"
+                           Margin="{TemplateBinding Padding}"
+                           VerticalAlignment="Center" />
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+
+    <Style Selector="^:pointerover /template/ Border#PART_Surface">
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
+    <Style Selector="^:focus /template/ Border#PART_Surface">
+      <Setter Property="BorderBrush" Value="{DynamicResource FocusRing}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- A field failing validation shows it in colour and in border weight, never
+         colour alone. -->
+    <Style Selector="^.invalid /template/ Border#PART_Surface">
+      <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="{x:Type CheckBox}" TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamilyDefault}" />
+    <Setter Property="Padding" Value="10,0,0,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+
+    <Setter Property="Template">
+      <ControlTemplate>
+        <StackPanel Orientation="Horizontal">
+          <Border Name="PART_Box"
+                  Width="20" Height="20"
+                  Background="{DynamicResource InputBackground}"
+                  BorderBrush="{DynamicResource Border}"
+                  BorderThickness="1"
+                  CornerRadius="{DynamicResource RadiusSm}"
+                  VerticalAlignment="Center">
+            <Path Name="PART_Check"
+                  Data="M 3,8 L 7,12 L 14,4"
+                  Stroke="{DynamicResource OnPrimaryForeground}"
+                  StrokeThickness="2"
+                  StrokeLineCap="Round"
+                  StrokeJoin="Round"
+                  IsVisible="False" />
+          </Border>
+          <ContentPresenter Name="PART_ContentPresenter"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            Padding="{TemplateBinding Padding}"
+                            VerticalContentAlignment="Center" />
+        </StackPanel>
+      </ControlTemplate>
+    </Setter>
+
+    <Style Selector="^:checked /template/ Border#PART_Box">
+      <Setter Property="Background" Value="{DynamicResource Primary}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Primary}" />
+    </Style>
+    <Style Selector="^:checked /template/ Path#PART_Check">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <Style Selector="^:pointerover /template/ Border#PART_Box">
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderStrong}" />
+    </Style>
+
+    <Style Selector="^:focus-visible /template/ Border#PART_Box">
+      <Setter Property="BorderBrush" Value="{DynamicResource FocusRing}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <Style Selector="^:disabled">
+      <Setter Property="Opacity" Value="0.5" />
+      <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+  </ControlTheme>
+
+  </Styles.Resources>
+
+  <!--
+    ComboBox keeps Avalonia's template and takes framework colours on top. Its
+    popup and item container carry real behaviour - virtualisation, keyboard
+    selection, placement - that a rewrite would have to reproduce exactly, and a
+    partial reimplementation is a worse outcome than themed defaults. A full
+    template arrives with the choice field in P3, where the behaviour it needs is
+    actually pinned down.
+  -->
+  <Style Selector="ComboBox">
+    <Setter Property="Background" Value="{DynamicResource InputBackground}" />
+    <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource RadiusSm}" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="FontFamily" Value="{DynamicResource FontFamilyDefault}" />
+  </Style>
+
+  <Style Selector="ComboBox:focus">
+    <Setter Property="BorderBrush" Value="{DynamicResource FocusRing}" />
+  </Style>
+
+  <Style Selector="ComboBoxItem">
+    <Setter Property="Foreground" Value="{DynamicResource Foreground}" />
+    <Setter Property="Padding" Value="10,6" />
+  </Style>
+
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Primary}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource OnPrimaryForeground}" />
+  </Style>
+
+</Styles>

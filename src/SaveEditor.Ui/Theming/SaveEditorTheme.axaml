@@ -24,4 +24,7 @@
     </ResourceDictionary>
   </Styles.Resources>
 
+  <!-- Control themes layer on top of the resources they consume. -->
+  <StyleInclude Source="avares://SaveEditor.Ui/Theming/Controls.axaml" />
+
 </Styles>
