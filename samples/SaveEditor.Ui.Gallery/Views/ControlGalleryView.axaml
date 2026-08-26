@@ -66,7 +66,7 @@
             <ComboBoxItem>Nightmare</ComboBoxItem>
           </ComboBox>
           <TextBlock Classes="caption"
-                     Text="ComboBox keeps Avalonia's template and takes framework colours; a full template lands with the choice field in P3." />
+                     Text="Choice fields use an autocomplete over the provider, so the filter is fed as you type and custom values are accepted when the descriptor allows them." />
         </StackPanel>
       </Border>
 

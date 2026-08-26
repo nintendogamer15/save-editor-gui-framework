@@ -45,7 +45,13 @@ public partial class MainWindow : Window
         // template is instantiated with -n, so it tracks your app's name
         // automatically. Change it explicitly if you ever want the two to
         // diverge (e.g. after a product rename that keeps the old settings).
-        var applicationId = EditorApplicationId.Parse("SaveEditor.Generated");
+        // "SaveEditor.Generated" is replaced with your project name when the template
+        // is instantiated, and a project name may legally contain characters an
+        // application id may not. EditorApplicationId validates strictly and throws
+        // rather than falling back, because it becomes a directory name — so this
+        // sanitizes first, and "dotnet new save-editor -n \"My Editor\"" produces a
+        // working app rather than one that dies on startup.
+        var applicationId = EditorApplicationId.Parse(SanitizeApplicationId("SaveEditor.Generated"));
         var settings = new EditorSettingsStore(applicationId);
 
         var theme = new ThemeController(
@@ -148,5 +154,24 @@ public partial class MainWindow : Window
             _toolbarControl.Editor = null;
             _fieldsControl.Fields = null;
         }
+    }
+
+    /// <summary>Reduces a project name to something EditorApplicationId will accept.</summary>
+    /// <param name="name">The project name.</param>
+    /// <returns>A valid application id.</returns>
+    private static string SanitizeApplicationId(string name)
+    {
+        var cleaned = new string(name
+            .Select(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' ? c : '-')
+            .ToArray())
+            .Trim('.', ' ');
+
+        // Length and emptiness are the two cases the character filter cannot fix.
+        if (cleaned.Length > 64)
+        {
+            cleaned = cleaned[..64].TrimEnd('.', ' ');
+        }
+
+        return cleaned.Length == 0 ? "SaveEditor" : cleaned;
     }
 }

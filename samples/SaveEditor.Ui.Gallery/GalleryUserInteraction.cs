@@ -11,7 +11,10 @@ namespace SaveEditor.Ui.Gallery;
 /// </summary>
 /// <remarks>
 /// A stand-in, not the shipping implementation — the framework's own themed dialogs
-/// arrive in P4 along with warning sanitisation and the shared path formatter. What
+/// are <see cref="SaveEditor.Ui.Dialogs.ThemedUserInteraction"/>, which is what a
+/// real editor composes and which carries warning sanitisation and the shared path
+/// formatter. This exists so the gallery can demonstrate the discard guard on its
+/// own. What
 /// this does honour already is the rule that matters most: the accept label names
 /// the outcome, and a destructive accept is styled as destructive.
 /// </remarks>

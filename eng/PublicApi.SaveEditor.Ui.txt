@@ -244,7 +244,9 @@ SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Boolean AllowCustomValue
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Func<String> Read get set
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property IChoiceProvider Options get set
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: ctor (ChoiceFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void ClearChoiceError()
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void Dispose()
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void RejectUnlistedChoice(String text)
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void ReportOptionsFailure(Exception error)
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property Boolean AllowCustomValue get
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property Boolean OptionsFailed get set

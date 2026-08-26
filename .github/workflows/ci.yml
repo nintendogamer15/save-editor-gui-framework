@@ -42,6 +42,21 @@ jobs:
       # a missing native dependency left 87 headless tests unrun while it printed
       # Passed and exited 0. The runner itself reports Errors and exits non-zero.
       - name: Test
+        id: test
         run: |
           dotnet exec tests/SaveEditor.Ui.Tests/bin/Release/net10.0/SaveEditor.Ui.Tests.dll
           dotnet exec tests/SaveEditor.Ui.HeadlessTests/bin/Release/net10.0/SaveEditor.Ui.HeadlessTests.dll
+          dotnet exec tests/SaveEditor.Template.Tests/bin/Release/net10.0/SaveEditor.Template.Tests.dll
+
+      # Section 12 requires a failing comparison to leave a reviewable artifact.
+      # Without this the reviewer gets a pixel count and the images are discarded
+      # with the runner, which is the least useful moment to have no picture.
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diffs-${{ matrix.os }}
+          path: |
+            tests/SaveEditor.Ui.HeadlessTests/baselines/*.actual.png
+            tests/SaveEditor.Ui.HeadlessTests/baselines/*.diff.png
+          if-no-files-found: ignore

@@ -21,7 +21,7 @@ dotnet test tests/SaveEditor.Generated.Tests
 ## Replacing the demo format
 
 The demo format is invented for this template and is not modelled on any
-real game. Three files are it, and every one of them is marked
+real game. Four files are the substance of it, and every one of them is marked
 `REPLACE ME FIRST` at the top:
 
 | File | What it does | What yours should do |
@@ -111,7 +111,7 @@ fails is always reported, and never partially applied.
 
 ## Next steps
 
-1. Delete the three `REPLACE ME FIRST` files and write your own document,
+1. Work through the `REPLACE ME FIRST` markers and write your own document,
    codec, and detector.
 2. Update `Sections/DemoSectionFactory.cs` (or add more section factories)
    for your document's actual fields.

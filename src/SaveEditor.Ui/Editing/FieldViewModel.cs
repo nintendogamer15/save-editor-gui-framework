@@ -408,6 +408,38 @@ public sealed class ChoiceFieldViewModel(ChoiceFieldDescriptor descriptor, EditH
         NotifyEditState();
     }
 
+    /// <summary>
+    /// Rejects a typed value that is not among the offered options.
+    /// </summary>
+    /// <param name="text">What the user typed.</param>
+    /// <remarks>
+    /// Only reachable when <see cref="AllowCustomValue"/> is false. The field reports
+    /// the problem rather than silently reverting, because quietly keeping the last
+    /// valid value is how a save ends up holding something the user did not choose —
+    /// the same reason a numeric field reports an out-of-range value instead of
+    /// clamping it.
+    /// </remarks>
+    public void RejectUnlistedChoice(string text)
+    {
+        ValidationError = string.IsNullOrWhiteSpace(text)
+            ? "Choose one of the available options."
+            : $"'{text}' is not one of the available options.";
+
+        NotifyEditState();
+    }
+
+    /// <summary>Clears a rejection after an acceptable value is entered.</summary>
+    public void ClearChoiceError()
+    {
+        if (ValidationError is null)
+        {
+            return;
+        }
+
+        ValidationError = null;
+        NotifyEditState();
+    }
+
     /// <inheritdoc />
     public void Dispose()
     {

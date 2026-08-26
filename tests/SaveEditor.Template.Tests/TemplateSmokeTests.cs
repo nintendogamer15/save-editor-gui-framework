@@ -91,10 +91,14 @@ public sealed class TemplateSmokeTests
                 BuildNuGetConfig(feedDirectory),
                 cancellationToken);
 
-            var slnx = Directory.GetFiles(generatedRoot, "*.slnx").Single();
+            // Built by directory rather than through a solution file. The template
+            // ships no .slnx: sourceName substitution uses the raw project name for
+            // paths but an identifier-safe form inside file contents, so a checked-in
+            // solution silently references projects that do not exist as soon as
+            // someone runs "dotnet new save-editor -n \"My Editor\"".
 
             // 5. Build clean.
-            var buildOutput = await RunAsync("dotnet", $"build \"{slnx}\" -c Release", generatedRoot);
+            var buildOutput = await RunAsync("dotnet", "build -c Release", generatedRoot);
             Assert.Contains("Build succeeded.", buildOutput);
             Assert.Contains("0 Warning(s)", buildOutput);
             Assert.Contains("0 Error(s)", buildOutput);
@@ -121,12 +125,33 @@ public sealed class TemplateSmokeTests
             // app project, so building it also copies the app's own apphost
             // into the *test* project's output directory as a dependency,
             // which would otherwise make this an ambiguous match.
+            // The apphost has no extension on Linux. Hard-coding ".exe" made this
+            // throw on one of the two supported platforms rather than skip with a
+            // reason, which is the opposite of what section 12 requires.
+            var appHostName = OperatingSystem.IsWindows()
+                ? $"{GeneratedProjectName}.exe"
+                : GeneratedProjectName;
+
             var generatedExe = Directory
-                .GetFiles(Path.Combine(generatedRoot, "src"), $"{GeneratedProjectName}.exe", SearchOption.AllDirectories)
+                .GetFiles(Path.Combine(generatedRoot, "src"), appHostName, SearchOption.AllDirectories)
                 .Where(path => path.Contains(Path.Combine("bin", "Release"), StringComparison.OrdinalIgnoreCase))
                 .Single();
 
-            await AssertStartsAndStaysUpAsync(generatedExe, generatedRoot);
+            // Launching is a windowed process. The generated project's own headless
+            // tests have already run above and cover the composition; this last step
+            // additionally proves the apphost resolves at runtime, and it needs a
+            // display to do that.
+            if (HasDisplay())
+            {
+                await AssertStartsAndStaysUpAsync(generatedExe, generatedRoot);
+            }
+            else
+            {
+                Assert.Skip(
+                    "No display available, so the generated app cannot be launched here. " +
+                    "Packaging, generation, build, and the generated project's own headless " +
+                    "tests all ran; only the windowed-launch check was omitted.");
+            }
         }
         finally
         {
@@ -139,6 +164,12 @@ public sealed class TemplateSmokeTests
             TryDeleteDirectory(feedDirectory);
         }
     }
+
+    /// <summary>Whether a windowed process could actually start here.</summary>
+    private static bool HasDisplay() =>
+        OperatingSystem.IsWindows()
+        || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY"))
+        || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
 
     private static async Task AssertStartsAndStaysUpAsync(string exePath, string workingDirectory)
     {

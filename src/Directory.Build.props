@@ -9,6 +9,13 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/nintendogamer15/save-editor-gui-framework</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <!--
+      Symbols ship separately. Adopters of a framework whose central promise is not
+      destroying save files will send stack traces, and without symbols those are
+      unresolvable.
+    -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 

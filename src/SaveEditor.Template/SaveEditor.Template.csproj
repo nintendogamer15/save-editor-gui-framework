@@ -2,6 +2,11 @@
 
   <PropertyGroup>
     <!--
+      A template package carries content, not an assembly, so there are no symbols to
+      ship and asking for them fails the pack after the nupkg is already written.
+    -->
+    <IncludeSymbols>false</IncludeSymbols>
+    <!--
       This project produces `dotnet new save-editor`. It ships no compiled
       assembly of its own — only the template.json manifest and the templates/
       content tree, staged and packed as package Content. Everything under

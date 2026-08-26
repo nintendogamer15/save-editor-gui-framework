@@ -89,70 +89,126 @@ internal static class FieldEditorTemplates
         return check;
     }
 
+    /// <summary>Builds the choice editor: an autocomplete over the provider.</summary>
+    /// <remarks>
+    /// <para>
+    /// This is an <see cref="AutoCompleteBox"/> rather than a dropdown because
+    /// <c>IChoiceProvider</c> takes a filter and is documented as possibly
+    /// asynchronous. A closed dropdown can only ever call it once with an empty
+    /// filter, which makes half that contract dead — and makes
+    /// <see cref="ChoiceFieldDescriptor.AllowCustomValue"/> impossible to honour,
+    /// since a dropdown structurally cannot accept a value that is not in its list.
+    /// </para>
+    /// <para>
+    /// Filtering is delegated to the provider rather than done locally: an editor
+    /// resolving options from a large table or a file knows how to narrow them, and
+    /// filtering client-side would require fetching everything first.
+    /// </para>
+    /// </remarks>
     private static Control BuildChoice(ChoiceFieldViewModel vm)
     {
-        var combo = new ComboBox
+        var labelToValue = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var box = new AutoCompleteBox
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            // The selection presenter builds this template with null when nothing is
-            // selected — which is exactly the state an empty or failed option list
-            // leaves the control in, so dereferencing here crashes the field that was
-            // already having a bad time.
-            ItemTemplate = new FuncDataTemplate<ChoiceOption>(
-                (option, _) => new TextBlock { Text = option?.Label ?? string.Empty },
-                supportsRecycling: true),
+            FilterMode = AutoCompleteFilterMode.None,
+            MinimumPrefixLength = 0,
+            IsTextCompletionEnabled = false,
         };
-        Wire(combo, vm);
+
+        box.AsyncPopulator = async (text, cancellationToken) =>
+        {
+            try
+            {
+                var options = await vm.Options
+                    .GetOptionsAsync(text ?? string.Empty, cancellationToken)
+                    .ConfigureAwait(true);
+
+                // Accumulate rather than replace. A filtered fetch returns a subset,
+                // and clearing would forget a label the user selected a keystroke
+                // earlier — turning a valid choice into a rejected one purely because
+                // the current filter no longer lists it.
+                foreach (var option in options)
+                {
+                    labelToValue[option.Label] = option.Value;
+                }
+
+                return options.Select(o => (object)o.Label).ToList();
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                // Same containment as the initial load: a provider doing IO can fail
+                // for ordinary reasons, and an unhandled async continuation would take
+                // the application down over a dropdown.
+                vm.ReportOptionsFailure(ex);
+                return [];
+            }
+        };
+
+        Wire(box, vm);
 
         var suppress = false;
 
-        void SelectMatching(IReadOnlyList<ChoiceOption> options)
+        void PushDraftToBox()
         {
             suppress = true;
-            combo.SelectedItem = options.FirstOrDefault(o => o.Value == vm.Draft);
+            box.Text = labelToValue.FirstOrDefault(p => p.Value == vm.Draft).Key ?? vm.Draft;
             suppress = false;
         }
 
-        combo.SelectionChanged += (_, _) =>
+        box.TextChanged += (_, _) =>
         {
-            if (suppress || combo.SelectedItem is not ChoiceOption selected)
+            if (suppress)
             {
                 return;
             }
 
-            vm.Draft = selected.Value;
+            var text = box.Text ?? string.Empty;
+
+            if (labelToValue.TryGetValue(text, out var value))
+            {
+                vm.Draft = value;
+                vm.ClearChoiceError();
+                return;
+            }
+
+            if (vm.AllowCustomValue)
+            {
+                vm.Draft = text;
+                vm.ClearChoiceError();
+                return;
+            }
+
+            // A closed set has to reject rather than quietly keep the last valid
+            // value: silently discarding what someone typed is how a save ends up
+            // holding a value they did not choose.
+            vm.RejectUnlistedChoice(text);
         };
 
         vm.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(ChoiceFieldViewModel.Draft) && combo.ItemsSource is IReadOnlyList<ChoiceOption> current)
+            if (e.PropertyName == nameof(ChoiceFieldViewModel.Draft))
             {
-                SelectMatching(current);
+                PushDraftToBox();
             }
         };
 
-        LoadOptionsAsync(vm, combo, SelectMatching);
-        return combo;
+        PushDraftToBox();
+        LoadInitialOptionsAsync(vm, box, labelToValue, PushDraftToBox);
+        return box;
     }
 
-    /// <summary>Loads choice options, containing any failure to this one field.</summary>
-    /// <remarks>
-    /// <para>
-    /// <c>IChoiceProvider</c> is consumer-supplied and documented as possibly doing
-    /// IO, so it can fail for entirely ordinary reasons. Uncontained, an exception
-    /// from an <c>async void</c> continuation reaches the dispatcher unhandled and
-    /// takes the application down — losing every unsaved edit in the document, which
-    /// is a spectacular outcome for a dropdown that could not populate.
-    /// </para>
-    /// <para>
-    /// The field degrades to an empty list with its validation message set instead.
-    /// The rest of the section keeps working.
-    /// </para>
-    /// </remarks>
-    private static async void LoadOptionsAsync(
+    /// <summary>Seeds the list so the field is usable before anything is typed.</summary>
+    private static async void LoadInitialOptionsAsync(
         ChoiceFieldViewModel vm,
-        ComboBox combo,
-        Action<IReadOnlyList<ChoiceOption>> selectMatching)
+        AutoCompleteBox box,
+        Dictionary<string, string> labelToValue,
+        Action pushDraft)
     {
         try
         {
@@ -160,16 +216,21 @@ internal static class FieldEditorTemplates
                 .GetOptionsAsync(string.Empty, vm.OptionsCancellation)
                 .ConfigureAwait(true);
 
-            combo.ItemsSource = options;
-            selectMatching(options);
+            foreach (var option in options)
+            {
+                labelToValue[option.Label] = option.Value;
+            }
+
+            box.ItemsSource = options.Select(o => o.Label).ToList();
+            pushDraft();
         }
         catch (OperationCanceledException)
         {
-            // The field went away, or the document closed. Nothing to report.
+            // The field went away, or the document closed.
         }
         catch (Exception ex)
         {
-            combo.ItemsSource = Array.Empty<ChoiceOption>();
+            box.ItemsSource = Array.Empty<string>();
             vm.ReportOptionsFailure(ex);
         }
     }

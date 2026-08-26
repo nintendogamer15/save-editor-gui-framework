@@ -68,6 +68,7 @@ tests/SaveEditor.Ui.Tests
 tests/SaveEditor.Ui.HeadlessTests
 tests/SaveEditor.Template.Tests
 eng/
+docs/
 .github/workflows/
 mockup/index.html
 README.md
@@ -77,6 +78,8 @@ THIRD-PARTY-NOTICES
 ```
 
 The repository uses a central solution, `Directory.Build.props`, and `Directory.Packages.props` with central package management. The first stable release is `1.0`; public breaking changes require a major version.
+
+**The contract freezes before the version does.** `eng/PublicApi.SaveEditor.Ui.txt` pins the public surface and any change to it fails the build, so the major-version promise is enforced from now on rather than from the moment a tag is cut. The packages remain `1.0.0-alpha.1` until the two gates that require a person have actually been run — the Windows screen-reader pass in `docs/ACCESSIBILITY.md` and the Wayland session checklist in `docs/WAYLAND-CHECKLIST.md`. Shipping `1.0.0` while a named release gate has never been executed would make the version claim something the evidence does not support, and those two gates are precisely the ones no amount of CI can close.
 
 ### Pinned versions
 
