@@ -19,16 +19,30 @@ samples/SaveEditor.Ui.Gallery      interactive control and shell gallery
 tests/SaveEditor.Ui.Tests          unit tests for services and public contracts
 tests/SaveEditor.Ui.HeadlessTests  Avalonia headless shell/keyboard tests
 tests/SaveEditor.Template.Tests    generated-project smoke tests
-docs/                              optional future expansion; README is the v1 guide
-eng/                               pack, snapshot, and validation scripts
+eng/palette                        pinned Catppuccin palette.json (vendored)
+eng/SaveEditor.PaletteGen          palette loading, contrast math, token names
+eng/SaveEditor.ScreenshotDiff      zero-tolerance pixel comparator
+.github/workflows                  two-platform CI
 mockup/index.html                  self-contained design prototype
 ```
 
 The first complete scope is released as `1.0`. Framework source is 0BSD, with a `THIRD-PARTY-NOTICES` file for Catppuccin, Inter, Avalonia, and other redistributed assets.
 
+### Building
+
+Requires the .NET 10 SDK (pinned in `global.json`). Dependency versions are centrally managed in `Directory.Packages.props`; Avalonia is major version **12**.
+
+```sh
+dotnet build -c Release
+dotnet test  -c Release
+```
+
+Tests run on Microsoft.Testing.Platform rather than VSTest — `dotnet test` drives the test executables directly, and neither `Microsoft.NET.Test.Sdk` nor a VSTest adapter is referenced.
+
 ## Architecture decisions
 
 - `EditorShell` is an embeddable `UserControl`; applications retain ownership of their `Window`.
+- Because a `UserControl` cannot size a window or shut down an application, that authority is delegated to a host-supplied `IEditorHost`, with a shipped `WindowEditorHost` for the ordinary case. One shutdown guard serves both the window close button and `File > Exit`, so pending changes cannot be lost through whichever route was not anticipated.
 - The shell exposes named slots for branding, header actions, sidebar, content, status bar, and menu extensions.
 - Core menus are always present and in-window: `File`, `Edit`, `View`, and `Help`. Editors may add domain items.
 - Header actions are `Open Save`, `Save As`, `Undo`, and `Redo`. Overwrite, recent paths, folder slots, reload, and exit are menu actions.
@@ -42,7 +56,8 @@ The first complete scope is released as `1.0`. Framework source is 0BSD, with a 
 ## Theme and settings contract
 
 - Supported themes are exactly Catppuccin Mocha (default dark) and Latte (light).
-- Views use semantic resources only: window/panel/card/input backgrounds, foreground tiers, border, focus ring, primary, danger, warning, and success. Raw palette names are internal.
+- Views use semantic resources only; raw palette names are internal and a resource-resolution test enforces it. The roles are window/panel/card/input/overlay backgrounds, three foreground tiers, border and border-strong, focus ring, the accent set (`Primary`, `PrimaryText`, `OnPrimaryForeground`), status fills with matching text and background washes, shadow, font families, and the spacing and radius scales.
+- A raw accent is only safe as a fill. In Latte just two of the fourteen reach 4.5:1 as text on the window background and none does on a card, so accent text, focus rings, and stateful borders take a derived, hue-preserving `PrimaryText` ramp instead. Text on an accent fill uses pure white or black per accent, since the palette's own neutrals fail for twelve of fourteen. Every ratio is asserted by test across 14 accents in both modes.
 - The framework default accent is Blue. An editor may provide a default; the user may choose any of the 14 Catppuccin accents under `View > Appearance > Accent`. The persisted user selection wins, and a reset returns to the editor default.
 - `View > Appearance > Themes` contains Dark and Light. Changes apply immediately and persist.
 - Settings live in versioned JSON at `LocalApplicationData/<ApplicationId>/settings.json`. It stores theme, accent, up to 10 file recents, up to 10 folder recents, and window size. Position is not persisted. Writes are atomic, fail-soft, and migratable.
@@ -54,11 +69,21 @@ The first complete scope is released as `1.0`. Framework source is 0BSD, with a 
 
 - `ISaveCodec<TDocument>` handles decode, typed serialization, validation, format metadata, and unknown-data preservation.
 - A codec registry/detector supports one-codec and multi-format apps, with codec-declared picker filters.
-- `Save As` is the default and `Ctrl+S` always means Save As. Native picker overwrite confirmation is trusted without a duplicate prompt; custom picker implementations must declare whether they provide that confirmation, with a framework fallback otherwise.
-- `Overwrite + Backup` validates, rejects symlink/reparse-point targets, creates a UTC timestamped sibling backup, writes a same-directory temp file, flushes, and atomically replaces. It never elevates permissions or changes read-only state.
-- Replacement failures leave the original untouched, clean the temp file by default, and report a corrective status/error. No autosave, telemetry, or network activity exists.
-- External changes are hinted by a watcher and confirmed by a pre-action metadata/hash check. Overwrite blocks if the source changed externally; Save As remains available.
-- Validation findings are structured (`Path`, `Message`, severity, optional code/remediation). Inline validation is lightweight; Apply/save runs full validation. Errors block, warnings show the first eight and require explicit continuation.
+- `Save As` is the default and `Ctrl+S` always means Save As. A picker may declare that it already confirmed an overwrite, but the default is that it did not, and the declaration suppresses only the duplicate prompt: the framework still confirms whenever it independently observes the target exists. One redundant prompt costs less than one silent overwrite.
+- Every path goes through one resolver that opens with link following disabled, checks **every ancestor component** rather than just the leaf, records volume and file identity, and refuses anything that is not a regular file. Later steps re-assert that identity instead of re-resolving a path string.
+- `Overwrite + Backup` is all-or-nothing. The backup is written from the same retained handle that produced the change-detection baseline, flushed, and hash-verified; any failure aborts the overwrite with the original untouched. Backup and temp files are created exclusively, with entropy in the name, so a pre-planted link at a predictable path cannot redirect the write.
+- Replacement fsyncs the file, replaces atomically, and fsyncs the containing directory on Linux. There is no non-atomic fallback: a filesystem that cannot support atomic replacement aborts with a message naming the limitation rather than degrading to delete-then-move. Permissions are carried across so a `0600` save does not silently become `0644`.
+- On failure the bytes at the target path are exactly the pre-operation bytes. Not guaranteed, and stated plainly: file identity, hardlink aliasing, open-handle views held by other processes, and timestamps.
+- A codec's unknown-data preservation claim is **verified, not trusted** — the framework re-serializes the freshly decoded document and byte-compares against the source, and downgrades a falsified claim to a confirmation prompt instead of reporting success.
+- External-change detection requires a hash, re-checked immediately before the replace. Windows denies write sharing for the duration, which closes the window against cooperative writers; Linux can only narrow it, and the docs and status text say so rather than claiming more.
+- Validation findings are structured (`Path`, `Message`, severity, optional code/remediation). Inline validation is lightweight; Apply/save runs full validation. Errors block; warnings show the **most severe** eight plus a count and require explicit continuation. Codec-supplied text is sanitized and capped before it reaches a destructive dialog.
+- No autosave, telemetry, or network activity exists.
+
+### What this does not defend against
+
+The safety work above is aimed at three things: malformed or hostile save-file bytes, another local process writing into the same directory, and accidents such as crashes, full disks, and concurrent writers.
+
+**A hostile codec is not one of them.** `ISaveCodec` implementations run in-process at full privilege, so the codec boundary is a correctness boundary the framework can bound and instrument — not a sandbox. Likewise, a game rewriting its own save while the editor is open, or a cloud-sync client rewriting the file after a successful write, is outside the guard's reach; the status wording claims only that no change was detected between the check and the write. See `PLAN.md` §8.
 - Operations are asynchronous, cancellable, and report progress. Close waits for a definitive operation result. User interaction is uniformly async and implemented through `IUserInteraction`.
 
 ## Editing model
