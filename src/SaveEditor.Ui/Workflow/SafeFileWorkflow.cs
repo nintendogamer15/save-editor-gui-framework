@@ -889,6 +889,16 @@ public sealed class SafeFileWorkflow<TDocument>
     /// the caller adopts it. Nothing else can, because the framework does not own the
     /// application's document reference.
     /// </para>
+    /// <para>
+    /// <strong>That returned document is a different instance, so sections must be rebuilt
+    /// rather than refreshed (finding F-20).</strong> Every field reads and writes through
+    /// delegates captured over the object that was open before, and
+    /// <see cref="Editing.SectionEditor.RefreshFromDocument"/> would re-read that stale object
+    /// — leaving the editor apparently updated while editing something nothing will save.
+    /// Rebuilding is what <see cref="DocumentSession{TDocument}.DocumentChanged"/> exists to
+    /// trigger, and <see cref="RestoreResult{TDocument}.Document"/> is deliberately a return
+    /// value so the caller cannot miss that a swap happened.
+    /// </para>
     /// </remarks>
     public async ValueTask<RestoreResult<TDocument>> RestoreFromBackupAsync(
         string backupPath,
