@@ -266,7 +266,7 @@ SaveEditor.Ui.Editing.ChoiceOption :: property String Value get set
 SaveEditor.Ui.Editing.EditHistory :: ctor (Int32 capacity)
 SaveEditor.Ui.Editing.EditHistory :: event EventHandler Changed
 SaveEditor.Ui.Editing.EditHistory :: field Int32 DefaultCapacity
-SaveEditor.Ui.Editing.EditHistory :: method IDisposable BeginTransaction(String label)
+SaveEditor.Ui.Editing.EditHistory :: method IEditTransaction BeginTransaction(String label)
 SaveEditor.Ui.Editing.EditHistory :: method Void Clear()
 SaveEditor.Ui.Editing.EditHistory :: method Void MarkSaved()
 SaveEditor.Ui.Editing.EditHistory :: method Void Record(HistoryEntry entry)
@@ -288,6 +288,7 @@ SaveEditor.Ui.Editing.FieldDescriptor :: property String Key get set
 SaveEditor.Ui.Editing.FieldDescriptor :: property String Label get set
 SaveEditor.Ui.Editing.FieldDescriptor :: property String Path get set
 SaveEditor.Ui.Editing.FieldDescriptor :: property String WarningText get set
+SaveEditor.Ui.Editing.FieldViewModel :: method Boolean TryApply()
 SaveEditor.Ui.Editing.FieldViewModel :: method Void Apply()
 SaveEditor.Ui.Editing.FieldViewModel :: method Void RefreshFromDocument()
 SaveEditor.Ui.Editing.FieldViewModel :: method Void Revert()
@@ -318,7 +319,7 @@ SaveEditor.Ui.Editing.HistoryEntry :: property Action Undo get set
 SaveEditor.Ui.Editing.HistoryEntry :: property String Label get set
 SaveEditor.Ui.Editing.IChoiceProvider :: method ValueTask<IReadOnlyList<ChoiceOption>> GetOptionsAsync(String filter, CancellationToken cancellationToken)
 SaveEditor.Ui.Editing.IEditHistory :: event EventHandler Changed
-SaveEditor.Ui.Editing.IEditHistory :: method IDisposable BeginTransaction(String label)
+SaveEditor.Ui.Editing.IEditHistory :: method IEditTransaction BeginTransaction(String label)
 SaveEditor.Ui.Editing.IEditHistory :: method Void Clear()
 SaveEditor.Ui.Editing.IEditHistory :: method Void MarkSaved()
 SaveEditor.Ui.Editing.IEditHistory :: method Void Record(HistoryEntry entry)
@@ -327,6 +328,8 @@ SaveEditor.Ui.Editing.IEditHistory :: method Void Undo()
 SaveEditor.Ui.Editing.IEditHistory :: property Boolean CanRedo get
 SaveEditor.Ui.Editing.IEditHistory :: property Boolean CanUndo get
 SaveEditor.Ui.Editing.IEditHistory :: property Boolean IsDirty get
+SaveEditor.Ui.Editing.IEditTransaction :: method Void Abort()
+SaveEditor.Ui.Editing.IEditTransaction :: method Void Commit()
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: ctor ()
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(NumericFieldDescriptor other)
@@ -1180,6 +1183,7 @@ type SaveEditor.Ui.Editing.FieldViewModel`1
 type SaveEditor.Ui.Editing.HistoryEntry
 type SaveEditor.Ui.Editing.IChoiceProvider
 type SaveEditor.Ui.Editing.IEditHistory
+type SaveEditor.Ui.Editing.IEditTransaction
 type SaveEditor.Ui.Editing.NumericFieldDescriptor
 type SaveEditor.Ui.Editing.NumericFieldViewModel
 type SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor

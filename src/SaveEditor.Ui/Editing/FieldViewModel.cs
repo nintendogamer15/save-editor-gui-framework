@@ -72,16 +72,78 @@ public abstract partial class FieldViewModel : ObservableObject
 
     /// <summary>Commits the draft to the document and records one history entry.</summary>
     [RelayCommand]
-    public void Apply()
+    public void Apply() => TryApply();
+
+    /// <summary>
+    /// Commits the draft, reporting whether an edit was recorded.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the draft reached the document and one history entry was
+    /// recorded. <see langword="false"/> when there was nothing to apply, or when the write
+    /// was rejected.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Apply"/> exists as the bound command and cannot report anything, because
+    /// <c>[RelayCommand]</c> generates a command only for a <see langword="void"/> or
+    /// <see cref="Task"/> method. Apply All needs to know whether each field actually
+    /// succeeded — otherwise a rejected write leaves it committing the fields that happened to
+    /// work, which is the partial application the transaction exists to prevent (finding
+    /// F-18).
+    /// </para>
+    /// <para>
+    /// <strong>A write that throws is a rejection, not a crash.</strong> Its message is
+    /// surfaced through <see cref="ValidationError"/>, the draft stays pending, nothing is
+    /// recorded, and the exception does not escape into the command. The descriptor's
+    /// <c>Validate</c> covers what one field's value decides on its own; it cannot express
+    /// "this rune is not equippable by this character" or "this exceeds a maximum another
+    /// field owns", and a model that raises from its setters for those reasons previously had
+    /// nowhere to land — the exception left a <c>[RelayCommand]</c> handler and surfaced as an
+    /// unhandled Avalonia exception (finding F-19).
+    /// </para>
+    /// <para>
+    /// <strong>What is not promised.</strong> Whether the document changed depends on the
+    /// setter's own atomicity. The framework records nothing and reports the failure; it
+    /// cannot un-ring a setter that mutated state before throwing, and it deliberately does
+    /// not attempt a compensating write back to the previous value, because that is a second
+    /// call into the code that just failed. A setter that validates before it assigns — the
+    /// ordinary shape — leaves the document untouched. This covers Apply and Apply All only:
+    /// a write that throws while an undo or redo is replaying propagates, because there is no
+    /// pending edit to reject and an undo that cannot be performed is a fault.
+    /// </para>
+    /// </remarks>
+    public bool TryApply()
     {
         if (!CanApply)
         {
-            return;
+            return false;
         }
 
-        var entry = CommitDraft();
+        HistoryEntry entry;
+        try
+        {
+            entry = CommitDraft();
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is not a rejection of the value, so it is not reported as one.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            ValidationError = ex.Message;
+
+            // The write may have got partway before throwing, so the displayed committed
+            // value is re-read rather than assumed. The draft is left alone: it is what the
+            // user asked for and they will want it back when they fix the cause.
+            NotifyCommittedChanged();
+            NotifyEditState();
+            return false;
+        }
+
         _history.Record(entry);
         NotifyEditState();
+        return true;
     }
 
     /// <summary>Discards the draft, returning to the committed value.</summary>
@@ -103,6 +165,18 @@ public abstract partial class FieldViewModel : ObservableObject
 
     /// <summary>Resets the draft to the committed value.</summary>
     protected abstract void RevertDraft();
+
+    /// <summary>
+    /// Raises change notification for the committed value, for fields that have one.
+    /// </summary>
+    /// <remarks>
+    /// Declared here so <see cref="TryApply"/> can resync the display after a failed write
+    /// without knowing the field's value type. The base has no committed value of its own, so
+    /// the default does nothing.
+    /// </remarks>
+    protected virtual void NotifyCommittedChanged()
+    {
+    }
 
     /// <summary>Raises change notification for the edit-state properties.</summary>
     protected void NotifyEditState()
@@ -205,6 +279,9 @@ public abstract partial class FieldViewModel<T> : FieldViewModel
                 RefreshFromDocument();
             });
     }
+
+    /// <inheritdoc />
+    protected override void NotifyCommittedChanged() => OnPropertyChanged(nameof(Committed));
 
     /// <inheritdoc />
     protected override void RevertDraft()

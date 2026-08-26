@@ -111,12 +111,12 @@ public sealed class EditHistory : IEditHistory
     /// into a single history entry.
     /// </summary>
     /// <param name="label">Label for the combined entry.</param>
-    /// <returns>A scope that commits the transaction when disposed.</returns>
+    /// <returns>The scope. Disposing it without committing aborts.</returns>
     /// <remarks>
-    /// Disposing with nothing recorded records nothing, so an Apply All that changed
+    /// Committing with nothing recorded records nothing, so an Apply All that changed
     /// no fields does not leave an undo step that undoes nothing.
     /// </remarks>
-    public IDisposable BeginTransaction(string label)
+    public IEditTransaction BeginTransaction(string label)
     {
         ArgumentException.ThrowIfNullOrEmpty(label);
 
@@ -130,6 +130,13 @@ public sealed class EditHistory : IEditHistory
     }
 
     /// <summary>Reverts the most recent operation.</summary>
+    /// <remarks>
+    /// The action runs before the cursor moves. Reversed — as this was — a write that throws
+    /// from an undo action escaped with the cursor already decremented and the revision not,
+    /// leaving the history describing a document that had not actually changed: dirty state
+    /// wrong, and one more undo available than there were undoable operations. Doing the work
+    /// first means a failed undo leaves the history exactly as it was (finding F-19).
+    /// </remarks>
     public void Undo()
     {
         if (!CanUndo)
@@ -137,8 +144,9 @@ public sealed class EditHistory : IEditHistory
             return;
         }
 
+        _entries[_cursor - 1].Undo();
+
         _cursor--;
-        _entries[_cursor].Undo();
         _revision--;
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -193,6 +201,35 @@ public sealed class EditHistory : IEditHistory
         }
     }
 
+    private void AbortTransaction(Transaction transaction)
+    {
+        // Clearing this is not optional and is not bookkeeping. BeginTransaction refuses to
+        // start while it is set, so an abort that only discarded the entries would leave the
+        // first failed Apply All having permanently broken every later one (finding F-18).
+        _transaction = null;
+
+        // Reverse order, matching the committed-entry undo below: later edits may depend on
+        // earlier ones. Each replay is isolated because a throwing undo is a fault in the
+        // application's model, and abandoning the rest would restore less of the document
+        // than pressing on.
+        for (var i = transaction.Entries.Count - 1; i >= 0; i--)
+        {
+            try
+            {
+                transaction.Entries[i].Undo();
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        transaction.Entries.Clear();
+
+        // No Changed here on purpose: nothing about undo availability or dirty state moved.
+        // A transaction's entries never reach _entries, _cursor or _revision, so discarding
+        // them alters no history state at all.
+    }
+
     private void CommitTransaction(Transaction transaction)
     {
         _transaction = null;
@@ -223,9 +260,9 @@ public sealed class EditHistory : IEditHistory
             }));
     }
 
-    private sealed class Transaction(EditHistory history, string label) : IDisposable
+    private sealed class Transaction(EditHistory history, string label) : IEditTransaction
     {
-        private bool _disposed;
+        private bool _completed;
 
         public string Label { get; } = label;
 
@@ -233,15 +270,33 @@ public sealed class EditHistory : IEditHistory
 
         public void Add(HistoryEntry entry) => Entries.Add(entry);
 
-        public void Dispose()
+        public void Commit()
         {
-            if (_disposed)
+            if (_completed)
             {
                 return;
             }
 
-            _disposed = true;
+            _completed = true;
             history.CommitTransaction(this);
         }
+
+        public void Abort()
+        {
+            if (_completed)
+            {
+                return;
+            }
+
+            _completed = true;
+            history.AbortTransaction(this);
+        }
+
+        /// <summary>Aborts, unless the scope was already completed either way.</summary>
+        /// <remarks>
+        /// Disposal is what happens when nobody said what should happen, including when an
+        /// exception is unwinding, so it has to mean the safe thing.
+        /// </remarks>
+        public void Dispose() => Abort();
     }
 }
