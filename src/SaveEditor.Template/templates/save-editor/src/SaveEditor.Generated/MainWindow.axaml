@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:SaveEditor.Ui.Shell;assembly=SaveEditor.Ui"
+        x:Class="SaveEditor.Generated.MainWindow"
+        Title="SaveEditor.Generated"
+        Width="1180" Height="780"
+        Background="{DynamicResource WindowBackground}">
+
+  <shell:EditorShell x:Name="Shell">
+
+    <shell:EditorShell.Branding>
+      <StackPanel>
+        <TextBlock Text="SaveEditor.Generated"
+                   Foreground="{DynamicResource Foreground}"
+                   FontSize="16" FontWeight="SemiBold" />
+        <TextBlock Text="Built on the Save Editor GUI Framework"
+                   Foreground="{DynamicResource SubtleForeground}"
+                   FontSize="11" />
+      </StackPanel>
+    </shell:EditorShell.Branding>
+
+    <shell:EditorShell.HeaderActions>
+      <!--
+        Convenience only: writes and opens a freshly generated demo save so
+        there is something to edit the first time this runs. Delete this
+        button once your own codec and document type are in place — see
+        README.md, "Replacing the demo format".
+      -->
+      <Button x:Name="OpenSampleButton"
+              Content="Open sample save"
+              AutomationProperties.Name="Open sample save" />
+    </shell:EditorShell.HeaderActions>
+
+    <shell:EditorShell.StatusBarExtension>
+      <TextBlock Text="Demo format — see README.md"
+                 Foreground="{DynamicResource SubtleForeground}"
+                 FontSize="11"
+                 VerticalAlignment="Center" />
+    </shell:EditorShell.StatusBarExtension>
+
+  </shell:EditorShell>
+
+</Window>

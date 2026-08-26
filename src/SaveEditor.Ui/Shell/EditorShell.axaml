@@ -201,13 +201,23 @@
                  AutomationProperties.Name="Sections">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="shell:SectionDescriptor">
-              <StackPanel Margin="6,4">
-                <TextBlock Text="{Binding Title}" Foreground="{DynamicResource Foreground}" />
-                <TextBlock Text="{Binding Subtitle}"
-                           Foreground="{DynamicResource SubtleForeground}"
-                           FontSize="11"
-                           IsVisible="{Binding Subtitle, Converter={x:Static ObjectConverters.IsNotNull}}" />
-              </StackPanel>
+              <Grid ColumnDefinitions="Auto,*" Margin="6,4">
+                <!-- The descriptor accepts an Icon, so the shell has to show one.
+                     A property that is read and never rendered is indistinguishable
+                     from a broken one. -->
+                <ContentControl Grid.Column="0"
+                                Content="{Binding Icon}"
+                                IsVisible="{Binding Icon, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Margin="0,0,10,0"
+                                VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1">
+                  <TextBlock Text="{Binding Title}" Foreground="{DynamicResource Foreground}" />
+                  <TextBlock Text="{Binding Subtitle}"
+                             Foreground="{DynamicResource SubtleForeground}"
+                             FontSize="11"
+                             IsVisible="{Binding Subtitle, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+              </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
