@@ -236,7 +236,7 @@ SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method Int32 GetHashCode()
 SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method String ToString()
 SaveEditor.Ui.Editing.BooleanFieldDescriptor :: property Action<Boolean> Write get set
 SaveEditor.Ui.Editing.BooleanFieldDescriptor :: property Func<Boolean> Read get set
-SaveEditor.Ui.Editing.BooleanFieldViewModel :: ctor (BooleanFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.BooleanFieldViewModel :: ctor (BooleanFieldDescriptor descriptor, IEditHistory history)
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: ctor ()
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Boolean Equals(ChoiceFieldDescriptor other)
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
@@ -247,7 +247,7 @@ SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Action<String> Write get
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Boolean AllowCustomValue get set
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Func<String> Read get set
 SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property IChoiceProvider Options get set
-SaveEditor.Ui.Editing.ChoiceFieldViewModel :: ctor (ChoiceFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: ctor (ChoiceFieldDescriptor descriptor, IEditHistory history)
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void ClearChoiceError()
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void Dispose()
 SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void RejectUnlistedChoice(String text)
@@ -317,6 +317,16 @@ SaveEditor.Ui.Editing.HistoryEntry :: property Action Redo get set
 SaveEditor.Ui.Editing.HistoryEntry :: property Action Undo get set
 SaveEditor.Ui.Editing.HistoryEntry :: property String Label get set
 SaveEditor.Ui.Editing.IChoiceProvider :: method ValueTask<IReadOnlyList<ChoiceOption>> GetOptionsAsync(String filter, CancellationToken cancellationToken)
+SaveEditor.Ui.Editing.IEditHistory :: event EventHandler Changed
+SaveEditor.Ui.Editing.IEditHistory :: method IDisposable BeginTransaction(String label)
+SaveEditor.Ui.Editing.IEditHistory :: method Void Clear()
+SaveEditor.Ui.Editing.IEditHistory :: method Void MarkSaved()
+SaveEditor.Ui.Editing.IEditHistory :: method Void Record(HistoryEntry entry)
+SaveEditor.Ui.Editing.IEditHistory :: method Void Redo()
+SaveEditor.Ui.Editing.IEditHistory :: method Void Undo()
+SaveEditor.Ui.Editing.IEditHistory :: property Boolean CanRedo get
+SaveEditor.Ui.Editing.IEditHistory :: property Boolean CanUndo get
+SaveEditor.Ui.Editing.IEditHistory :: property Boolean IsDirty get
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: ctor ()
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(NumericFieldDescriptor other)
@@ -329,7 +339,7 @@ SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Func<Int64, String> Val
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Func<Int64> Read get set
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Int64 Maximum get set
 SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Int64 Minimum get set
-SaveEditor.Ui.Editing.NumericFieldViewModel :: ctor (NumericFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.NumericFieldViewModel :: ctor (NumericFieldDescriptor descriptor, IEditHistory history)
 SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void Decrement()
 SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void Increment()
 SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void RefreshFromDocument()
@@ -345,11 +355,11 @@ SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Boolean Equals(ReadOnlyF
 SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Int32 GetHashCode()
 SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method String ToString()
 SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: property Func<String> Read get set
-SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: ctor (ReadOnlyFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: ctor (ReadOnlyFieldDescriptor descriptor, IEditHistory history)
 SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: method Void RefreshFromDocument()
 SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: property Boolean HasPendingEdit get
 SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: property String Value get
-SaveEditor.Ui.Editing.SectionEditor :: ctor (String key, String title, IEnumerable<FieldViewModel> fields, EditHistory history)
+SaveEditor.Ui.Editing.SectionEditor :: ctor (String key, String title, IEnumerable<FieldViewModel> fields, IEditHistory history)
 SaveEditor.Ui.Editing.SectionEditor :: method Void ApplyAll()
 SaveEditor.Ui.Editing.SectionEditor :: method Void RefreshFromDocument()
 SaveEditor.Ui.Editing.SectionEditor :: method Void RevertAll()
@@ -374,7 +384,7 @@ SaveEditor.Ui.Editing.TextFieldDescriptor :: property Action<String> Write get s
 SaveEditor.Ui.Editing.TextFieldDescriptor :: property Func<String, String> Validate get set
 SaveEditor.Ui.Editing.TextFieldDescriptor :: property Func<String> Read get set
 SaveEditor.Ui.Editing.TextFieldDescriptor :: property Nullable<Int32> MaxLength get set
-SaveEditor.Ui.Editing.TextFieldViewModel :: ctor (TextFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.TextFieldViewModel :: ctor (TextFieldDescriptor descriptor, IEditHistory history)
 SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: ctor (Size Size)
 SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method Boolean Equals(HostSizeChangedEventArgs other)
 SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method Boolean Equals(Object obj)
@@ -823,7 +833,7 @@ SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Failed
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Flushed
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus NotApplicable
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field Int32 value__
-SaveEditor.Ui.Workflow.DocumentSession`1 :: ctor (SafeFileWorkflow<TDocument> workflow, EditHistory history, ISaveCodec<TDocument> defaultCodec, IFolderDocumentOpener<TDocument> folderOpener)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: ctor (SafeFileWorkflow<TDocument> workflow, IEditHistory history, ISaveCodec<TDocument> defaultCodec, IFolderDocumentOpener<TDocument> folderOpener)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler DocumentChanged
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler StateChanged
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler<DocumentProgress> ProgressChanged
@@ -1133,6 +1143,7 @@ type SaveEditor.Ui.Editing.FieldViewModel
 type SaveEditor.Ui.Editing.FieldViewModel`1
 type SaveEditor.Ui.Editing.HistoryEntry
 type SaveEditor.Ui.Editing.IChoiceProvider
+type SaveEditor.Ui.Editing.IEditHistory
 type SaveEditor.Ui.Editing.NumericFieldDescriptor
 type SaveEditor.Ui.Editing.NumericFieldViewModel
 type SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor

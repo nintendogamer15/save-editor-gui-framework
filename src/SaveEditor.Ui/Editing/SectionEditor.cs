@@ -21,7 +21,7 @@ namespace SaveEditor.Ui.Editing;
 /// </remarks>
 public sealed partial class SectionEditor : ObservableObject
 {
-    private readonly EditHistory _history;
+    private readonly IEditHistory _history;
 
     /// <summary>Creates a section editor.</summary>
     /// <param name="key">Stable section key.</param>
@@ -32,7 +32,7 @@ public sealed partial class SectionEditor : ObservableObject
         string key,
         string title,
         IEnumerable<FieldViewModel> fields,
-        EditHistory history)
+        IEditHistory history)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentException.ThrowIfNullOrEmpty(title);

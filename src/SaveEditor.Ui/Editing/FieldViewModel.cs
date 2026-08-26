@@ -22,12 +22,12 @@ namespace SaveEditor.Ui.Editing;
 /// </remarks>
 public abstract partial class FieldViewModel : ObservableObject
 {
-    private readonly EditHistory _history;
+    private readonly IEditHistory _history;
 
     /// <summary>Creates a field view-model.</summary>
     /// <param name="descriptor">The field's metadata.</param>
     /// <param name="history">Where committed edits are recorded.</param>
-    protected FieldViewModel(FieldDescriptor descriptor, EditHistory history)
+    protected FieldViewModel(FieldDescriptor descriptor, IEditHistory history)
     {
         ArgumentNullException.ThrowIfNull(descriptor);
         ArgumentNullException.ThrowIfNull(history);
@@ -129,7 +129,7 @@ public abstract partial class FieldViewModel<T> : FieldViewModel
     /// <param name="write">Writes a committed value.</param>
     protected FieldViewModel(
         FieldDescriptor descriptor,
-        EditHistory history,
+        IEditHistory history,
         Func<T> read,
         Action<T> write)
         : base(descriptor, history)
@@ -223,7 +223,7 @@ public sealed class TextFieldViewModel : FieldViewModel<string>
     /// <summary>Creates a text field.</summary>
     /// <param name="descriptor">The field's metadata.</param>
     /// <param name="history">Where committed edits are recorded.</param>
-    public TextFieldViewModel(TextFieldDescriptor descriptor, EditHistory history)
+    public TextFieldViewModel(TextFieldDescriptor descriptor, IEditHistory history)
         : base(descriptor, history, descriptor.Read, descriptor.Write) =>
         _descriptor = descriptor;
 
@@ -240,7 +240,7 @@ public sealed class TextFieldViewModel : FieldViewModel<string>
 }
 
 /// <summary>A boolean field.</summary>
-public sealed class BooleanFieldViewModel(BooleanFieldDescriptor descriptor, EditHistory history)
+public sealed class BooleanFieldViewModel(BooleanFieldDescriptor descriptor, IEditHistory history)
     : FieldViewModel<bool>(descriptor, history, descriptor.Read, descriptor.Write)
 {
     /// <inheritdoc />
@@ -263,7 +263,7 @@ public sealed partial class NumericFieldViewModel : FieldViewModel<long>
     /// <summary>Creates a numeric field.</summary>
     /// <param name="descriptor">The field's metadata.</param>
     /// <param name="history">Where committed edits are recorded.</param>
-    public NumericFieldViewModel(NumericFieldDescriptor descriptor, EditHistory history)
+    public NumericFieldViewModel(NumericFieldDescriptor descriptor, IEditHistory history)
         : base(descriptor, history, descriptor.Read, descriptor.Write)
     {
         _descriptor = descriptor;
@@ -369,7 +369,7 @@ public sealed partial class NumericFieldViewModel : FieldViewModel<long>
 }
 
 /// <summary>A field selected from a set of options.</summary>
-public sealed class ChoiceFieldViewModel(ChoiceFieldDescriptor descriptor, EditHistory history)
+public sealed class ChoiceFieldViewModel(ChoiceFieldDescriptor descriptor, IEditHistory history)
     : FieldViewModel<string>(descriptor, history, descriptor.Read, descriptor.Write), IDisposable
 {
     private readonly CancellationTokenSource _optionsCancellation = new();
@@ -458,7 +458,7 @@ public sealed class ChoiceFieldViewModel(ChoiceFieldDescriptor descriptor, EditH
 }
 
 /// <summary>A value shown but never edited.</summary>
-public sealed class ReadOnlyFieldViewModel(ReadOnlyFieldDescriptor descriptor, EditHistory history)
+public sealed class ReadOnlyFieldViewModel(ReadOnlyFieldDescriptor descriptor, IEditHistory history)
     : FieldViewModel(descriptor, history)
 {
     /// <summary>The displayed value.</summary>

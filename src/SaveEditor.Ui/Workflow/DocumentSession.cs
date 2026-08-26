@@ -44,7 +44,7 @@ public interface IFolderDocumentOpener<TDocument>
 public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
 {
     private readonly SafeFileWorkflow<TDocument> _workflow;
-    private readonly EditHistory _history;
+    private readonly IEditHistory _history;
     private readonly ISaveCodec<TDocument> _defaultCodec;
     private readonly IFolderDocumentOpener<TDocument>? _folderOpener;
     private OpenSaveFile<TDocument>? _open;
@@ -57,7 +57,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     /// <param name="folderOpener">Optional folder support.</param>
     public DocumentSession(
         SafeFileWorkflow<TDocument> workflow,
-        EditHistory history,
+        IEditHistory history,
         ISaveCodec<TDocument> defaultCodec,
         IFolderDocumentOpener<TDocument>? folderOpener = null)
     {
