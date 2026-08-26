@@ -422,7 +422,14 @@ public sealed class SafeFileWorkflow<TDocument>
                 return write.Outcome with { BackupPath = backupPath };
             }
 
-            var success = SaveOutcome.Success(destinationPath, backupPath);
+            ApplyBackupRetention(backupPath, Path.GetFileName(destinationPath));
+
+            var success = SaveOutcome.Success(destinationPath, backupPath) with
+            {
+                RoundTrip = write.Outcome.RoundTrip,
+                RoundTripDetail = write.Outcome.RoundTripDetail,
+            };
+
             return string.IsNullOrEmpty(write.Detail) ? success : success with { Message = success.Message + " " + write.Detail };
         }
         catch (OperationCanceledException)
@@ -585,7 +592,14 @@ public sealed class SafeFileWorkflow<TDocument>
                 return write.Outcome with { BackupPath = backup.Path };
             }
 
-            var success = SaveOutcome.Success(open.Path, backup.Path);
+            ApplyBackupRetention(backup.Path, Path.GetFileName(open.Path));
+
+            var success = SaveOutcome.Success(open.Path, backup.Path) with
+            {
+                RoundTrip = write.Outcome.RoundTrip,
+                RoundTripDetail = write.Outcome.RoundTripDetail,
+            };
+
             return string.IsNullOrEmpty(write.Detail) ? success : success with { Message = success.Message + " " + write.Detail };
         }
         catch (OperationCanceledException)
@@ -692,9 +706,14 @@ public sealed class SafeFileWorkflow<TDocument>
         }
 
         var roundTrip = await VerifyRoundTripAsync(codec, document, payload, progress, cancellationToken).ConfigureAwait(false);
-        if (roundTrip is not null)
+        if (roundTrip.Mismatch is not null)
         {
-            return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.RoundTripMismatch, roundTrip, destinationPath, cancellationToken).ConfigureAwait(false));
+            var failure = await FailAsync(SaveFailureReason.RoundTripMismatch, roundTrip.Mismatch, destinationPath, cancellationToken).ConfigureAwait(false);
+            return WriteAttempt.Abandoned(failure with
+            {
+                RoundTrip = RoundTripVerification.Mismatched,
+                RoundTripDetail = roundTrip.Detail,
+            });
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -758,9 +777,17 @@ public sealed class SafeFileWorkflow<TDocument>
             // Authoritative cancellation: the last gate before anything irreversible.
             cancellationToken.ThrowIfCancellationRequested();
 
-            progress?.Report(new SaveProgress(SavePhase.Replacing));
+            progress?.Report(new SaveProgress(SavePhase.VerifyingTemp, payload.LongLength, payload.LongLength));
 
             await _options.Durability.FlushFileAsync(temporary.Stream, cancellationToken).ConfigureAwait(false);
+
+            var landed = await VerifyTemporaryBytesAsync(temporary.Stream, payload, cancellationToken).ConfigureAwait(false);
+            if (landed is not null)
+            {
+                return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.TempVerificationFailed, landed, destinationPath, cancellationToken).ConfigureAwait(false));
+            }
+
+            progress?.Report(new SaveProgress(SavePhase.Replacing));
 
             var temporaryIdentity = temporary.Identity;
             temporary.Dispose();
@@ -823,7 +850,22 @@ public sealed class SafeFileWorkflow<TDocument>
                 detail = Join(detail, "The operation was cancelled after the replacement had already completed, so the new bytes are on disk.");
             }
 
-            return new WriteAttempt(SaveOutcome.Success(destinationPath), newBaseline, detail, Replaced: true);
+            // A skipped round trip is said out loud. Left off the message, "not checked" and
+            // "checked and fine" read identically (finding F-6).
+            if (roundTrip.Verdict == RoundTripVerification.Skipped)
+            {
+                detail = Join(detail, roundTrip.Detail);
+            }
+
+            return new WriteAttempt(
+                SaveOutcome.Success(destinationPath) with
+                {
+                    RoundTrip = roundTrip.Verdict,
+                    RoundTripDetail = roundTrip.Detail,
+                },
+                newBaseline,
+                detail,
+                Replaced: true);
         }
         catch (OperationCanceledException)
         {
@@ -833,7 +875,7 @@ public sealed class SafeFileWorkflow<TDocument>
             // inverting.
             if (replaced)
             {
-                return Landed(destinationPath, payload, "The operation was cancelled after the replacement had already completed, so the new bytes are on disk.");
+                return Landed(destinationPath, payload, "The operation was cancelled after the replacement had already completed, so the new bytes are on disk.", roundTrip);
             }
 
             throw;
@@ -845,7 +887,8 @@ public sealed class SafeFileWorkflow<TDocument>
                 return Landed(
                     destinationPath,
                     payload,
-                    $"The replacement completed, but bookkeeping after it failed ({ex.GetType().Name}: {ex.Message}).");
+                    $"The replacement completed, but bookkeeping after it failed ({ex.GetType().Name}: {ex.Message}).",
+                    roundTrip);
             }
 
             return WriteAttempt.Abandoned(await FailAsync(
@@ -968,9 +1011,31 @@ public sealed class SafeFileWorkflow<TDocument>
             return (null, detail);
         }
 
-        _ = BackupRetention.Apply(backupDirectory, originalName, _options.BackupRetention);
-
+        // Retention deliberately does not run here. Applied between the backup's
+        // verification and its use, a misconfigured cap could delete the very file the
+        // overwrite is about to depend on; it now runs only once the write has succeeded
+        // (finding F-4).
         return (backupPath, "The backup was written and verified against the bytes that were read.");
+    }
+
+    /// <summary>Trims older backups of one original, after a write has already succeeded.</summary>
+    /// <remarks>
+    /// Housekeeping, and never allowed to affect the outcome of a save that has completed.
+    /// Running only after success is also what stops a cap of zero — now rejected at
+    /// construction — from ever having been able to remove the backup being relied on.
+    /// </remarks>
+    private void ApplyBackupRetention(string backupPath, string originalFileName)
+    {
+        var directory = Path.GetDirectoryName(backupPath);
+        if (string.IsNullOrEmpty(directory))
+        {
+            return;
+        }
+
+        // The backup just written is named explicitly: within one second, name ordering
+        // cannot tell it apart from an older sibling, and this is the one file the caller is
+        // about to report to the user.
+        _ = BackupRetention.Apply(directory, originalFileName, _options.BackupRetention, protect: backupPath);
     }
 
     /// <summary>Captures a change-detection baseline for a file the workflow did not decode.</summary>
@@ -1006,10 +1071,61 @@ public sealed class SafeFileWorkflow<TDocument>
         return new ContentBaseline(hash, length, lastWrite);
     }
 
+    /// <summary>Reads the temporary file back and compares it against the bytes written to it.</summary>
+    /// <param name="temporary">The flushed temporary file, still open.</param>
+    /// <param name="payload">The bytes the codec produced.</param>
+    /// <param name="cancellationToken">Cancels the read.</param>
+    /// <returns><see langword="null"/> when what landed is the payload, or why not.</returns>
+    /// <remarks>
+    /// The temporary file used to be written, fsynced and renamed without ever being read
+    /// back, and the new change-detection baseline was hashed from the payload — the
+    /// <em>intended</em> bytes rather than the landed ones. The backup path a few lines away
+    /// already re-read from disk and compared, so this was the one place the framework was
+    /// weaker than the audited pipeline it replaces (finding F-5).
+    /// <para>
+    /// Ordinary failures — ENOSPC, EIO — do throw from <c>WriteAsync</c> or the flush, so this
+    /// is not a common-case gap. What it closes is silent media corruption and storage that
+    /// reports a successful write it did not perform, and, just as importantly, it stops a
+    /// wrong baseline being recorded and then used by every later external-change check.
+    /// </para>
+    /// <para>
+    /// One seek and one pass over a file that was written moments ago and is still in page
+    /// cache.
+    /// </para>
+    /// </remarks>
+    private static async ValueTask<string?> VerifyTemporaryBytesAsync(
+        FileStream temporary,
+        byte[] payload,
+        CancellationToken cancellationToken)
+    {
+        var length = temporary.Length;
+        if (length != payload.LongLength)
+        {
+            return $"The temporary file holds {length} bytes where {payload.LongLength} were written to it, so the storage did not record what the codec produced. " +
+                   "The save was abandoned with the target unchanged.";
+        }
+
+        temporary.Seek(0, SeekOrigin.Begin);
+        var landed = await ComputeHashAsync(temporary, cancellationToken).ConfigureAwait(false);
+
+        return CryptographicOperations.FixedTimeEquals(landed, SHA256.HashData(payload))
+            ? null
+            : "The bytes read back from the temporary file are not the bytes written to it, so the storage did not durably record what the codec produced. " +
+              "The save was abandoned with the target unchanged.";
+    }
+
     /// <summary>Reports a replacement that happened, whatever went wrong after it.</summary>
-    private static WriteAttempt Landed(string destinationPath, byte[] payload, string detail) =>
+    private static WriteAttempt Landed(
+        string destinationPath,
+        byte[] payload,
+        string detail,
+        (RoundTripVerification Verdict, string Detail, string? Mismatch) roundTrip) =>
         new(
-            SaveOutcome.Success(destinationPath),
+            SaveOutcome.Success(destinationPath) with
+            {
+                RoundTrip = roundTrip.Verdict,
+                RoundTripDetail = roundTrip.Detail,
+            },
             new ContentBaseline(SHA256.HashData(payload), payload.LongLength, null),
             detail,
             Replaced: true);
@@ -1193,16 +1309,38 @@ public sealed class SafeFileWorkflow<TDocument>
     private static string ShortHash(ReadOnlySpan<byte> bytes) =>
         Convert.ToHexStringLower(SHA256.HashData(bytes))[..12];
 
-    private async ValueTask<string?> VerifyRoundTripAsync(
+    /// <summary>Decodes the bytes about to be written and compares them to the document.</summary>
+    /// <returns>
+    /// The verdict, a framework-authored explanation of it, and — only when the comparison
+    /// ran and failed — the message the write should fail with.
+    /// </returns>
+    /// <remarks>
+    /// This used to return <see langword="null"/> for both "passed" and "not run", so above
+    /// <see cref="SafeFileWorkflowOptions{TDocument}.RoundTripVerificationMaxBytes"/> the
+    /// primary integrity guard stopped running and the result was a plain "Saved."
+    /// (finding F-6).
+    /// </remarks>
+    private async ValueTask<(RoundTripVerification Verdict, string Detail, string? Mismatch)> VerifyRoundTripAsync(
         ISaveCodec<TDocument> codec,
         TDocument document,
         byte[] payload,
         IProgress<SaveProgress>? progress,
         CancellationToken cancellationToken)
     {
-        if (!_options.VerifyRoundTripBeforeReplace || payload.LongLength > _options.RoundTripVerificationMaxBytes)
+        if (!_options.VerifyRoundTripBeforeReplace)
         {
-            return null;
+            return (
+                RoundTripVerification.Skipped,
+                "The written bytes were not decoded back and compared to the document, because that check is switched off.",
+                null);
+        }
+
+        if (payload.LongLength > _options.RoundTripVerificationMaxBytes)
+        {
+            return (
+                RoundTripVerification.Skipped,
+                $"The written bytes were not decoded back and compared to the document: at {payload.LongLength} bytes they are above the {_options.RoundTripVerificationMaxBytes}-byte limit for that check.",
+                null);
         }
 
         progress?.Report(new SaveProgress(SavePhase.VerifyingRoundTrip, payload.LongLength, payload.LongLength));
@@ -1220,12 +1358,16 @@ public sealed class SafeFileWorkflow<TDocument>
         }
         catch (Exception ex)
         {
-            return $"The bytes this codec produced could not be read back by the same codec ({ex.GetType().Name}: {ex.Message}). The save was abandoned rather than written.";
+            var unreadable = $"The bytes this codec produced could not be read back by the same codec ({ex.GetType().Name}: {ex.Message}). The save was abandoned rather than written.";
+            return (RoundTripVerification.Mismatched, unreadable, unreadable);
         }
 
         if (_options.DocumentComparer.Equals(decoded, document))
         {
-            return null;
+            return (
+                RoundTripVerification.Verified,
+                "The written bytes were decoded back and matched the document in memory.",
+                null);
         }
 
         var lost = "The bytes this codec produced do not decode back to the document that is open. " +
@@ -1235,12 +1377,14 @@ public sealed class SafeFileWorkflow<TDocument>
         // equality, is that the comparison is by reference and can never succeed — so
         // every save fails identically. Saying "something was lost in serialization"
         // there sends the author hunting for a codec bug that does not exist.
-        return ComparesByReference()
+        var mismatch = ComparesByReference()
             ? lost + " This may not be a codec fault: "
                    + $"'{typeof(TDocument).Name}' does not define value equality, so the round-trip check "
                    + "is comparing object references and cannot ever match. Make the document a record, "
                    + "override Equals, or supply SafeFileWorkflowOptions.DocumentComparer."
             : lost;
+
+        return (RoundTripVerification.Mismatched, mismatch, mismatch);
     }
 
     /// <summary>

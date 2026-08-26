@@ -17,6 +17,8 @@ namespace SaveEditor.Ui.Workflow;
 /// </remarks>
 public sealed record SafeFileWorkflowOptions<TDocument>
 {
+    private readonly int _backupRetention = 10;
+
     /// <summary>The codecs this editor understands and the detectors that recognize them.</summary>
     public required SaveCodecRegistry<TDocument> Registry { get; init; }
 
@@ -88,8 +90,26 @@ public sealed record SafeFileWorkflowOptions<TDocument>
     /// <summary>Size above which both round-trip verifications are skipped and reported as skipped.</summary>
     public long RoundTripVerificationMaxBytes { get; init; } = 64L * 1024 * 1024;
 
-    /// <summary>How many backups of one original are kept.</summary>
-    public int BackupRetention { get; init; } = 10;
+    /// <summary>How many backups of one original are kept. At least one.</summary>
+    /// <remarks>
+    /// Rejected below 1 rather than clamped. <see cref="Workflow.BackupRetention.Apply"/>
+    /// selects everything past the newest <c>retain</c> entries, so a cap of zero selects
+    /// <em>every</em> backup of that original — including the one written and hash-verified
+    /// moments earlier. The overwrite then proceeded and reported a <c>BackupPath</c> pointing
+    /// at a file that had just been deleted: the user was told they had a backup and did not.
+    /// A cap of zero has no coherent meaning for a workflow that never writes without a
+    /// backup, so it is a construction error rather than a setting (finding F-4).
+    /// </remarks>
+    public int BackupRetention
+    {
+        get => _backupRetention;
+        init => _backupRetention = value >= 1
+            ? value
+            : throw new ArgumentOutOfRangeException(
+                nameof(BackupRetention),
+                value,
+                "At least one backup must be retained. A cap of zero would delete the verified backup the overwrite is about to rely on.");
+    }
 
     /// <summary>How old a temporary file must be before the startup sweep removes it.</summary>
     public TimeSpan TemporaryResidueMinimumAge { get; init; } = TempResidueSweeper.DefaultMinimumAge;

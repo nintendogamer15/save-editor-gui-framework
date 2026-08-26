@@ -59,6 +59,9 @@ public enum SaveFailureReason
     /// <summary>The serialized bytes did not decode back to the in-memory document.</summary>
     RoundTripMismatch,
 
+    /// <summary>The bytes read back from the temporary file are not the bytes written to it.</summary>
+    TempVerificationFailed,
+
     /// <summary>Replacing would have produced a permission set broader than the original.</summary>
     PermissionWidening,
 
@@ -81,6 +84,31 @@ public enum SaveFailureReason
 
     /// <summary>An unexpected fault was contained at the workflow boundary.</summary>
     Unexpected,
+}
+
+/// <summary>
+/// Whether the serialized bytes were decoded and compared to the document before the replace.
+/// </summary>
+/// <remarks>
+/// Carried on the outcome because the check has a documented size limit above which it does
+/// not run, and previously that produced a plain "Saved." indistinguishable from one where it
+/// had run and passed. The preservation-claim check already surfaced its own skip as
+/// <see cref="UnknownDataVerification.Skipped"/>; this one was invisible (finding F-6).
+/// "Not checked" and "checked and fine" must never be the same report.
+/// </remarks>
+public enum RoundTripVerification
+{
+    /// <summary>The attempt never reached the round-trip stage.</summary>
+    NotReached,
+
+    /// <summary>The bytes were decoded back and matched the document in memory.</summary>
+    Verified,
+
+    /// <summary>The check did not run — switched off, or the payload is above the size limit.</summary>
+    Skipped,
+
+    /// <summary>The bytes were decoded back and did not match. The write was abandoned.</summary>
+    Mismatched,
 }
 
 /// <summary>
@@ -108,6 +136,12 @@ public sealed record SaveOutcome
 
     /// <summary>Where the verified backup was written, when one was.</summary>
     public string? BackupPath { get; init; }
+
+    /// <summary>Whether the pre-replace round-trip check ran, and what it concluded.</summary>
+    public RoundTripVerification RoundTrip { get; init; }
+
+    /// <summary>Framework-authored explanation of the round-trip verdict.</summary>
+    public string RoundTripDetail { get; init; } = string.Empty;
 
     /// <summary>Whether the operation completed successfully.</summary>
     public bool IsSuccess => Status == SaveStatus.Succeeded;

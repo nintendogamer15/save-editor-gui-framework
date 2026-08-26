@@ -132,6 +132,7 @@ public sealed class WorkflowGuaranteeTests
     [InlineData("cancelled")]
     [InlineData("temp-pre-planted")]
     [InlineData("backup-pre-planted")]
+    [InlineData("temp-bytes-corrupted")]
     public async Task Workflow_TargetBytesUnchangedAfterFailureAtEveryStage(string stage)
     {
         using var harness = new WorkflowHarness($"stage-{stage}");
@@ -197,6 +198,39 @@ public sealed class WorkflowGuaranteeTests
                 token = cancellation.Token;
                 break;
 
+            case "temp-bytes-corrupted":
+                // The temporary file is flushed, and what is on disk is then made to differ
+                // from what was written to it -- silent media corruption, or storage that
+                // reported a write it did not perform. Same length, so this exercises the
+                // hash comparison rather than the cheaper length pre-filter.
+                //
+                // Identified by reference, not by stream.Name: ResolvedFile builds its
+                // FileStream from a SafeFileHandle, for which Name is "[Unknown]".
+                FileStream? temporaryStream = null;
+                harness.Resolver.AfterCreateNew = (path, resolution) =>
+                {
+                    if (WorkflowFileNames.IsFrameworkTemporaryName(Path.GetFileName(path)) &&
+                        resolution is SaveEditor.Ui.Io.PathResolution.Resolved resolved)
+                    {
+                        temporaryStream = resolved.File.Stream;
+                    }
+                };
+
+                harness.Durability.AfterFlushFile = stream =>
+                {
+                    if (!ReferenceEquals(stream, temporaryStream))
+                    {
+                        return;
+                    }
+
+                    var position = stream.Position;
+                    stream.Seek(0, SeekOrigin.Begin);
+                    stream.Write("SEDX"u8);
+                    stream.Flush();
+                    stream.Seek(position, SeekOrigin.Begin);
+                };
+                break;
+
             case "temp-pre-planted":
                 harness.FileNames = new FixedFileNames(
                     ".saveeditor-tmp-0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f.part",
@@ -222,6 +256,13 @@ public sealed class WorkflowGuaranteeTests
             .OverwriteWithBackupAsync(document with { Level = 9 }, open, cancellationToken: token);
 
         Assert.NotEqual(SaveStatus.Succeeded, outcome.Status);
+
+        // Name the gate for the stages where a different one could plausibly have fired
+        // first, so the stage proves what it claims to.
+        if (stage == "temp-bytes-corrupted")
+        {
+            Assert.Equal(SaveFailureReason.TempVerificationFailed, outcome.Reason);
+        }
 
         // The guarantee, stated exactly: on any failure the bytes at the target path are
         // the pre-operation bytes.
@@ -818,6 +859,185 @@ public sealed class WorkflowGuaranteeTests
         Assert.True(File.Exists(uppercase), "A near-miss of the grammar was deleted.");
         Assert.True(File.Exists(otherOriginal), "A backup of a different original was deleted.");
         Assert.True(File.Exists(handMade), "A file the user made was deleted.");
+    }
+
+    /// <summary>
+    /// A retention cap of zero used to delete the backup the overwrite was about to rely on,
+    /// and the overwrite still reported its path.
+    /// </summary>
+    /// <remarks>
+    /// <c>BackupRetention.Apply</c> selects everything past the newest <c>retain</c> entries,
+    /// so zero selects every backup of that original -- including the one written and
+    /// hash-verified moments earlier. The user was told they had a backup and did not
+    /// (finding F-4).
+    /// </remarks>
+    [Fact]
+    public void Options_RejectARetentionCapThatWouldDeleteTheVerifiedBackup()
+    {
+        using var harness = new WorkflowHarness("retention-zero");
+
+        var error = Assert.Throws<ArgumentOutOfRangeException>(() => harness.Options with { BackupRetention = 0 });
+        Assert.Equal(nameof(SafeFileWorkflowOptions<TestDocument>.BackupRetention), error.ParamName);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => harness.Options with { BackupRetention = -1 });
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(10)]
+    public async Task Backup_TheReportedBackupExistsAtEveryRetentionSetting(int retain)
+    {
+        using var harness = new WorkflowHarness($"retention-{retain}");
+        harness.Codec.PreservesUnknownData = false;
+        harness.BackupRetention = retain;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        // More overwrites than the cap, so retention genuinely runs and trims.
+        for (var i = 0; i < retain + 2; i++)
+        {
+            var outcome = await harness.Create()
+                .OverwriteWithBackupAsync(document with { Level = i }, open, cancellationToken: Token);
+
+            WorkflowHarness.AssertSucceeded(outcome);
+            Assert.NotNull(outcome.BackupPath);
+            Assert.True(
+                File.Exists(outcome.BackupPath),
+                $"Overwrite {i} reported a backup at '{outcome.BackupPath}' that does not exist.");
+        }
+
+        Assert.Equal(retain, WorkflowHarness.Backups(harness.Workspace.Root).Count);
+    }
+
+    /// <summary>
+    /// Above the size limit the pre-replace round-trip check stops running, and the outcome
+    /// has to say so rather than reporting a plain success.
+    /// </summary>
+    [Fact]
+    public async Task RoundTrip_ASkippedCheckIsDistinguishableFromAPassedOne()
+    {
+        using var harness = new WorkflowHarness("round-trip-skipped");
+        harness.Codec.PreservesUnknownData = false;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        // --- Under the limit: the check runs.
+        var verified = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 4 }, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(verified);
+        Assert.Equal(RoundTripVerification.Verified, verified.RoundTrip);
+
+        // --- Above it: the check does not run, and the outcome distinguishes that from a
+        // check that ran and passed. Previously both produced a plain "Saved."
+        harness.RoundTripVerificationMaxBytes = 4;
+
+        var skipped = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 5 }, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(skipped);
+        Assert.Equal(RoundTripVerification.Skipped, skipped.RoundTrip);
+        Assert.Contains("above the", skipped.RoundTripDetail, StringComparison.Ordinal);
+
+        // And it reaches the user-visible message, not just a property nobody renders.
+        Assert.Contains("were not decoded back", skipped.Message, StringComparison.Ordinal);
+
+        // --- Switched off entirely: also a skip, with its own reason.
+        harness.RoundTripVerificationMaxBytes = 64L * 1024 * 1024;
+        harness.VerifyRoundTrip = false;
+
+        var off = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 6 }, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(off);
+        Assert.Equal(RoundTripVerification.Skipped, off.RoundTrip);
+        Assert.Contains("switched off", off.RoundTripDetail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RoundTrip_AMismatchIsReportedAsMismatchedRatherThanNotReached()
+    {
+        using var harness = new WorkflowHarness("round-trip-mismatched");
+        harness.Codec.PreservesUnknownData = false;
+        harness.Codec.SerializeOverride = (doc, destination, cancellationToken) =>
+            destination.WriteAsync(TestCodec.Encode(doc with { Level = 0 }), cancellationToken);
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 9 }, open, cancellationToken: Token);
+
+        Assert.Equal(SaveFailureReason.RoundTripMismatch, outcome.Reason);
+        Assert.Equal(RoundTripVerification.Mismatched, outcome.RoundTrip);
+    }
+
+    /// <summary>A declined write never claims a round-trip verdict it did not get.</summary>
+    [Fact]
+    public async Task RoundTrip_ADeclinedWriteReportsNotReached()
+    {
+        using var harness = new WorkflowHarness("round-trip-not-reached");
+        harness.Codec.PreservesUnknownData = false;
+        harness.Interaction.Confirm = _ => false;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 9 }, open, cancellationToken: Token);
+
+        Assert.Equal(SaveStatus.Declined, outcome.Status);
+        Assert.Equal(RoundTripVerification.NotReached, outcome.RoundTrip);
+    }
+
+    /// <summary>
+    /// Two backups taken in the same second differ only in their random entropy field, so
+    /// descending name order cannot say which is newer. The caller names the one that must
+    /// survive.
+    /// </summary>
+    /// <remarks>
+    /// Found while testing finding F-4. Moving retention until after a successful write does
+    /// not close this: the just-verified backup can still sort second on entropy alone and be
+    /// trimmed, leaving the caller reporting a BackupPath that no longer exists. The existing
+    /// grammar test never hit it because its fixtures use distinct timestamps.
+    /// </remarks>
+    [Fact]
+    public void Backup_RetentionKeepsTheBackupItWasToldToProtect()
+    {
+        using var workspace = new TempWorkspace("backup-retention-protect");
+
+        string Make(string entropy)
+        {
+            var path = workspace.Path($"save.sav.saveeditor-backup.20260101T000000Z.{entropy}.bak");
+            File.WriteAllBytes(path, Encoding.UTF8.GetBytes(entropy));
+            return path;
+        }
+
+        // Same second, so only the entropy field separates them -- and it sorts lowest, which
+        // is exactly the case that used to be deleted.
+        var older = Make("ffffffff");
+        var justWritten = Make("00000001");
+
+        var removed = BackupRetention.Apply(workspace.Root, "save.sav", retain: 1, protect: justWritten);
+
+        Assert.True(File.Exists(justWritten), "Retention deleted the backup it was told to protect.");
+        Assert.Equal([older], removed);
+        Assert.False(File.Exists(older));
+
+        // Unprotected, the cap still counts the protected file rather than keeping it as an
+        // extra: one retained means one file left.
+        Assert.Single(WorkflowHarness.Backups(workspace.Root));
     }
 
     [Fact]
