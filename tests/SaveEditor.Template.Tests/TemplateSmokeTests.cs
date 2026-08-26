@@ -91,14 +91,15 @@ public sealed class TemplateSmokeTests
                 BuildNuGetConfig(feedDirectory),
                 cancellationToken);
 
-            // Built by directory rather than through a solution file. The template
-            // ships no .slnx: sourceName substitution uses the raw project name for
-            // paths but an identifier-safe form inside file contents, so a checked-in
-            // solution silently references projects that do not exist as soon as
-            // someone runs "dotnet new save-editor -n \"My Editor\"".
+            // Built by explicit project path. The template ships no .slnx, because
+            // sourceName substitution uses the raw project name for paths but an
+            // identifier-safe form inside file contents — so a checked-in solution
+            // silently references projects that do not exist the moment someone runs
+            // it with a space in the name. Without a solution there is nothing at the
+            // generated root to build, so name the project.
 
             // 5. Build clean.
-            var buildOutput = await RunAsync("dotnet", "build -c Release", generatedRoot);
+            var buildOutput = await RunAsync("dotnet", $"build \"{generatedCsproj}\" -c Release", generatedRoot);
             Assert.Contains("Build succeeded.", buildOutput);
             Assert.Contains("0 Warning(s)", buildOutput);
             Assert.Contains("0 Error(s)", buildOutput);

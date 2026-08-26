@@ -18,10 +18,27 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Same font packages CI installs. Seeding without them would bake whatever
+      # fallback face the bare runner has into the reference, and every later CI
+      # run — which does install them — would then compare against a golden image
+      # rendered with different fonts.
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 libfreetype6
+
+      - name: Restore
+        run: dotnet restore --locked-mode
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      # Invoked directly rather than through "dotnet test", for the same reason CI
+      # does: that bridge reports success when tests error during host setup. A
+      # seeding job that silently wrote nothing while exiting 0 would upload an
+      # empty artifact and look like it worked.
       - name: Seed references
         env:
           SAVEEDITOR_UPDATE_BASELINES: "1"
-        run: dotnet test tests/SaveEditor.Ui.HeadlessTests -c Release
+        run: dotnet exec tests/SaveEditor.Ui.HeadlessTests/bin/Release/net10.0/SaveEditor.Ui.HeadlessTests.dll
 
       - uses: actions/upload-artifact@v7
         with:
