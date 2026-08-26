@@ -19,16 +19,21 @@ public partial class MainWindow : Window
     {
         AvaloniaXamlLoader.Load(this);
 
+        // One store, not two. Splitting them would let theme state and shell state
+        // diverge, which is harmless in a non-persistent sample and quietly wrong the
+        // moment this composition is copied into the P5 template.
+        var settings = new InMemorySettingsStore();
+
         var theme = new ThemeController(
             Application.Current!.Styles.OfType<SaveEditorTheme>().Single(),
-            new InMemorySettingsStore());
+            settings);
 
         var host = new WindowEditorHost(this);
 
         var viewModel = new EditorShellViewModel(
             _session,
             new GalleryUserInteraction(this),
-            new InMemorySettingsStore(),
+            settings,
             host,
             theme);
 

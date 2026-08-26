@@ -134,6 +134,27 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = "Ready.";
 
+    /// <summary>Body of the Help &gt; About dialog.</summary>
+    /// <remarks>
+    /// Framework text by default, so the menu item does something from the first
+    /// run. Editors replace it with their own identity and credits. The themed
+    /// About dialog with consumer slots arrives in P4; a plain message until then
+    /// is still better than a menu item that silently does nothing.
+    /// </remarks>
+    public string AboutMessage { get; set; } =
+        "Built on the Save Editor GUI Framework.\n\n"
+        + "Framework source is 0BSD. Bundled components and their licences are listed "
+        + "in THIRD-PARTY-NOTICES.";
+
+    /// <summary>Body of the Help &gt; Safety dialog.</summary>
+    public string SafetyMessage { get; set; } =
+        "Save As is the default write path, and Ctrl+S always means Save As.\n\n"
+        + "Overwrite + Backup writes a verified backup first and abandons the overwrite "
+        + "if that backup cannot be verified. On failure the original file is left byte "
+        + "for byte as it was.\n\n"
+        + "Codecs run in-process at full privilege and are not sandboxed. Only install "
+        + "codecs you trust.";
+
     /// <summary>Registers the editor's sections and evaluates their visibility.</summary>
     /// <param name="sections">Descriptors, in the order they should appear.</param>
     public void RegisterSections(IEnumerable<SectionDescriptor> sections)
@@ -260,6 +281,38 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
             await OpenPathAsync(chosen, cancellationToken).ConfigureAwait(true);
         }
     }
+
+    [RelayCommand]
+    private async Task OpenFolderAsync(CancellationToken cancellationToken)
+    {
+        var chosen = await _interaction
+            .PickFolderAsync("Open save folder", null, cancellationToken)
+            .ConfigureAwait(true);
+
+        if (chosen is null)
+        {
+            return;
+        }
+
+        if (!await ConfirmDiscardAsync(DiscardReason.Open, cancellationToken).ConfigureAwait(true))
+        {
+            StatusMessage = "Open cancelled. The current save is unchanged.";
+            return;
+        }
+
+        await _session.OpenFolderAsync(chosen, cancellationToken).ConfigureAwait(true);
+        NotifyDocumentState();
+    }
+
+    [RelayCommand]
+    private Task ShowAboutAsync(CancellationToken cancellationToken) =>
+        _interaction.ShowMessageAsync(
+            new MessageRequest("About", AboutMessage), cancellationToken).AsTask();
+
+    [RelayCommand]
+    private Task ShowSafetyAsync(CancellationToken cancellationToken) =>
+        _interaction.ShowMessageAsync(
+            new MessageRequest("Safety and manual testing", SafetyMessage), cancellationToken).AsTask();
 
     [RelayCommand]
     private Task OpenRecentAsync(RecentEntry? entry, CancellationToken cancellationToken) =>

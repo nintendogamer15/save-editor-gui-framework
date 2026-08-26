@@ -26,7 +26,7 @@
 
       <MenuItem Header="_File">
         <MenuItem Header="_Open Save…" Command="{Binding OpenSaveCommand}" InputGesture="Ctrl+O" />
-        <MenuItem Header="Open _Folder…" Command="{Binding OpenSaveCommand}" />
+        <MenuItem Header="Open _Folder…" Command="{Binding OpenFolderCommand}" />
         <MenuItem Header="_Recent" ItemsSource="{Binding Recents}">
           <MenuItem.ItemContainerTheme>
             <ControlTheme TargetType="MenuItem" x:DataType="shell:RecentEntry">
@@ -84,8 +84,8 @@
       </MenuItem>
 
       <MenuItem Header="_Help">
-        <MenuItem Header="_About and credits" />
-        <MenuItem Header="_Safety and manual testing" />
+        <MenuItem Header="_About and credits" Command="{Binding ShowAboutCommand}" />
+        <MenuItem Header="_Safety and manual testing" Command="{Binding ShowSafetyCommand}" />
       </MenuItem>
 
       <ContentControl Content="{Binding MenuExtensions, ElementName=Root}" />

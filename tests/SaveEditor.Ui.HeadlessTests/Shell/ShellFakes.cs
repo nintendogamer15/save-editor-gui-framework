@@ -37,6 +37,16 @@ internal sealed class FakeDocumentSession : IDocumentSession
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default)
+    {
+        Calls.Add(nameof(OpenFolderAsync));
+        OpenedPath = path;
+        HasDocument = true;
+        CurrentPath = path;
+        StateChanged?.Invoke(this, EventArgs.Empty);
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask SaveAsAsync(CancellationToken cancellationToken = default)
     {
         Calls.Add(nameof(SaveAsAsync));
@@ -80,6 +90,10 @@ internal sealed class FakeUserInteraction : IUserInteraction
 
     public string? OpenPickerResult { get; set; }
 
+    public string? FolderPickerResult { get; set; }
+
+    public List<MessageRequest> Messages { get; } = [];
+
     public ValueTask<string?> PickOpenFileAsync(
         FilePickerRequest request, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult(OpenPickerResult);
@@ -90,7 +104,7 @@ internal sealed class FakeUserInteraction : IUserInteraction
 
     public ValueTask<string?> PickFolderAsync(
         string title, string? suggestedDirectory = null, CancellationToken cancellationToken = default) =>
-        ValueTask.FromResult<string?>(null);
+        ValueTask.FromResult(FolderPickerResult);
 
     public ValueTask<bool> ConfirmAsync(
         ConfirmationRequest request, CancellationToken cancellationToken = default)
@@ -100,8 +114,11 @@ internal sealed class FakeUserInteraction : IUserInteraction
     }
 
     public ValueTask ShowMessageAsync(
-        MessageRequest request, CancellationToken cancellationToken = default) =>
-        ValueTask.CompletedTask;
+        MessageRequest request, CancellationToken cancellationToken = default)
+    {
+        Messages.Add(request);
+        return ValueTask.CompletedTask;
+    }
 }
 
 /// <summary>

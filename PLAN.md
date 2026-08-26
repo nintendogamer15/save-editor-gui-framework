@@ -112,13 +112,13 @@ The shell exposes named content slots for branding, header actions, sidebar, con
 
 ```text
 IEditorHost
-  ApplySize(Size)          framework -> host, restoring persisted size
-  ReportSize(Size)         host -> framework, on host resize, for persistence
-  RequestShutdownAsync()   framework -> host, raised by File > Exit
-  ShutdownRequested        host -> framework, raised by window close
+  ApplySize(Size)            framework -> host, restoring persisted size
+  SizeChanged                host -> framework, on host resize, for persistence
+  SetShutdownGuard(guard)    framework -> host, installed once at composition
+  RequestShutdownAsync()     framework -> host, raised by File > Exit
 ```
 
-Shutdown is veto-capable in both directions. `File > Exit` and a host-initiated window close both route through one guard: the framework inspects pending drafts and unsaved changes, runs the confirmation flow, and returns allow or veto. The host performs the actual shutdown only on allow. The framework never calls application-lifetime APIs itself.
+Shutdown is veto-capable in both directions, through **one** installed guard rather than an event per route. The framework installs the guard once; the host consults that same guard whether shutdown began at the window's close button or at `File > Exit`. A guard rather than a cancellable event is what makes this work: the check is asynchronous and can show a dialog, and a synchronous close cannot be held open while it does. The host performs the actual shutdown only on allow, and the framework never calls application-lifetime APIs itself.
 
 When no `IEditorHost` is supplied, window size is not persisted and `File > Exit` is hidden rather than present-but-inert.
 

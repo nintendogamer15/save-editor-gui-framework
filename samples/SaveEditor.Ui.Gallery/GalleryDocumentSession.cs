@@ -39,6 +39,9 @@ internal sealed class GalleryDocumentSession : IDocumentSession
         return ValueTask.CompletedTask;
     }
 
+    public ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default) =>
+        OpenAsync(path, cancellationToken);
+
     public ValueTask SaveAsAsync(CancellationToken cancellationToken = default)
     {
         _isDirty = false;
