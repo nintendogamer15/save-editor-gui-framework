@@ -625,6 +625,128 @@ public sealed class WorkflowGuaranteeTests
         Assert.Empty(WorkflowHarness.TemporaryResidue(harness.Workspace.Root));
     }
 
+    /// <summary>
+    /// Cancelling after the rename has landed must not report that nothing was written, and
+    /// must not strand the caller's handle on the unlinked inode.
+    /// </summary>
+    /// <remarks>
+    /// The existing failure-atomicity theory cancels <em>before</em> the operation starts, so
+    /// this window was asserted but never tested. Three awaits used to sit between
+    /// <c>replaced = true</c> and the return, inside a try whose handlers reported "Cancelled.
+    /// Nothing was written" -- about a file that had already been replaced. The compounding
+    /// half was worse: the rebind was skipped, so the handle kept the unlinked inode and a
+    /// later overwrite would pass both ReassertIdentity and the change guard against a ghost
+    /// (finding F-3).
+    /// </remarks>
+    [Fact]
+    public async Task Workflow_CancellingAfterTheReplaceReportsTheWriteThatHappened()
+    {
+        using var harness = new WorkflowHarness("cancel-after-replace");
+        harness.Codec.PreservesUnknownData = false;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+        using var cancellation = new CancellationTokenSource();
+
+        var written = document with { Level = 9 };
+        var cancelled = false;
+
+        // The rename has landed and the workflow has not yet flushed the directory. Cancelling
+        // on SavePhase.Completed would be too late -- that report comes after the flush, and
+        // nothing past it consulted the token, so it never reproduced this.
+        harness.Durability.AfterReplace = () =>
+        {
+            cancelled = true;
+            cancellation.Cancel();
+        };
+
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(written, open, cancellationToken: cancellation.Token);
+
+        Assert.True(cancelled, "The cancellation was never injected, so this test proved nothing.");
+
+        // The bytes are on disk, so the outcome says so.
+        Assert.Equal(SaveStatus.Succeeded, outcome.Status);
+        Assert.DoesNotContain("Nothing was written", outcome.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("target is unchanged", outcome.Message, StringComparison.Ordinal);
+        Assert.Equal(TestCodec.Encode(written), File.ReadAllBytes(target));
+
+        // The handle was rebound rather than left on the unlinked inode, so the document is
+        // still usable and a second overwrite sees the real file.
+        Assert.False(open.IsStale, "The document was left stale after a write that succeeded.");
+
+        var second = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 11 }, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(second);
+        Assert.Equal(TestCodec.Encode(document with { Level = 11 }), File.ReadAllBytes(target));
+    }
+
+    /// <summary>
+    /// The same window, reached through a throwing progress sink rather than cancellation.
+    /// </summary>
+    [Fact]
+    public async Task Workflow_AThrowingProgressSinkCannotUndoACompletedReplace()
+    {
+        using var harness = new WorkflowHarness("throwing-progress");
+        harness.Codec.PreservesUnknownData = false;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        var written = document with { Level = 9 };
+        var threw = false;
+
+        var progress = new HookProgress(report =>
+        {
+            if (report.Phase == SavePhase.Completed)
+            {
+                threw = true;
+                throw new InvalidOperationException("the progress sink threw after the replace");
+            }
+        });
+
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(written, open, progress, Token);
+
+        Assert.True(threw, "The progress sink never threw, so this test proved nothing.");
+        Assert.Equal(SaveStatus.Succeeded, outcome.Status);
+        Assert.Equal(TestCodec.Encode(written), File.ReadAllBytes(target));
+        Assert.False(open.IsStale);
+    }
+
+    /// <summary>
+    /// A directory flush that fails after the replace is a durability note, not a failure:
+    /// the bytes are already on disk.
+    /// </summary>
+    [Fact]
+    public async Task Workflow_ADirectoryFlushFailureAfterTheReplaceIsReportedNotFailed()
+    {
+        using var harness = new WorkflowHarness("flush-fails");
+        harness.Codec.PreservesUnknownData = false;
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        var written = document with { Level = 9 };
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(written, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(outcome);
+        Assert.Equal(TestCodec.Encode(written), File.ReadAllBytes(target));
+
+        // Windows reports NotApplicable here and Linux reports Flushed; either way the
+        // replacement is what the outcome describes.
+        Assert.NotNull(harness.Durability.LastDirectoryFlush);
+        Assert.Contains("flush-directory", harness.Durability.Calls);
+    }
+
     [Fact]
     public async Task Backup_TwoOverwritesWithinOneSecondDoNotCollide()
     {
