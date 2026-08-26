@@ -23,6 +23,9 @@ internal static class PathSyntaxGuard
     private static readonly char[] WindowsSeparators = ['\\', '/'];
     private static readonly char[] UnixSeparators = ['/'];
 
+    private const string DeviceQueryPrefix = @"\\?\";
+    private const string DeviceDotPrefix = @"\\.\";
+
     /// <summary>
     /// Screens the path and splits it into a volume root plus the components that
     /// must each be checked.
@@ -146,21 +149,26 @@ internal static class PathSyntaxGuard
     {
         var normalized = path.Replace('/', '\\');
 
-        if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal))
+        // Checked ahead of the general device-prefix rules below so the refusal names the
+        // object-manager root specifically, and so the protection survives if those rules
+        // are ever relaxed.
+        if (IsGlobalRootDevicePath(normalized))
+        {
+            return Refuse(
+                PathRefusalReason.InvalidPath,
+                "GLOBALROOT names the NT object-manager root and reaches raw devices. Device paths are refused.");
+        }
+
+        if (normalized.StartsWith(DeviceQueryPrefix, StringComparison.Ordinal))
         {
             return Refuse(
                 PathRefusalReason.InvalidPath,
                 "Extended-length paths bypass Win32 path normalization, which would defeat the reserved-name and trailing-character checks, and are refused.");
         }
 
-        if (normalized.StartsWith(@"\\.\", StringComparison.Ordinal))
+        if (normalized.StartsWith(DeviceDotPrefix, StringComparison.Ordinal))
         {
             return Refuse(PathRefusalReason.InvalidPath, "Device-namespace paths are refused.");
-        }
-
-        if (normalized.Contains("GLOBALROOT", StringComparison.OrdinalIgnoreCase))
-        {
-            return Refuse(PathRefusalReason.InvalidPath, "GLOBALROOT device paths are refused.");
         }
 
         if (normalized.StartsWith(@"\\", StringComparison.Ordinal) && !options.AllowNonLocalPaths)
@@ -217,6 +225,38 @@ internal static class PathSyntaxGuard
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Reports whether a path reaches the NT object-manager root through a device prefix.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// GLOBALROOT denotes a device only as the first component under a device prefix.
+    /// Anywhere else it is ordinary text: a directory may legitimately be called
+    /// <c>GlobalRoots</c>, or exactly <c>GLOBALROOT</c>, under a normal drive root, and
+    /// such a path must resolve.
+    /// </para>
+    /// <para>
+    /// Matching the bare substring anywhere in the path refused those directories, which
+    /// is worse than it sounds: a refusal the user cannot act on and did not deserve
+    /// teaches them to route around the resolver, which is the one habit this primitive
+    /// exists to prevent. The device-prefix forms themselves are unaffected.
+    /// </para>
+    /// </remarks>
+    private static bool IsGlobalRootDevicePath(string normalizedPath)
+    {
+        if (!normalizedPath.StartsWith(DeviceQueryPrefix, StringComparison.Ordinal) &&
+            !normalizedPath.StartsWith(DeviceDotPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var afterPrefix = normalizedPath[DeviceQueryPrefix.Length..];
+        var separator = afterPrefix.IndexOf('\\');
+        var firstComponent = separator < 0 ? afterPrefix : afterPrefix[..separator];
+
+        return string.Equals(firstComponent, "GLOBALROOT", StringComparison.OrdinalIgnoreCase);
     }
 
     private static PathResolution.Refused Refuse(PathRefusalReason reason, string detail) => new(reason, detail);

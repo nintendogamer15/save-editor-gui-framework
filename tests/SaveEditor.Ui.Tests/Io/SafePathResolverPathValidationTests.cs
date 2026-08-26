@@ -13,6 +13,13 @@ public sealed class SafePathResolverPathValidationTests
     private static ValueTask<PathResolution> Resolve(string path, PathResolutionOptions options) =>
         Resolver.ResolveAsync(path, options, TestContext.Current.CancellationToken);
 
+    private const string QQGLOBALROOTDevice = @"\\?\GLOBALROOT\Device\HarddiskVolume1\x.dat";
+    private const string DDGLOBALROOTDevice = @"\\.\GLOBALROOT\Device\HarddiskVolume1\x.dat";
+    private const string QQglobalrootDevice = @"\\?\globalroot\Device\HarddiskVolume1\x.dat";
+    private const string QQMixedCaseDevice = @"\\?\GlObAlRoOt\Device\HarddiskVolume1\x.dat";
+    private const string QQGlobalRootBare = @"\\?\GLOBALROOT";
+    private const string ForwardSlashForm = "//?/GLOBALROOT/Device/HarddiskVolume1/x.dat";
+
     [Fact]
     public async Task SafePath_RefusesUncPathsUnlessNonLocalPathsAreAllowed()
     {
@@ -185,5 +192,93 @@ public sealed class SafePathResolverPathValidationTests
             await Resolve(workspace.Path("slot1.dat"), new PathResolutionOptions()));
 
         Assert.Equal(PathRefusalReason.NotFound, refused.Reason);
+    }
+
+    [Fact]
+    public async Task SafePath_RefusesGlobalRootUnderEveryDevicePrefixForm()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "The NT object-manager namespace is Windows-specific.");
+
+        string[] devicePaths =
+        [
+            QQGLOBALROOTDevice,
+            DDGLOBALROOTDevice,
+            QQglobalrootDevice,
+            QQMixedCaseDevice,
+            QQGlobalRootBare,
+            ForwardSlashForm,
+        ];
+
+        foreach (var path in devicePaths)
+        {
+            // Refused with or without the non-local opt-in: this is a device, not a share.
+            foreach (var allowNonLocal in new[] { false, true })
+            {
+                var refused = Assert.IsType<PathResolution.Refused>(
+                    await Resolve(path, new PathResolutionOptions { AllowNonLocalPaths = allowNonLocal }));
+
+                Assert.Equal(PathRefusalReason.InvalidPath, refused.Reason);
+                Assert.Contains("GLOBALROOT", refused.Detail, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SafePath_ResolvesOrdinaryDirectoriesWhoseNamesContainGlobalRoot()
+    {
+        using var workspace = new TempWorkspace("globalroot-name");
+
+        // A directory whose name merely contains the letters, a directory named exactly
+        // GLOBALROOT, and a file named after it. All are ordinary names under a normal
+        // drive root and none of them reach a device.
+        string[] targets =
+        [
+            workspace.CreateFile(Path.Combine("GlobalRoots", "slot1.dat"), 11),
+            workspace.CreateFile(Path.Combine("GLOBALROOT", "slot1.dat"), 12),
+            workspace.CreateFile(Path.Combine("globalroot", "nested", "slot1.dat"), 13),
+            workspace.CreateFile("GlobalRoot.dat", 14),
+            workspace.CreateFile(Path.Combine("saves", "MyGLOBALROOTBackups", "slot1.dat"), 15),
+        ];
+
+        foreach (var target in targets)
+        {
+            var resolution = await Resolve(target, new PathResolutionOptions());
+
+            var resolved = Assert.IsType<PathResolution.Resolved>(resolution);
+
+            using var file = resolved.File;
+            Assert.Equal(new FileInfo(target).Length, file.Stream.Length);
+        }
+    }
+
+    [Fact]
+    public async Task SafePath_GlobalRootNarrowingIsCaseInsensitiveInBothDirections()
+    {
+        using var workspace = new TempWorkspace("globalroot-case");
+
+        // The permitted side stays permitted regardless of casing.
+        foreach (var name in new[] { "GLOBALROOT", "globalroot", "GlObAlRoOt", "GlobalRoots" })
+        {
+            var target = workspace.CreateFile(Path.Combine(name, "slot1.dat"), 7);
+
+            using var file = Assert.IsType<PathResolution.Resolved>(
+                await Resolve(target, new PathResolutionOptions())).File;
+
+            Assert.Equal(7, file.Stream.Length);
+        }
+
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        // The refused side stays refused regardless of casing.
+        foreach (var path in new[] { QQGLOBALROOTDevice, QQglobalrootDevice, QQMixedCaseDevice })
+        {
+            var refused = Assert.IsType<PathResolution.Refused>(
+                await Resolve(path, new PathResolutionOptions()));
+
+            Assert.Equal(PathRefusalReason.InvalidPath, refused.Reason);
+        }
     }
 }
