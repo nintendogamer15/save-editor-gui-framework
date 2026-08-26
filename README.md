@@ -224,12 +224,20 @@ activity, no privilege elevation.
 
 Found the hard way. Each has a test pinning it.
 
-**A mutable document needs a comparer.** The pre-replace round-trip compares the
-decoded document to the in-memory one with `EqualityComparer<T>.Default`. If your
-document is a plain class, that is *reference* equality and can never match, so every
-save fails. Make it a `record`, override `Equals`, or supply
-`SafeFileWorkflowOptions.DocumentComparer`. The framework detects this case and says so
-in the failure message.
+**A mutable document needs a comparer, and the comparer has to be right.** The
+pre-replace round-trip compares the decoded document to the in-memory one with
+`EqualityComparer<T>.Default`. If your document is a plain class, that is *reference*
+equality and can never match, so every save fails. Make it a `record`, override
+`Equals`, or supply `SafeFileWorkflowOptions.DocumentComparer`. The framework detects
+that case and says so in the failure message.
+
+What it cannot detect is a comparer that is too loose. One that omits a field silently
+disables the round-trip check for exactly that field: a codec that drops it then saves
+successfully and the outcome reports `RoundTripVerification.Verified` — true about the
+check you configured, weaker than it sounds. The framework holds one document pair and
+has no oracle for what equality means for your type, so it cannot tell a wrong "equal"
+from a right one. **Your comparer is trusted on the same footing as your codec. Compare
+every field the codec writes.**
 
 **Set `PendingEditProbe`.** `DocumentSession` cannot see your drafts — they live on the
 field view-models. Leave it unset and the exit guard is blind to typed-but-unapplied
