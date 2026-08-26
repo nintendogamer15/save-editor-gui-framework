@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en" data-theme="mocha" data-accent="blue">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Save Editor Framework — Shell Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+      --radius-sm: 6px;
+      --radius-md: 9px;
+      --space-1: 6px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --shadow: 0 18px 45px color-mix(in srgb, var(--crust) 42%, transparent);
+      --accent: #89b4fa;
+      --accent-contrast: #11111b;
+    }
+
+    html[data-theme="mocha"] {
+      --base: #1e1e2e; --mantle: #181825; --crust: #11111b;
+      --surface-0: #313244; --surface-1: #45475a; --surface-2: #585b70;
+      --overlay-0: #6c7086; --overlay-1: #7f849c;
+      --text: #cdd6f4; --subtext-1: #bac2de; --subtext-0: #a6adc8;
+      --red: #f38ba8; --peach: #fab387; --yellow: #f9e2af; --green: #a6e3a1;
+      --blue: #89b4fa; --mauve: #cba6f7; --lavender: #b4befe;
+      --danger-bg: #512b3a; --warning-bg: #4a3b2b; --success-bg: #29433a;
+      --accent-contrast: #11111b;
+    }
+
+    html[data-theme="latte"] {
+      color-scheme: light;
+      --base: #eff1f5; --mantle: #e6e9ef; --crust: #dce0e8;
+      --surface-0: #ccd0da; --surface-1: #bcc0cc; --surface-2: #acb0be;
+      --overlay-0: #9ca0b0; --overlay-1: #8c8fa1;
+      --text: #4c4f69; --subtext-1: #5c5f77; --subtext-0: #6c6f85;
+      --red: #d20f39; --peach: #fe640b; --yellow: #df8e1d; --green: #40a02b;
+      --blue: #1e66f5; --mauve: #8839ef; --lavender: #7287fd;
+      --danger-bg: #f7d9df; --warning-bg: #f9e9c9; --success-bg: #dcefd8;
+      --accent-contrast: #eff1f5;
+    }
+
+    html[data-accent="blue"] { --accent: var(--blue); }
+    html[data-accent="mauve"] { --accent: var(--mauve); }
+    html[data-accent="lavender"] { --accent: var(--lavender); }
+    html[data-accent="sapphire"] { --accent: #74c7ec; }
+    html[data-accent="sky"] { --accent: #89dceb; }
+    html[data-accent="teal"] { --accent: #94e2d5; }
+    html[data-accent="green"] { --accent: var(--green); }
+    html[data-accent="yellow"] { --accent: var(--yellow); }
+    html[data-accent="peach"] { --accent: var(--peach); }
+    html[data-accent="maroon"] { --accent: #eba0ac; }
+    html[data-accent="red"] { --accent: var(--red); }
+    html[data-accent="pink"] { --accent: #f5c2e7; }
+    html[data-accent="flamingo"] { --accent: #f2cdcd; }
+    html[data-accent="rosewater"] { --accent: #f5e0e6; }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 900px; background: var(--base); color: var(--text); }
+    button, input, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible {
+      outline: 2px solid var(--accent); outline-offset: 2px;
+    }
+    .app-window { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr auto; }
+
+    .header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 16px; background: var(--crust); }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+    .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent); border-radius: 11px; color: var(--accent); font-weight: 800; letter-spacing: -1px; }
+    .brand-name { font-size: 16px; font-weight: 750; letter-spacing: .02em; }
+    .brand-subtitle { margin-top: 2px; color: var(--subtext-0); font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+    .toolbar { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+
+    .button { min-height: 34px; padding: 7px 14px; border: 1px solid var(--surface-1); border-radius: var(--radius-sm); background: var(--surface-0); color: var(--text); font-weight: 650; transition: transform .12s ease, background .12s ease, border-color .12s ease; }
+    .button:hover { background: var(--surface-1); border-color: var(--overlay-0); }
+    .button:active { transform: translateY(1px); }
+    .button.primary { border-color: color-mix(in srgb, var(--accent) 70%, var(--surface-1)); background: var(--accent); color: var(--accent-contrast); }
+    .button.primary:hover { filter: brightness(1.08); }
+    .button.danger { background: var(--red); border-color: var(--red); color: var(--accent-contrast); }
+    .button.ghost { border-color: transparent; background: transparent; color: var(--subtext-1); }
+    .button.small { min-height: 30px; padding: 5px 10px; font-size: 12px; }
+    .button.icon { padding-inline: 9px; font-size: 17px; }
+
+    .menu-bar { display: flex; align-items: center; gap: 2px; height: 36px; padding: 0 12px; background: var(--mantle); border-bottom: 1px solid var(--surface-0); }
+    .menu { position: relative; }
+    .menu > button { padding: 7px 11px; border-radius: 5px; background: transparent; color: var(--subtext-1); }
+    .menu > button:hover, .menu.open > button { background: var(--surface-0); color: var(--text); }
+    .menu-panel, .submenu-panel { display: none; position: absolute; z-index: 20; min-width: 235px; padding: 6px; border: 1px solid var(--surface-1); border-radius: 8px; background: var(--mantle); box-shadow: var(--shadow); }
+    .menu-panel { top: calc(100% + 4px); left: 0; }
+    .submenu-panel { left: calc(100% + 4px); top: -6px; }
+    .menu.open > .menu-panel, .submenu.open > .submenu-panel { display: block; }
+    .menu-item, .submenu > button { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 10px; border-radius: 5px; background: transparent; color: var(--text); text-align: left; }
+    .menu-item:hover, .submenu > button:hover { background: var(--surface-0); }
+    .menu-item kbd { color: var(--subtext-0); font-size: 11px; }
+    .menu-separator { height: 1px; margin: 5px 4px; background: var(--surface-1); }
+    .submenu { position: relative; }
+    .submenu > button::after { content: "›"; color: var(--subtext-0); }
+
+    .body { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: 0; }
+    .sidebar { padding: 14px; background: var(--mantle); border-right: 1px solid var(--surface-0); overflow: auto; }
+    .eyebrow { color: var(--subtext-0); font-size: 10px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    .save-card { margin: 8px 0 20px; padding: 13px; border: 1px solid var(--surface-1); border-radius: var(--radius-md); background: var(--surface-0); }
+    .save-card h2 { margin: 5px 0 4px; font-size: 17px; }
+    .save-card p { margin: 0; color: var(--subtext-1); font-size: 12px; line-height: 1.45; }
+    .save-state { display: inline-flex; align-items: center; gap: 6px; margin-top: 11px; color: var(--peach); font-size: 12px; font-weight: 700; }
+    .save-state::before { content: ""; width: 7px; height: 7px; border-radius: 99px; background: currentColor; }
+    .section-list { display: grid; gap: 3px; margin-top: 8px; }
+    .section-button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border-radius: 6px; background: transparent; color: var(--subtext-1); text-align: left; }
+    .section-button:hover { background: var(--surface-0); color: var(--text); }
+    .section-button.active { background: color-mix(in srgb, var(--accent) 16%, var(--surface-0)); color: var(--text); box-shadow: inset 3px 0 var(--accent); }
+    .section-icon { width: 18px; color: var(--subtext-0); text-align: center; }
+    .sidebar-note { margin-top: 22px; padding: 11px; border: 1px dashed var(--surface-1); border-radius: 7px; color: var(--subtext-0); font-size: 11px; line-height: 1.5; }
+    .sidebar-note strong { color: var(--subtext-1); }
+
+    .content { min-width: 0; padding: 20px; overflow: auto; }
+    .content-inner { max-width: 1060px; margin: 0 auto; }
+    .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .section-heading h1 { margin: 0; font-size: 25px; line-height: 1.15; letter-spacing: -.02em; }
+    .section-heading p { margin: 7px 0 0; color: var(--subtext-0); font-size: 13px; }
+    .heading-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .context-row { display: flex; gap: 8px; margin-top: 18px; padding-bottom: 2px; overflow-x: auto; }
+    .input, .select { min-height: 34px; padding: 7px 10px; border: 1px solid var(--surface-1); border-radius: var(--radius-sm); background: var(--surface-0); color: var(--text); }
+    .search { width: 300px; }
+    .announcement { display: none; align-items: flex-start; gap: 10px; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--red); border-radius: 7px; background: var(--danger-bg); color: var(--text); }
+    .announcement.visible { display: flex; }
+    .announcement strong { color: var(--red); }
+    .announcement p { margin: 2px 0 0; font-size: 12px; line-height: 1.4; }
+    .field-list { display: grid; gap: 10px; margin-top: 18px; }
+    .field-card { display: grid; grid-template-columns: 260px minmax(220px, 1fr) auto; gap: 15px; align-items: center; padding: 14px; border: 1px solid var(--surface-1); border-radius: var(--radius-md); background: var(--surface-0); }
+    .field-label { font-weight: 750; }
+    .field-path { margin-top: 4px; color: var(--subtext-0); font-family: var(--font-mono); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-editor { min-width: 0; }
+    .field-editor .input, .field-editor .select { width: 100%; }
+    .field-warning { margin-top: 6px; color: var(--yellow); font-size: 11px; line-height: 1.35; }
+    .field-card.readonly { opacity: .78; }
+    .field-card.readonly .input { background: var(--mantle); }
+    .pending { display: none; margin-top: 5px; color: var(--peach); font-size: 11px; font-weight: 700; }
+    .pending.visible { display: block; }
+    .raw-view { margin-top: 18px; padding: 16px; border: 1px solid var(--surface-1); border-radius: var(--radius-md); background: var(--crust); color: var(--subtext-1); font-family: var(--font-mono); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+    .empty-state { display: none; min-height: 470px; place-items: center; }
+    .empty-card { max-width: 510px; padding: 38px; border: 1px solid var(--surface-1); border-radius: 14px; background: var(--surface-0); text-align: center; box-shadow: var(--shadow); }
+    .empty-card .brand-mark { margin: 0 auto 16px; }
+    .empty-card h1 { margin: 0; font-size: 25px; }
+    .empty-card p { color: var(--subtext-0); line-height: 1.55; }
+    .empty-actions { display: flex; justify-content: center; gap: 8px; margin: 20px 0; }
+    .recent-links { display: grid; gap: 5px; margin-top: 17px; text-align: left; }
+    .recent-link { display: flex; justify-content: space-between; gap: 14px; padding: 9px 10px; border-radius: 6px; color: var(--subtext-1); cursor: pointer; }
+    .recent-link:hover { background: var(--mantle); color: var(--text); }
+    .recent-link small { color: var(--subtext-0); }
+
+    .status-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 12px; border-top: 1px solid var(--surface-0); background: var(--mantle); }
+    .status-copy { min-width: 0; }
+    .status-message { font-size: 12px; font-weight: 650; }
+    .status-detail { display: flex; gap: 15px; max-width: 850px; margin-top: 3px; color: var(--subtext-0); font-size: 11px; }
+    .status-detail span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .status-action { min-width: 120px; }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; z-index: 50; place-items: center; padding: 24px; background: color-mix(in srgb, var(--crust) 72%, transparent); }
+    .modal-backdrop.visible { display: grid; }
+    .dialog { width: min(560px, 100%); padding: 22px; border: 1px solid var(--surface-1); border-radius: 12px; background: var(--mantle); box-shadow: var(--shadow); }
+    .dialog h2 { margin: 0 0 9px; font-size: 19px; }
+    .dialog p { margin: 0; color: var(--subtext-1); line-height: 1.55; }
+    .dialog.danger h2 { color: var(--red); }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+    .demo-badge { position: fixed; right: 14px; bottom: 72px; padding: 5px 8px; border: 1px solid var(--surface-1); border-radius: 5px; background: var(--crust); color: var(--subtext-0); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+
+    @media (max-width: 1040px) {
+      body { min-width: 0; }
+      .header { align-items: flex-start; flex-direction: column; }
+      .toolbar { justify-content: flex-start; }
+      .field-card { grid-template-columns: 190px minmax(170px, 1fr) auto; }
+    }
+    @media (max-width: 780px) {
+      .body { grid-template-columns: 205px minmax(0, 1fr); }
+      .field-card { grid-template-columns: 1fr auto; }
+      .field-editor { grid-column: 1 / -1; grid-row: 2; }
+      .field-card .button { grid-column: 2; grid-row: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-window">
+    <header class="header">
+      <div class="brand" aria-label="Save Editor Framework">
+        <div class="brand-mark">SE</div>
+        <div><div class="brand-name">Save Editor Framework</div><div class="brand-subtitle">SHELL MOCKUP · V1</div></div>
+      </div>
+      <div class="toolbar" aria-label="Frequent actions">
+        <button class="button primary" data-action="open">Open Save</button>
+        <button class="button" data-action="save-as">Save As</button>
+        <button class="button icon" aria-label="Undo" title="Undo (Ctrl+Z)" data-action="undo">↶</button>
+        <button class="button icon" aria-label="Redo" title="Redo (Ctrl+Y)" data-action="redo">↷</button>
+      </div>
+    </header>
+
+    <nav class="menu-bar" aria-label="Application menu">
+      <div class="menu"><button aria-haspopup="true">File</button><div class="menu-panel">
+        <button class="menu-item" data-action="open">Open Save <kbd>Ctrl+O</kbd></button>
+        <button class="menu-item" data-action="open-folder">Open Folder <kbd>Ctrl+Shift+O</kbd></button>
+        <div class="submenu"><button>Recent</button><div class="submenu-panel">
+          <button class="menu-item" data-action="open">Data3 · Chronicle Save</button>
+          <button class="menu-item" data-action="open">Data1 · Chronicle Save</button>
+        </div></div>
+        <div class="submenu"><button>Folder slots</button><div class="submenu-panel">
+          <button class="menu-item" data-action="open">Chronicle Save · Data3</button>
+          <button class="menu-item" data-action="open">Chronicle Save · Data1</button>
+        </div></div>
+        <div class="menu-separator"></div>
+        <button class="menu-item" data-action="save-as">Save As <kbd>Ctrl+S</kbd></button>
+        <button class="menu-item" data-action="overwrite">Overwrite + Backup</button>
+        <button class="menu-item" data-action="reload">Reload <kbd>F5</kbd></button>
+        <div class="menu-separator"></div><button class="menu-item" data-action="close">Close document</button><button class="menu-item" data-action="exit">Exit</button>
+      </div></div>
+      <div class="menu"><button aria-haspopup="true">Edit</button><div class="menu-panel">
+        <button class="menu-item" data-action="undo">Undo <kbd>Ctrl+Z</kbd></button><button class="menu-item" data-action="redo">Redo <kbd>Ctrl+Y</kbd></button>
+      </div></div>
+      <div class="menu"><button aria-haspopup="true">View</button><div class="menu-panel">
+        <div class="submenu"><button>Appearance</button><div class="submenu-panel">
+          <div class="submenu"><button>Themes</button><div class="submenu-panel"><button class="menu-item" data-theme-choice="mocha">Dark <span>✓</span></button><button class="menu-item" data-theme-choice="latte">Light <span></span></button></div></div>
+          <div class="submenu"><button>Accent</button><div class="submenu-panel" id="accent-menu"></div></div>
+        </div></div>
+        <div class="menu-separator"></div><button class="menu-item" data-action="focus-search">Focus search <kbd>Ctrl+F</kbd></button>
+      </div></div>
+      <div class="menu"><button aria-haspopup="true">Help</button><div class="menu-panel">
+        <button class="menu-item" data-action="about">About / Credits</button><button class="menu-item" data-action="docs">Safety and manual testing</button>
+      </div></div>
+    </nav>
+
+    <div class="body">
+      <aside class="sidebar">
+        <div class="eyebrow">Detected save</div>
+        <div class="save-card"><h2>Chronicle Save</h2><p>Slot 03 · Data3<br>Format verified · unknown data preserved</p><div class="save-state" id="save-state">Unsaved changes</div></div>
+        <div class="eyebrow">Editor sections</div>
+        <div class="section-list" role="listbox" aria-label="Editor sections">
+          <button class="section-button" data-section="overview"><span class="section-icon">⌂</span>Overview</button>
+          <button class="section-button active" data-section="party"><span class="section-icon">♙</span>Party</button>
+          <button class="section-button" data-section="characters"><span class="section-icon">♧</span>Characters</button>
+          <button class="section-button" data-section="inventory"><span class="section-icon">▦</span>Inventory</button>
+          <button class="section-button" data-section="recruitment"><span class="section-icon">✦</span>Recruitment</button>
+          <button class="section-button" data-section="progress"><span class="section-icon">◈</span>Headquarters / Progress</button>
+          <button class="section-button" data-section="advanced"><span class="section-icon">⌘</span>Advanced Data</button>
+          <button class="section-button" data-section="credits"><span class="section-icon">ⓘ</span>Credits / Licenses</button>
+        </div>
+        <div class="sidebar-note"><strong>Safe editing</strong><br>Changes stay in memory until you explicitly apply and save them. Direct replacement always creates a timestamped backup first.</div>
+      </aside>
+
+      <main class="content" id="document-view">
+        <div class="content-inner">
+          <div class="section-heading"><div><h1 id="section-title">Party</h1><p id="section-subtitle">Manage the active party and its safe, verified equipment fields.</p></div><div class="heading-actions"><button class="button small" data-action="bulk">Give all safe party items</button><button class="button small" data-action="error">Show validation example</button></div></div>
+          <div class="context-row" id="context-row"><input class="input search" id="search" placeholder="Search party fields…" aria-label="Search fields"><select class="select"><option>All characters</option><option>Leader</option><option>Support</option></select><label class="button small"><input type="checkbox" checked> Mod compatibility</label></div>
+          <div class="announcement" id="announcement" role="alert"><div>⚠</div><div><strong>Validation needs attention</strong><p>party.members[2].level: Value must be between 1 and 99. Saving is blocked until this error is fixed.</p></div></div>
+          <section class="field-list" id="field-list" aria-label="Editable fields"></section>
+          <div class="raw-view" id="raw-view" hidden>{
+  "slot": 3,
+  "game": "Chronicle Save",
+  "unknownData": "preserved-by-codec",
+  "party": { "leader": "Aster", "level": 42 }
+}</div>
+        </div>
+      </main>
+
+      <main class="content empty-state" id="welcome-view"><div class="empty-card"><div class="brand-mark">SE</div><h1>Ready to edit a save</h1><p>Open a save file or folder to begin. Changes are kept in memory, unknown data is preserved, and direct replacement is always backup-protected.</p><div class="empty-actions"><button class="button primary" data-action="open">Open Save</button><button class="button" data-action="open-folder">Open Folder</button></div><div class="eyebrow" style="text-align:left">Recent files</div><div class="recent-links"><div class="recent-link" data-action="open">Data3 · Chronicle Save <small>Today, 14:30</small></div><div class="recent-link" data-action="open">Data1 · Chronicle Save <small>Yesterday</small></div></div></div></main>
+    </div>
+
+    <footer class="status-bar"><div class="status-copy"><div class="status-message" id="status-message">Opened Data3 as Chronicle Save. 0 warning(s); unknown data is preserved.</div><div class="status-detail"><span id="current-path">Current path: /saves/chronicle/Data3.save</span><span id="last-backup">Last backup: 2026-08-26 14:29 UTC</span></div></div><button class="button primary status-action" data-action="apply-all">Apply All</button></footer>
+  </div>
+  <div class="demo-badge">Interactive HTML mockup</div>
+
+  <div class="modal-backdrop" id="modal" role="presentation"><div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><h2 id="dialog-title">Confirm action</h2><p id="dialog-message"></p><div class="dialog-actions"><button class="button" data-action="cancel-modal">Cancel</button><button class="button primary" id="dialog-accept">Continue</button></div></div></div>
+
+  <script>
+    const root = document.documentElement;
+    const state = { open: true, dirty: true, pending: false, history: 0, section: 'party', theme: localStorage.getItem('se-theme') || 'mocha', accent: localStorage.getItem('se-accent') || 'blue' };
+    const sections = {
+      overview: ['Overview', 'A quick, verified summary of the active save and its integrity.', [['Save slot', 'document.slot', '3', 'text'], ['Detected format', 'document.format', 'Chronicle Save · verified', 'readonly'], ['Unknown data', 'document.unknownData', 'Preserved by codec', 'readonly']]],
+      party: ['Party', 'Manage the active party and its safe, verified equipment fields.', [['Leader', 'party.leader', 'Aster', 'text'], ['Leader level', 'party.level', '42', 'number', 'Levels are capped at 99 by the format.'], ['Best party gear', 'party.gearMode', 'Verified best gear', 'choice'], ['Formation locked', 'party.formationLocked', 'false', 'boolean']]],
+      characters: ['Characters', 'Search and edit verified character fields without exposing unsafe raw data.', [['Character', 'characters.selected', 'Aster', 'choice'], ['Level', 'characters.level', '42', 'number'], ['Recruitment state', 'characters.recruitment', 'Recruited', 'choice']]],
+      inventory: ['Inventory', 'Review safe item quantities and apply bounded bulk changes.', [['Item search', 'inventory.query', 'Moon Herb', 'text'], ['Quantity', 'inventory.moonHerb', '12', 'number', 'Values above the format limit will be rejected.'], ['Item enabled', 'inventory.enabled', 'true', 'boolean']]],
+      recruitment: ['Recruitment', 'Track verified recruitment flags with explicit compatibility warnings.', [['Recruitment filter', 'recruitment.filter', 'All recruitable', 'choice'], ['Safe flags', 'recruitment.safeFlags', '18', 'number'], ['Compatibility mode', 'recruitment.compatibility', 'Strict', 'choice', 'Strict mode avoids flags known to break older saves.']]],
+      progress: ['Headquarters / Progress', 'Edit progression milestones while retaining format validation.', [['Current headquarters', 'progress.headquarters', 'Level 4', 'choice'], ['Story milestone', 'progress.milestone', 'Fortress established', 'text'], ['Completion percentage', 'progress.completion', '68', 'number']]],
+      advanced: ['Advanced Data', 'This editor keeps raw data read-only so unknown values survive future writes.', [['Raw data access', 'advanced.mode', 'Read-only in this editor', 'readonly'], ['Codec report', 'advanced.codec', 'Unknown fields preserved', 'readonly']]],
+      credits: ['Credits / Licenses', 'Framework and editor attribution, licenses, and manual-testing references.', [['Framework', 'credits.framework', 'SaveEditor.Ui · 1.0.0', 'readonly'], ['Theme', 'credits.theme', 'Catppuccin Latte / Mocha', 'readonly'], ['Font', 'credits.font', 'Inter · OFL-1.1', 'readonly']]]
+    };
+    const accents = ['blue','mauve','lavender','sapphire','sky','teal','green','yellow','peach','maroon','red','pink','flamingo','rosewater'];
+
+    function applyAppearance() { root.dataset.theme = state.theme; root.dataset.accent = state.accent; localStorage.setItem('se-theme', state.theme); localStorage.setItem('se-accent', state.accent); document.querySelectorAll('[data-theme-choice]').forEach(x => x.querySelector('span').textContent = x.dataset.themeChoice === state.theme ? '✓' : ''); renderAccentMenu(); }
+    function renderAccentMenu() { document.getElementById('accent-menu').innerHTML = accents.map(a => `<button class="menu-item" data-accent-choice="${a}">${a[0].toUpperCase()+a.slice(1)} <span>${a === state.accent ? '✓' : ''}</span></button>`).join(''); }
+    function setStatus(message) { document.getElementById('status-message').textContent = message; }
+    function setDirty(value) { state.dirty = value; document.getElementById('save-state').textContent = value ? 'Unsaved changes' : 'Saved / unchanged'; document.title = `Save Editor Framework${value ? ' *' : ''} — Shell Mockup`; }
+    function fieldMarkup(field, index) {
+      const [label, path, value, kind, warning] = field;
+      let editor = kind === 'readonly' ? `<input class="input" value="${value}" readonly aria-label="${label}">` : kind === 'boolean' ? `<label class="button small" style="display:flex;align-items:center;gap:8px;width:max-content"><input type="checkbox" ${value === 'true' ? 'checked' : ''} data-editable> Enabled</label>` : kind === 'choice' ? `<select class="select" data-editable aria-label="${label}"><option>${value}</option><option>Default</option><option>Strict</option><option>Verified best gear</option></select>` : `<input class="input" value="${value}" type="${kind === 'number' ? 'number' : 'text'}" data-editable aria-label="${label}">`;
+      return `<article class="field-card ${kind === 'readonly' ? 'readonly' : ''}" data-field-index="${index}"><div><div class="field-label">${label}</div><div class="field-path">${path}</div></div><div class="field-editor">${editor}${warning ? `<div class="field-warning">⚠ ${warning}</div>` : ''}<div class="pending">Pending edit · Apply to commit</div></div><button class="button small" ${kind === 'readonly' ? 'disabled' : ''} data-field-apply>Apply</button></article>`;
+    }
+    function renderFields() { const data = sections[state.section][2]; document.getElementById('field-list').innerHTML = data.map(fieldMarkup).join(''); document.getElementById('raw-view').hidden = state.section !== 'advanced'; document.getElementById('context-row').style.display = ['characters','inventory','recruitment'].includes(state.section) ? 'flex' : 'none'; document.querySelector('[data-action="apply-all"]').style.display = ['advanced','credits'].includes(state.section) ? 'none' : ''; }
+    function selectSection(name) { state.section = name; document.querySelectorAll('.section-button').forEach(x => x.classList.toggle('active', x.dataset.section === name)); const [title, subtitle] = sections[name]; document.getElementById('section-title').textContent = title; document.getElementById('section-subtitle').textContent = subtitle; document.getElementById('announcement').classList.remove('visible'); renderFields(); closeMenus(); }
+    function showModal(title, message, danger = false, accept = 'Continue') { document.getElementById('dialog-title').textContent = title; document.getElementById('dialog-message').textContent = message; document.getElementById('dialog-accept').textContent = accept; document.getElementById('dialog').classList.toggle('danger', danger); document.getElementById('modal').classList.add('visible'); document.getElementById('dialog-accept').focus(); }
+    function closeModal() { document.getElementById('modal').classList.remove('visible'); }
+    function closeMenus() { document.querySelectorAll('.menu.open, .submenu.open').forEach(x => x.classList.remove('open')); }
+    function openDocument() { state.open = true; document.getElementById('document-view').style.display = ''; document.getElementById('welcome-view').style.display = 'none'; setDirty(false); setStatus('Opened Data3 as Chronicle Save. 0 warning(s); unknown data is preserved.'); renderFields(); closeMenus(); }
+    function performAction(action) {
+      if (action === 'open') { if (state.dirty) showModal('Discard unsaved changes?', 'The current document has unsaved changes. Opening another save will discard them.', true, 'Discard and open'); else openDocument(); }
+      if (action === 'open-folder') { showModal('Open save folder', 'Folder discovery found two compatible slots. The selected slot will open after confirmation.', false, 'Open folder'); }
+      if (action === 'save-as') { showModal('Save As', 'The OS save picker would open here. Ctrl+S never silently replaces the source file.', false, 'Choose destination'); }
+      if (action === 'overwrite') { showModal('Overwrite + Backup', 'A timestamped backup will be created before atomic replacement. Validation errors block this action.', true, 'Overwrite + backup'); }
+      if (action === 'reload') { if (state.dirty) showModal('Discard unsaved changes?', 'Reloading will discard the current in-memory changes.', true, 'Discard and reload'); else setStatus('Reloaded Data3. 0 warning(s); unknown data is preserved.'); }
+      if (action === 'close') { if (state.dirty) showModal('Discard unsaved changes?', 'Closing the document will discard the current in-memory changes.', true, 'Discard and close'); else { state.open = false; document.getElementById('document-view').style.display = 'none'; document.getElementById('welcome-view').style.display = 'grid'; setStatus('Ready. No save is open.'); } }
+      if (action === 'apply-all') { state.pending = false; setDirty(true); document.querySelectorAll('.pending').forEach(x => x.classList.remove('visible')); state.history++; setStatus(`Applied all Party changes. ${state.history} edit operation(s) in history.`); }
+      if (action === 'undo') { setDirty(true); setStatus('Undid: Party level change.'); }
+      if (action === 'redo') { setDirty(true); setStatus('Redid: Party level change.'); }
+      if (action === 'bulk') { showModal('Give all safe party items', 'This applies only verified, compatibility-safe items to the active party. No raw or unknown fields are changed.', true, 'Apply safe items'); }
+      if (action === 'error') { document.getElementById('announcement').classList.add('visible'); setStatus('Cannot save: 1 validation error needs attention.'); }
+      if (action === 'about') { showModal('About / Credits', 'Save Editor Framework 1.0.0 · Catppuccin Latte/Mocha · Inter OFL-1.1 · 0BSD framework source.', false, 'Close'); }
+      if (action === 'docs') { showModal('Safety and manual testing', 'Primary guarantees: Save As by default, validation-gated writes, timestamped backup before replacement, atomic temp writes, dirty-state guards, and a real Wayland smoke test.', false, 'Close'); }
+      if (action === 'focus-search') { document.getElementById('search').focus(); closeMenus(); }
+    }
+
+    document.addEventListener('click', event => {
+      const menuButton = event.target.closest('.menu > button');
+      if (menuButton) { const menu = menuButton.parentElement; document.querySelectorAll('.menu.open').forEach(x => { if (x !== menu) x.classList.remove('open'); }); menu.classList.toggle('open'); return; }
+      const submenuButton = event.target.closest('.submenu > button');
+      if (submenuButton) { submenuButton.parentElement.classList.toggle('open'); return; }
+      const themeChoice = event.target.closest('[data-theme-choice]'); if (themeChoice) { state.theme = themeChoice.dataset.themeChoice; applyAppearance(); closeMenus(); setStatus(`Theme changed to ${state.theme === 'mocha' ? 'Dark / Mocha' : 'Light / Latte'}.`); return; }
+      const accentChoice = event.target.closest('[data-accent-choice]'); if (accentChoice) { state.accent = accentChoice.dataset.accentChoice; applyAppearance(); closeMenus(); setStatus(`Accent changed to ${state.accent}.`); return; }
+      const section = event.target.closest('[data-section]'); if (section) { selectSection(section.dataset.section); return; }
+      const action = event.target.closest('[data-action]'); if (action) { if (action.dataset.action === 'cancel-modal') closeModal(); else performAction(action.dataset.action); return; }
+      const applyField = event.target.closest('[data-field-apply]'); if (applyField) { const card = applyField.closest('.field-card'); card.querySelector('.pending').classList.remove('visible'); state.pending = false; state.history++; setDirty(true); setStatus(`Applied: ${card.querySelector('.field-label').textContent}.`); return; }
+      if (!event.target.closest('.menu')) closeMenus();
+    });
+    document.addEventListener('input', event => { if (event.target.matches('[data-editable]')) { state.pending = true; event.target.closest('.field-card')?.querySelector('.pending')?.classList.add('visible'); setStatus('Pending edit in memory. Apply the field or use Apply All to commit it.'); } });
+    document.addEventListener('keydown', event => { if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'o') { event.preventDefault(); performAction('open'); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); performAction('save-as'); } if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') { event.preventDefault(); document.getElementById('search').focus(); } if (event.key === 'Escape') { closeMenus(); closeModal(); } });
+    document.getElementById('dialog-accept').addEventListener('click', () => { const title = document.getElementById('dialog-title').textContent; closeModal(); if (title.includes('Discard')) openDocument(); else if (title === 'Overwrite + Backup') { setDirty(false); document.getElementById('last-backup').textContent = 'Last backup: /saves/chronicle/Data3.save.bak-20260826T143015Z'; setStatus('Overwrite verified. Backup: /saves/chronicle/Data3.save.bak-20260826T143015Z.'); } else if (title === 'Save As') { setDirty(false); setStatus('Save As complete. Unknown data is preserved.'); } else if (title === 'Give all safe party items') { setDirty(true); setStatus('Applied safe party items. 0 warning(s); unknown data is preserved.'); } else { setStatus('Action completed.'); } });
+    state.theme = state.theme === 'latte' ? 'latte' : 'mocha'; applyAppearance(); renderFields(); setDirty(true);
+  </script>
+</body>
+</html>
