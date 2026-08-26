@@ -65,6 +65,19 @@ namespace SaveEditor.Ui.Io;
 /// caller names. They are undetectable by this primitive and are stated as out of scope
 /// rather than implied to be covered.
 /// </para>
+/// <para>
+/// <strong>The ancestor walk is not equally strong on both platforms.</strong> On Linux
+/// it is a chain of <c>openat</c> calls, each relative to the descriptor of the component
+/// already validated, so the leaf is opened relative to the directory that was actually
+/// checked and there is no window between check and use. Windows has no handle-relative
+/// open short of <c>NtCreateFile</c>, so each ancestor is re-opened by absolute path and a
+/// directory component can in principle be swapped for a junction between its check and
+/// the leaf open. The window is narrow and the leaf-level race is closed separately by
+/// comparing file identity across the two leaf opens, but it is not zero. This is the same
+/// platform asymmetry that finding A5 is dispositioned <c>FIX (narrow)</c> for, and it is
+/// recorded here because <c>SafeFileWorkflow</c> is built on this primitive and should not
+/// assume a guarantee Windows does not provide.
+/// </para>
 /// </remarks>
 public sealed class SafePathResolver : ISafePathResolver
 {

@@ -9,6 +9,13 @@
     <Deterministic>true</Deterministic>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!--
+      A bare Version="12.1.1" is a lower bound, not a pin: NuGet reads it as "at
+      least", and it would float if that exact version were ever unlisted. The lock
+      file is what actually makes restore reproducible, and CI restores in locked
+      mode so a drifting graph fails the build instead of resolving quietly.
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
 
   <PropertyGroup Label="Identity">
