@@ -144,13 +144,23 @@ codecs you register. In most editors you never touch it again.
 The framework's central promise is that it will not destroy a save file. Concretely:
 
 **Save As is the default write path**, and `Ctrl+S` always means Save As. Overwriting
-is a separate, explicitly named command.
+is a separate, explicitly named command — so the risky choice is a deliberate one and
+not a dialog default.
 
-**Overwrite + Backup is all-or-nothing.** The backup is written from the same retained
-file handle that produced the change-detection baseline, flushed, and hash-verified
-against it. If the backup cannot be written or cannot be verified, the overwrite is
-abandoned and the original is untouched. You never end up with neither a good save nor
-a good backup.
+**Every destructive replacement is backed up, all-or-nothing.** That includes a Save As
+whose chosen target already exists: it is just as destructive as the command named after
+it, and it takes the same backup. Only a Save As to a path that does not exist yet
+writes without one, because there is nothing there to lose. The backup is written from
+the same retained file handle that produced the change-detection baseline, flushed, and
+hash-verified against it. If it cannot be written or cannot be verified, the write is
+abandoned and the original is untouched. You never end up with neither a good save nor a
+good backup.
+
+**No picker can suppress the overwrite confirmation.** `SaveFilePickResult` still carries
+`PickerConfirmedOverwrite`, but the framework confirms every destination it observes to
+exist regardless. The OS dialog asks "replace this file?" — it cannot ask "replace this
+file, having taken a verified backup, with a codec whose preservation claim reads like
+this", which is the question that actually matters here.
 
 **Nothing is written through a path string.** Every filesystem access goes through one
 resolver that opens with link-following disabled, checks *every* ancestor directory

@@ -25,12 +25,14 @@ public sealed record FilePickerRequest(
 /// <see langword="false"/>.
 /// </para>
 /// <para>
-/// A <see langword="true"/> value suppresses only the duplicate prompt. The
-/// framework still confirms whenever it independently observes that the target
-/// exists and is not the currently open document, because a picker that claims to
-/// confirm and does not would otherwise produce a silent overwrite — the exact
-/// outcome the save workflow exists to prevent. One redundant prompt costs far
-/// less than one destroyed save.
+/// <strong>A <see langword="true"/> value no longer suppresses anything, and is
+/// retained for diagnostics only.</strong> The framework confirms every destination
+/// it independently observes to exist. Revision 3 let the declaration suppress the
+/// prompt for the currently-open document, treating it as genuinely duplicated. It
+/// is not: the operating system's dialog asks "replace this file?", while the
+/// framework's asks "replace this file, having taken a verified backup, with a codec
+/// whose preservation claim reads like this". A picker cannot ask the second
+/// question, so it cannot stand in for it (finding F-2 supersedes finding A7).
 /// </para>
 /// </remarks>
 public sealed record SaveFilePickResult(string Path, bool PickerConfirmedOverwrite);

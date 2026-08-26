@@ -13,10 +13,13 @@ namespace SaveEditor.Ui.Workflow;
 /// <typeparam name="TDocument">The editor's in-memory document type.</typeparam>
 /// <remarks>
 /// <para>
-/// <strong>Save As is the default write path.</strong> Overwriting an existing save is a
-/// separately named operation that always makes a verified backup first. That asymmetry is
-/// the single largest safety property in the product, and it is a property of the API
-/// shape rather than of a dialog default.
+/// <strong>Save As is the default write path, and every destructive write is backed
+/// up.</strong> Overwriting an existing save is a separately named operation, which is
+/// what makes the risky choice a deliberate one rather than a dialog default. It is not
+/// the thing that makes it safe: a <c>Save As</c> whose target already exists is just as
+/// destructive, so it takes the same all-or-nothing verified backup. Only a
+/// <c>Save As</c> to a path that does not exist yet writes without one, because there is
+/// nothing there to lose (finding F-2).
 /// </para>
 /// <para>
 /// <strong>Original-file preservation means one specific thing.</strong> On any failure,
@@ -229,12 +232,22 @@ public sealed class SafeFileWorkflow<TDocument>
     /// <param name="cancellationToken">Cancels the write at the workflow boundary.</param>
     /// <returns>The definitive outcome.</returns>
     /// <remarks>
-    /// A picker may declare that it already obtained overwrite confirmation. That
-    /// declaration suppresses only the duplicate prompt: whenever the framework
-    /// independently observes that the chosen target exists and is not the currently open
-    /// document, it confirms anyway. A picker that claims to confirm and does not would
-    /// otherwise produce exactly the silent overwrite this workflow exists to prevent, and
-    /// one redundant prompt costs far less than one destroyed save (finding A7).
+    /// <para>
+    /// <strong>A target that already exists is backed up first, and the confirmation is
+    /// unsuppressable.</strong> <see cref="Interaction.SaveFilePickResult.PickerConfirmedOverwrite"/>
+    /// no longer suppresses anything. The operating system's dialog asks "replace this
+    /// file?"; it cannot ask "replace this file, having taken a verified backup, with a
+    /// codec whose preservation claim reads like this", which is the question the framework
+    /// is in a position to ask and a picker is not. Revision 3 let the declaration suppress
+    /// the prompt for the currently-open document, on the reasoning that the prompt was
+    /// then genuinely duplicated; that reasoning held only while this path took no backup
+    /// and made no preservation claim worth restating (finding F-2 supersedes finding A7).
+    /// </para>
+    /// <para>
+    /// A <c>Save As</c> to a path that does not exist takes no backup and asks
+    /// nothing: there is nothing at the destination to lose, and an entry that appears in
+    /// the meantime is refused by the replace rather than clobbered.
+    /// </para>
     /// </remarks>
     public async ValueTask<SaveOutcome> SaveAsAsync(
         TDocument document,
@@ -325,6 +338,16 @@ public sealed class SafeFileWorkflow<TDocument>
                 }
             }
 
+            var destinationPath = destinationExists && destination is not null ? destination.CanonicalPath : pick.Path;
+
+            var directory = Path.GetDirectoryName(destinationPath);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return await FailAsync(SaveFailureReason.PathRefused, "The destination has no containing directory.", pick.Path, cancellationToken).ConfigureAwait(false);
+            }
+
+            string? backupPath = null;
+
             if (destinationExists && destination is not null)
             {
                 var protection = WriteProtection.Describe(destination.Stream);
@@ -333,30 +356,42 @@ public sealed class SafeFileWorkflow<TDocument>
                     return await FailAsync(SaveFailureReason.WriteProtected, protection, destination.CanonicalPath, cancellationToken).ConfigureAwait(false);
                 }
 
-                // The picker's declaration suppresses only the duplicate prompt. A target
-                // the framework independently observes to exist and to be something other
-                // than the open document is confirmed regardless of what the picker claims.
-                if (!pick.PickerConfirmedOverwrite || !isCurrentDocument)
+                if (!destination.ReassertIdentity())
                 {
-                    var accepted = await ConfirmOverwriteAsync(
-                        destination.CanonicalPath,
-                        isCurrentDocument ? current : null,
-                        details: [],
+                    return await FailAsync(
+                        SaveFailureReason.IdentityChanged,
+                        "The handle held for the destination no longer refers to the file that was resolved. The write was abandoned.",
+                        destinationPath,
                         cancellationToken).ConfigureAwait(false);
-
-                    if (!accepted)
-                    {
-                        return SaveOutcome.Declined("The overwrite was declined.");
-                    }
                 }
-            }
 
-            var destinationPath = destinationExists && destination is not null ? destination.CanonicalPath : pick.Path;
+                // Unsuppressable. What the picker confirmed is not what this asks; see the
+                // remarks on this method.
+                var accepted = await ConfirmOverwriteAsync(
+                    destination.CanonicalPath,
+                    isCurrentDocument ? current : null,
+                    details: [],
+                    backupWillBeWritten: true,
+                    cancellationToken).ConfigureAwait(false);
 
-            var directory = Path.GetDirectoryName(destinationPath);
-            if (string.IsNullOrEmpty(directory))
-            {
-                return await FailAsync(SaveFailureReason.PathRefused, "The destination has no containing directory.", pick.Path, cancellationToken).ConfigureAwait(false);
+                if (!accepted)
+                {
+                    return SaveOutcome.Declined("The overwrite was declined.");
+                }
+
+                // A destination the workflow did not open has no baseline yet. Capturing one
+                // here has a second effect worth naming: it is what lets the pre-replace
+                // external-change check below run at all on this path, which it previously
+                // skipped for every target other than the open document.
+                destinationBaseline ??= await CaptureDestinationBaselineAsync(destination, cancellationToken).ConfigureAwait(false);
+
+                var backup = await CreateVerifiedBackupAsync(destination, destinationBaseline, directory, progress, cancellationToken).ConfigureAwait(false);
+                if (backup.Path is null)
+                {
+                    return await FailAsync(SaveFailureReason.BackupFailed, backup.Detail, destinationPath, cancellationToken).ConfigureAwait(false);
+                }
+
+                backupPath = backup.Path;
             }
 
             var write = await WriteAsync(
@@ -375,7 +410,20 @@ public sealed class SafeFileWorkflow<TDocument>
                 await RebindAsync(current, write.Baseline, cancellationToken).ConfigureAwait(false);
             }
 
-            return write.Outcome;
+            if (backupPath is null)
+            {
+                return write.Outcome;
+            }
+
+            if (write.Outcome.Status != SaveStatus.Succeeded)
+            {
+                // The backup is a good copy of a file that still exists, so it is reported
+                // rather than discarded.
+                return write.Outcome with { BackupPath = backupPath };
+            }
+
+            var success = SaveOutcome.Success(destinationPath, backupPath);
+            return string.IsNullOrEmpty(write.Detail) ? success : success with { Message = success.Message + " " + write.Detail };
         }
         catch (OperationCanceledException)
         {
@@ -493,7 +541,7 @@ public sealed class SafeFileWorkflow<TDocument>
             // bury the one that mattered under the accept button.
             var warnings = await CollectWarningsAsync(open.Codec, document, cancellationToken).ConfigureAwait(false);
 
-            var accepted = await ConfirmOverwriteAsync(open.Path, open, warnings, cancellationToken).ConfigureAwait(false);
+            var accepted = await ConfirmOverwriteAsync(open.Path, open, warnings, backupWillBeWritten: true, cancellationToken).ConfigureAwait(false);
             if (!accepted)
             {
                 return SaveOutcome.Declined("The overwrite was declined.");
@@ -505,7 +553,7 @@ public sealed class SafeFileWorkflow<TDocument>
                 return await FailAsync(SaveFailureReason.ExternalChange, before.Detail, open.Path, cancellationToken).ConfigureAwait(false);
             }
 
-            var backup = await CreateVerifiedBackupAsync(open, directory, progress, cancellationToken).ConfigureAwait(false);
+            var backup = await CreateVerifiedBackupAsync(open.File, open.Baseline, directory, progress, cancellationToken).ConfigureAwait(false);
             if (backup.Path is null)
             {
                 return await FailAsync(SaveFailureReason.BackupFailed, backup.Detail, open.Path, cancellationToken).ConfigureAwait(false);
@@ -741,13 +789,29 @@ public sealed class SafeFileWorkflow<TDocument>
         }
     }
 
+    /// <summary>Copies a file the workflow holds open into a verified backup beside it.</summary>
+    /// <param name="original">
+    /// The retained handle for the file about to be replaced. Taken as a
+    /// <see cref="ResolvedFile"/> rather than an <see cref="OpenSaveFile{TDocument}"/> so
+    /// that both destructive paths can use it: <c>Save As</c> onto an existing file is
+    /// replacing something the workflow never decoded, and it needs the same backup.
+    /// </param>
+    /// <param name="baseline">
+    /// What the bytes were when they were read. The written backup is hashed against this,
+    /// so "a backup exists" and "the backup is the file that was there" are one statement.
+    /// </param>
+    /// <param name="directory">Where the backup is written, before any fallback prompt.</param>
+    /// <param name="progress">Optional progress sink.</param>
+    /// <param name="cancellationToken">Cancels the backup.</param>
+    /// <returns>The backup path, or <see langword="null"/> and why not.</returns>
     private async ValueTask<(string? Path, string Detail)> CreateVerifiedBackupAsync(
-        OpenSaveFile<TDocument> open,
+        ResolvedFile original,
+        ContentBaseline baseline,
         string directory,
         IProgress<SaveProgress>? progress,
         CancellationToken cancellationToken)
     {
-        var originalName = Path.GetFileName(open.Path);
+        var originalName = Path.GetFileName(original.CanonicalPath);
 
         var acquired = await AcquireBackupAsync(directory, originalName, cancellationToken).ConfigureAwait(false);
         if (acquired.File is null)
@@ -766,7 +830,7 @@ public sealed class SafeFileWorkflow<TDocument>
         {
             using var backup = acquired.File;
 
-            var source = open.File.Stream;
+            var source = original.Stream;
             source.Seek(0, SeekOrigin.Begin);
 
             var total = source.Length;
@@ -793,7 +857,7 @@ public sealed class SafeFileWorkflow<TDocument>
             backup.Stream.Seek(0, SeekOrigin.Begin);
             var hash = await ComputeHashAsync(backup.Stream, cancellationToken).ConfigureAwait(false);
 
-            if (!CryptographicOperations.FixedTimeEquals(hash, open.Baseline.Hash.Span))
+            if (!CryptographicOperations.FixedTimeEquals(hash, baseline.Hash.Span))
             {
                 detail =
                     "The backup was written but its hash does not match the bytes that were read from the original. " +
@@ -802,7 +866,7 @@ public sealed class SafeFileWorkflow<TDocument>
             else
             {
                 // Backups inherit the original's mode rather than the directory default.
-                _ = _options.Permissions.CopyOnto(open.File.Stream, backup.Stream, backupPath, backup.Identity);
+                _ = _options.Permissions.CopyOnto(original.Stream, backup.Stream, backupPath, backup.Identity);
                 verified = true;
             }
         }
@@ -832,6 +896,39 @@ public sealed class SafeFileWorkflow<TDocument>
         _ = BackupRetention.Apply(backupDirectory, originalName, _options.BackupRetention);
 
         return (backupPath, "The backup was written and verified against the bytes that were read.");
+    }
+
+    /// <summary>Captures a change-detection baseline for a file the workflow did not decode.</summary>
+    /// <remarks>
+    /// Streams the retained handle instead of going through
+    /// <see cref="IExternalChangeGuard.CaptureAsync"/>, whose byte array exists so that
+    /// detection and decode can run over the same read. A <c>Save As</c> onto an existing
+    /// file needs the hash and the length and nothing else, and materialising a
+    /// half-gigabyte destination to obtain them would be a pointless allocation.
+    /// </remarks>
+    private static async ValueTask<ContentBaseline> CaptureDestinationBaselineAsync(
+        ResolvedFile destination,
+        CancellationToken cancellationToken)
+    {
+        var stream = destination.Stream;
+        stream.Seek(0, SeekOrigin.Begin);
+
+        var length = stream.Length;
+        var hash = await ComputeHashAsync(stream, cancellationToken).ConfigureAwait(false);
+
+        DateTime? lastWrite;
+        try
+        {
+            lastWrite = File.GetLastWriteTimeUtc(stream.SafeFileHandle);
+        }
+        catch (Exception)
+        {
+            // Metadata is an optimization for the change guard, never an authority. Its
+            // absence costs a fast-path negative, not a guarantee.
+            lastWrite = null;
+        }
+
+        return new ContentBaseline(hash, length, lastWrite);
     }
 
     private async ValueTask<(ResolvedFile? File, string? Path, string Detail)> AcquireBackupAsync(
@@ -1145,11 +1242,16 @@ public sealed class SafeFileWorkflow<TDocument>
         string path,
         OpenSaveFile<TDocument>? open,
         IReadOnlyList<UntrustedText> details,
+        bool backupWillBeWritten,
         CancellationToken cancellationToken)
     {
         var label = PathDisplayFormatter.Default.Format(path).Label;
 
         var message = $"Replace the file at {label} with the document that is open?";
+
+        message += backupWillBeWritten
+            ? " A verified backup of the existing file is written first, and the replacement is abandoned if that backup cannot be written or cannot be verified."
+            : " No backup of the existing file will be taken.";
 
         // VerifiedEquivalent deliberately adds nothing here. It is a pass, and appending a
         // caveat to every overwrite of a legitimately lossless salted format would rebuild a
