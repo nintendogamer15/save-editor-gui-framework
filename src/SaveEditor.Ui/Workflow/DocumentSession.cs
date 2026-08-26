@@ -164,6 +164,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
             SavePhase.WritingTemp => "Writing",
             SavePhase.PreservingPermissions => "Preserving permissions",
             SavePhase.CheckingForExternalChange => "Checking the file has not changed",
+            SavePhase.VerifyingTemp => "Verifying what was written",
             SavePhase.Replacing => "Replacing the original",
             _ => "Finishing",
         };

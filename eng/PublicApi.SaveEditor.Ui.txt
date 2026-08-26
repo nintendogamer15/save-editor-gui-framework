@@ -798,7 +798,7 @@ SaveEditor.Ui.Theming.ThemeController :: property Boolean IsUsingEditorDefault g
 SaveEditor.Ui.Theming.ThemeController :: property CatppuccinAccent Accent get set
 SaveEditor.Ui.Theming.ThemeController :: property CatppuccinAccent EditorDefaultAccent get
 SaveEditor.Ui.Theming.ThemeController :: property ThemeMode Mode get set
-SaveEditor.Ui.Workflow.BackupRetention :: method IReadOnlyList<String> Apply(String directory, String originalFileName, Int32 retain)
+SaveEditor.Ui.Workflow.BackupRetention :: method IReadOnlyList<String> Apply(String directory, String originalFileName, Int32 retain, String protect)
 SaveEditor.Ui.Workflow.ConfirmationSaveFormatChooser :: ctor (IUserInteraction interaction)
 SaveEditor.Ui.Workflow.ConfirmationSaveFormatChooser :: method ValueTask<SaveFormatDescriptor> ChooseAsync(IReadOnlyList<SaveFormatDescriptor> candidates, String fileName, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.ContentBaseline :: ctor (ReadOnlyMemory<Byte> Hash, Int64 Length, Nullable<DateTime> LastWriteUtc)
@@ -960,6 +960,11 @@ SaveEditor.Ui.Workflow.ReplaceStatus :: field Int32 value__
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Failed
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus NotAtomic
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Replaced
+SaveEditor.Ui.Workflow.RoundTripVerification :: field Int32 value__
+SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification Mismatched
+SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification NotReached
+SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification Skipped
+SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification Verified
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: ctor ()
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method Boolean Equals(Object obj)
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method Boolean Equals(SafeFileWorkflowOptions<TDocument> other)
@@ -1003,6 +1008,7 @@ SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason PermissionCo
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason PermissionWidening
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason RoundTripMismatch
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason TempCreationFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason TempVerificationFailed
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason TooLarge
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason Unexpected
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason ValidationErrors
@@ -1017,11 +1023,13 @@ SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Failure(SaveFailureReas
 SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Success(String path, String backupPath)
 SaveEditor.Ui.Workflow.SaveOutcome :: method String ToString()
 SaveEditor.Ui.Workflow.SaveOutcome :: property Boolean IsSuccess get
+SaveEditor.Ui.Workflow.SaveOutcome :: property RoundTripVerification RoundTrip get set
 SaveEditor.Ui.Workflow.SaveOutcome :: property SaveFailureReason Reason get set
 SaveEditor.Ui.Workflow.SaveOutcome :: property SaveStatus Status get set
 SaveEditor.Ui.Workflow.SaveOutcome :: property String BackupPath get set
 SaveEditor.Ui.Workflow.SaveOutcome :: property String Message get set
 SaveEditor.Ui.Workflow.SaveOutcome :: property String Path get set
+SaveEditor.Ui.Workflow.SaveOutcome :: property String RoundTripDetail get set
 SaveEditor.Ui.Workflow.SavePhase :: field Int32 value__
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase CheckingForExternalChange
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Completed
@@ -1035,6 +1043,7 @@ SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Validating
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingBackup
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingPreservationClaim
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingRoundTrip
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingTemp
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase WritingBackup
 SaveEditor.Ui.Workflow.SavePhase :: field SavePhase WritingTemp
 SaveEditor.Ui.Workflow.SaveProgress :: ctor (SavePhase Phase, Int64 BytesCompleted, Nullable<Int64> BytesTotal)
@@ -1210,6 +1219,7 @@ type SaveEditor.Ui.Workflow.PlatformDurabilityBarrier
 type SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy
 type SaveEditor.Ui.Workflow.ReplaceResult
 type SaveEditor.Ui.Workflow.ReplaceStatus
+type SaveEditor.Ui.Workflow.RoundTripVerification
 type SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1
 type SaveEditor.Ui.Workflow.SafeFileWorkflow`1
 type SaveEditor.Ui.Workflow.SaveFailureReason

@@ -46,7 +46,10 @@ public enum SavePhase
     /// <summary>Re-verifying the baseline hash immediately before the replace.</summary>
     CheckingForExternalChange,
 
-    /// <summary>Flushing, replacing, and flushing the containing directory.</summary>
+    /// <summary>Reading the flushed temporary file back and comparing it to what was written.</summary>
+    VerifyingTemp,
+
+    /// <summary>Replacing the destination, then flushing the containing directory.</summary>
     Replacing,
 
     /// <summary>The operation finished.</summary>

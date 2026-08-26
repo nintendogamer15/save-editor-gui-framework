@@ -252,10 +252,21 @@ internal sealed class RecordingDurability : IDurabilityBarrier
 
     public DirectoryFlushResult? LastDirectoryFlush { get; private set; }
 
-    public ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Runs after a file has been flushed, with the still-open stream.
+    /// </summary>
+    /// <remarks>
+    /// The hook point for corrupting a temporary file between its flush and the read-back
+    /// that verifies it. A progress sink cannot serve: the failure-atomicity theory does not
+    /// pass one, and SavePhase.VerifyingTemp is reported before the flush.
+    /// </remarks>
+    public Action<FileStream>? AfterFlushFile { get; set; }
+
+    public async ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken = default)
     {
         Calls.Add("flush-file");
-        return _inner.FlushFileAsync(stream, cancellationToken);
+        await _inner.FlushFileAsync(stream, cancellationToken).ConfigureAwait(false);
+        AfterFlushFile?.Invoke(stream);
     }
 
     public async ValueTask<ReplaceResult> ReplaceAsync(string temporaryPath, FileIdentity temporaryIdentity, string destinationPath, bool destinationExists, CancellationToken cancellationToken = default)
@@ -413,6 +424,8 @@ internal sealed class WorkflowHarness : IDisposable
 
     public int BackupRetention { get; set; } = 10;
 
+    public long RoundTripVerificationMaxBytes { get; set; } = 64L * 1024 * 1024;
+
     public SafeFileWorkflowOptions<TestDocument> Options => new()
     {
         Registry = new SaveCodecRegistry<TestDocument>([new CodecRegistration<TestDocument>(Detector, Codec)]),
@@ -425,6 +438,7 @@ internal sealed class WorkflowHarness : IDisposable
         VerifyPreservationClaim = VerifyPreservationClaim,
         VerifyRoundTripBeforeReplace = VerifyRoundTrip,
         BackupRetention = BackupRetention,
+        RoundTripVerificationMaxBytes = RoundTripVerificationMaxBytes,
     };
 
     public SafeFileWorkflow<TestDocument> Create() => new(Options);
