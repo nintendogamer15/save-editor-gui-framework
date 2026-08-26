@@ -7,6 +7,12 @@ namespace SaveEditor.Ui.Workflow;
 /// What the framework concluded about a codec's unknown-data preservation claim, by
 /// testing it rather than by believing it.
 /// </summary>
+/// <remarks>
+/// <see cref="Verified"/> and <see cref="VerifiedEquivalent"/> are both passes, and they
+/// are deliberately not the same value: the first is proven by the framework, the second
+/// rests on the codec's own comparison. Collapsing them would make "we proved it" and "the
+/// codec told us" indistinguishable to everything downstream.
+/// </remarks>
 public enum UnknownDataVerification
 {
     /// <summary>The codec did not claim to preserve unknown data.</summary>
@@ -30,6 +36,20 @@ public enum UnknownDataVerification
 
     /// <summary>The check could not be run because the codec failed while re-serializing.</summary>
     Unavailable,
+
+    /// <summary>
+    /// The claim was tested and held under the codec's own equivalence relation rather
+    /// than byte for byte.
+    /// </summary>
+    /// <remarks>
+    /// Re-serializing the untouched document did not reproduce the file's bytes, but the
+    /// codec's <see cref="Codecs.ISaveCodec{TDocument}.RoundTripEquivalent"/> reported the
+    /// two as the same document — the normal and correct outcome for a format that embeds a
+    /// fresh random salt or IV, a timestamp, or normalised whitespace. This is a pass, and
+    /// it is weaker than <see cref="Verified"/>: the framework proved the bytes differ and
+    /// took the codec's word that the difference does not matter.
+    /// </remarks>
+    VerifiedEquivalent,
 }
 
 /// <summary>

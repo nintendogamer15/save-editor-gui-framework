@@ -933,10 +933,82 @@ public sealed class SafeFileWorkflow<TDocument>
                 "Re-serializing the untouched document reproduced the file byte for byte, so the preservation claim holds for this file.");
         }
 
+        // Byte equality is checked by the framework, and only divergence reaches the codec.
+        // That order is the whole safeguard: a codec whose RoundTripEquivalent returns true
+        // unconditionally can reach the weaker VerifiedEquivalent verdict but can never
+        // manufacture the byte-identical one, and an honest codec's comparison is not
+        // invoked at all in the common case.
+        bool equivalent;
+        try
+        {
+            equivalent = await RunCodecAsync(
+                () => new ValueTask<bool>(codec.RoundTripEquivalent(source, reserialized)),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return (UnknownDataVerification.Unavailable,
+                $"The preservation claim could not be tested: the codec threw while comparing the round trip ({ex.GetType().Name}). Treat it as untested.");
+        }
+
+        var divergence = DescribeDivergence(source, reserialized);
+
+        if (equivalent)
+        {
+            return (UnknownDataVerification.VerifiedEquivalent,
+                $"Re-serializing the untouched document did not reproduce the file byte for byte ({divergence}), but {codec.Format.DisplayName} " +
+                "reports the two as the same document. The claim holds for this file under the codec's own comparison rather than under byte " +
+                "equality, so it rests on the codec being right about its own format.");
+        }
+
         return (UnknownDataVerification.Falsified,
-            $"{codec.Format.DisplayName} declares that it preserves data it does not understand, but re-serializing this file without changing anything produced " +
-            $"{reserialized.LongLength} bytes where the file has {source.LongLength}. The declaration is false for this file, so saving will lose data that is in it today.");
+            $"{codec.Format.DisplayName} declares that it preserves data it does not understand, but re-serializing this file without changing " +
+            $"anything did not reproduce it ({divergence}), and the codec does not report the two as equivalent. The declaration is false for " +
+            "this file, so saving will lose data that is in it today.");
     }
+
+    /// <summary>Says what differs between two serializations, not merely how big they are.</summary>
+    /// <remarks>
+    /// A length-only comparison prints two identical numbers whenever the divergence happens
+    /// to preserve size, which reads as a non-difference — inside the destructive confirmation
+    /// the user is about to accept, which is the worst possible place for a message that looks
+    /// like it is saying nothing is wrong.
+    /// </remarks>
+    private static string DescribeDivergence(ReadOnlySpan<byte> source, ReadOnlySpan<byte> reserialized)
+    {
+        var shared = Math.Min(source.Length, reserialized.Length);
+
+        var offset = -1;
+        for (var i = 0; i < shared; i++)
+        {
+            if (source[i] != reserialized[i])
+            {
+                offset = i;
+                break;
+            }
+        }
+
+        if (source.Length != reserialized.Length)
+        {
+            var lengths = $"it produced {reserialized.Length} bytes where the file has {source.Length}";
+            return offset >= 0
+                ? $"{lengths}, and they first differ at byte {offset}"
+                : $"{lengths}, and the shorter is a prefix of the longer";
+        }
+
+        // Equal lengths: the byte count carries no information at all, so the offset and the
+        // hashes are the only things that do.
+        return offset >= 0
+            ? $"both are {source.Length} bytes and they first differ at byte {offset}, SHA-256 {ShortHash(source)} against {ShortHash(reserialized)}"
+            : $"both are {source.Length} bytes";
+    }
+
+    private static string ShortHash(ReadOnlySpan<byte> bytes) =>
+        Convert.ToHexStringLower(SHA256.HashData(bytes))[..12];
 
     private async ValueTask<string?> VerifyRoundTripAsync(
         ISaveCodec<TDocument> codec,
@@ -1079,11 +1151,15 @@ public sealed class SafeFileWorkflow<TDocument>
 
         var message = $"Replace the file at {label} with the document that is open?";
 
+        // VerifiedEquivalent deliberately adds nothing here. It is a pass, and appending a
+        // caveat to every overwrite of a legitimately lossless salted format would rebuild a
+        // milder version of the crying-wolf problem this branch exists to avoid. Callers that
+        // want the nuance read OpenSaveFile.UnknownDataDetail.
         if (open is { UnknownData: UnknownDataVerification.Falsified })
         {
             message +=
                 " This format claims to preserve data it does not understand, but the framework tested that claim against this file and it is false: " +
-                "saving will lose bytes that are in the file today.";
+                "saving will lose bytes that are in the file today. " + open.UnknownDataDetail;
         }
         else if (open is { UnknownData: UnknownDataVerification.NotClaimed or UnknownDataVerification.Skipped or UnknownDataVerification.Unavailable })
         {

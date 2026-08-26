@@ -68,6 +68,7 @@ SaveEditor.Ui.Codecs.DetectorReport :: property String Detail get set
 SaveEditor.Ui.Codecs.ISaveCodecDetector :: method DetectionVerdict Detect(ReadOnlySpan<Byte> header)
 SaveEditor.Ui.Codecs.ISaveCodecDetector :: property Int32 HeaderBytesRequired get
 SaveEditor.Ui.Codecs.ISaveCodecDetector :: property SaveFormatDescriptor Format get
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: method Boolean RoundTripEquivalent(ReadOnlySpan<Byte> original, ReadOnlySpan<Byte> reserialized)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask SerializeAsync(TDocument document, Stream destination, CancellationToken cancellationToken)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<TDocument> DecodeAsync(Stream source, CancellationToken cancellationToken)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<ValidationReport> ValidateAsync(TDocument document, CancellationToken cancellationToken)
@@ -1066,6 +1067,7 @@ SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification 
 SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Skipped
 SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Unavailable
 SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Verified
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification VerifiedEquivalent
 SaveEditor.Ui.Workflow.WorkflowFileNames :: ctor (TimeProvider timeProvider)
 SaveEditor.Ui.Workflow.WorkflowFileNames :: field String BackupInfix
 SaveEditor.Ui.Workflow.WorkflowFileNames :: field String BackupSuffix
