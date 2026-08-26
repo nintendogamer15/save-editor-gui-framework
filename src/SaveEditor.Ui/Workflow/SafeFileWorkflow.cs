@@ -968,10 +968,34 @@ public sealed class SafeFileWorkflow<TDocument>
             return $"The bytes this codec produced could not be read back by the same codec ({ex.GetType().Name}: {ex.Message}). The save was abandoned rather than written.";
         }
 
-        return _options.DocumentComparer.Equals(decoded, document)
-            ? null
-            : "The bytes this codec produced do not decode back to the document that is open. Something was lost in serialization, so the save was abandoned rather than written.";
+        if (_options.DocumentComparer.Equals(decoded, document))
+        {
+            return null;
+        }
+
+        var lost = "The bytes this codec produced do not decode back to the document that is open. " +
+                   "Something was lost in serialization, so the save was abandoned rather than written.";
+
+        // The overwhelmingly likely cause, for a document type that has not defined
+        // equality, is that the comparison is by reference and can never succeed — so
+        // every save fails identically. Saying "something was lost in serialization"
+        // there sends the author hunting for a codec bug that does not exist.
+        return ComparesByReference()
+            ? lost + " This may not be a codec fault: "
+                   + $"'{typeof(TDocument).Name}' does not define value equality, so the round-trip check "
+                   + "is comparing object references and cannot ever match. Make the document a record, "
+                   + "override Equals, or supply SafeFileWorkflowOptions.DocumentComparer."
+            : lost;
     }
+
+    /// <summary>
+    /// Whether the configured comparer will fall back to reference equality for this
+    /// document type.
+    /// </summary>
+    private bool ComparesByReference() =>
+        ReferenceEquals(_options.DocumentComparer, EqualityComparer<TDocument>.Default)
+        && !typeof(TDocument).IsValueType
+        && typeof(TDocument).GetMethod(nameof(Equals), [typeof(object)])?.DeclaringType == typeof(object);
 
     private async ValueTask<SaveOutcome?> BlockOnValidationErrorsAsync(
         ISaveCodec<TDocument> codec,

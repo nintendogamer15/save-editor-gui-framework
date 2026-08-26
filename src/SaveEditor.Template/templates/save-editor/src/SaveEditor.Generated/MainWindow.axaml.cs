@@ -69,6 +69,12 @@ public partial class MainWindow : Window
         {
             Registry = registry,
             Interaction = interaction,
+            // DemoSaveDocument is a mutable class with no equality contract, so the
+            // default EqualityComparer<T>.Default would compare by reference and
+            // fail the pre-replace round-trip check on every save. See
+            // DemoSaveDocumentComparer's remarks — this applies to any document
+            // type that isn't a record.
+            DocumentComparer = DemoSaveDocumentComparer.Instance,
         });
 
         _session = new DocumentSession<DemoSaveDocument>(workflow, _history, new DemoSaveCodec())

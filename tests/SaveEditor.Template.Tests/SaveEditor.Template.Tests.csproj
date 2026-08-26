@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      This project drives the `dotnet` CLI as an external process — packing,
+      installing, instantiating, building, and testing a whole separate
+      solution in a temp directory — rather than testing in-process. It needs
+      nothing beyond xunit.v3 itself.
+    -->
+    <Description>
+      Template smoke tests: packs SaveEditor.Ui and SaveEditor.Template into a
+      local feed, installs `dotnet new save-editor`, generates a project from
+      it, and builds and tests the result against that local feed.
+    </Description>
+  </PropertyGroup>
+
+</Project>

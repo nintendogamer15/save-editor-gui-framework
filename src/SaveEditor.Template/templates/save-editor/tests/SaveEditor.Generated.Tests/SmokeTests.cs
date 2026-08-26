@@ -98,6 +98,7 @@ public class SmokeTests
             {
                 Registry = registry,
                 Interaction = interaction,
+                DocumentComparer = DemoSaveDocumentComparer.Instance,
             });
 
             var history = new EditHistory();

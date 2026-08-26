@@ -7,9 +7,11 @@
     <Project Path="samples/SaveEditor.Ui.Gallery/SaveEditor.Ui.Gallery.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/SaveEditor.Template/SaveEditor.Template.csproj" />
     <Project Path="src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SaveEditor.Template.Tests/SaveEditor.Template.Tests.csproj" />
     <Project Path="tests/SaveEditor.Ui.HeadlessTests/SaveEditor.Ui.HeadlessTests.csproj" />
     <Project Path="tests/SaveEditor.Ui.Tests/SaveEditor.Ui.Tests.csproj" />
   </Folder>

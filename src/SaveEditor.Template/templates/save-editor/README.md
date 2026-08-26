@@ -27,8 +27,18 @@ real game. Three files are it, and every one of them is marked
 | File | What it does | What yours should do |
 | --- | --- | --- |
 | `src/SaveEditor.Generated/Document/DemoSaveDocument.cs` | The in-memory shape of a fake save | Model your game's actual save data |
+| `src/SaveEditor.Generated/Document/DemoSaveDocumentComparer.cs` | Value-compares two documents field by field | Compare your own document type the same way, unless it's a record |
 | `src/SaveEditor.Generated/Codecs/DemoSaveCodec.cs` | Reads/writes an 8-byte-magic-plus-JSON toy format | Decode/encode your real format's bytes |
 | `src/SaveEditor.Generated/Codecs/DemoSaveDetector.cs` | Recognizes the demo format's magic prefix | Recognize your format from its own header |
+
+`DemoSaveDocumentComparer` exists because `DemoSaveDocument` is a mutable
+class with no equality contract. `SafeFileWorkflow`'s pre-replace round-trip
+check — decode the freshly serialized bytes and compare against the document
+in memory — defaults to `EqualityComparer<T>.Default`, which compares a
+class like this one by reference and would fail that check on **every**
+save, not just a broken one. If your document type is a record, its
+compiler-generated value equality already does the right thing and you can
+delete this file; if it's a mutable class, keep the pattern.
 
 `src/SaveEditor.Generated/Sections/DemoSectionFactory.cs` builds the one
 example section over a `DemoSaveDocument`. Replace it with sections over your
