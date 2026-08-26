@@ -365,6 +365,47 @@ public class EditingModelTests
     }
 
     [Fact]
+    public void Spinner_Steps_By_One_And_Stops_At_The_Bounds()
+    {
+        var (_, _, section) = Build();
+        var health = Field<NumericFieldViewModel>(section, "health");
+
+        health.Increment();
+        Assert.Equal("101", health.Text);
+
+        health.Decrement();
+        health.Decrement();
+        Assert.Equal("99", health.Text);
+
+        // Clamping is correct here and wrong for typing: pressing increment means
+        // "one more", so stopping at the bound is what was asked for.
+        health.Text = "9999";
+        health.Increment();
+        Assert.Equal("9999", health.Text);
+        Assert.True(health.IsValid);
+
+        health.Text = "0";
+        health.Decrement();
+        Assert.Equal("0", health.Text);
+        Assert.True(health.IsValid);
+    }
+
+    [Fact]
+    public void Spinner_Recovers_From_Unparseable_Text()
+    {
+        var (_, _, section) = Build();
+        var health = Field<NumericFieldViewModel>(section, "health");
+
+        health.Text = "garbage";
+        health.Increment();
+
+        // Stepping from nonsense resumes at the committed value rather than doing
+        // nothing, so the control is never stuck in an unusable state.
+        Assert.Equal("101", health.Text);
+        Assert.True(health.IsValid);
+    }
+
+    [Fact]
     public void Read_Only_Fields_Never_Become_Pending()
     {
         var doc = new Document();

@@ -326,6 +326,36 @@ public sealed partial class NumericFieldViewModel : FieldViewModel<long>
         OnPropertyChanged(nameof(Text));
     }
 
+    /// <summary>Increases the draft by one, stopping at the maximum.</summary>
+    [RelayCommand]
+    public void Increment() => Step(1);
+
+    /// <summary>Decreases the draft by one, stopping at the minimum.</summary>
+    [RelayCommand]
+    public void Decrement() => Step(-1);
+
+    /// <summary>Adjusts the draft, clamping to the descriptor's range.</summary>
+    /// <param name="delta">How much to add.</param>
+    /// <remarks>
+    /// Clamping is right here and wrong for typing. Pressing increment means "one
+    /// more", so stopping at the bound is what the user asked for. Typing a number
+    /// past the bound is a different statement, and silently clamping it would write
+    /// a value they never chose — so that path reports an error instead.
+    /// </remarks>
+    private void Step(long delta)
+    {
+        var current = long.TryParse(_text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : Committed;
+
+        var next = Math.Clamp(
+            current + delta,
+            _descriptor.Minimum,
+            _descriptor.Maximum);
+
+        Text = next.ToString(CultureInfo.InvariantCulture);
+    }
+
     /// <inheritdoc />
     protected override string? ValidateDraft(long value)
     {

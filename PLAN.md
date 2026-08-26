@@ -576,6 +576,12 @@ One lesson is recorded here because it will recur: **a command-level test passes
 
 **Acceptance:** pending edits survive section navigation; per-field Apply produces exactly one history entry and Apply All exactly one transactional entry; the 1,000-entry cap holds; `FieldList` virtualizes under a large section; dirty/pending and validation-banner baselines are captured using the P0 harness.
 
+**Status: complete except the baseline clause**, which is deferred to the first Ubuntu CI run alongside P0's and P1's, for the same reason. `FieldList` realizes 5 of 2,000 fields, counted as actual containers rather than inferred.
+
+Two decisions recorded because they will look arbitrary later. **A numeric field holds the typed text, not a parsed number** — binding a numeric control directly makes `abc` indistinguishable from zero, and a save where a stat silently became zero is worse than one that refused to apply. Consequently **pending-ness compares the text**: comparing the parsed value reported no pending edit for a field containing unparseable text, and since the exit guard is driven by pending state, closing the editor would have discarded what the user typed without asking.
+
+**Out-of-range values are reported when typed and clamped when stepped.** Typing a number past the bound is a statement the user made, and silently rewriting it would put a value in the save file they never chose; pressing increment means "one more", so stopping at the bound is what was asked for.
+
 ### P4 — Services and safety
 
 **Prerequisites:** P0, P1, P2, P3. P1 is required because the workflow consumes the settings and recents store it delivers, and because §12's settings rows are owned there.

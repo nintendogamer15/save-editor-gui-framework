@@ -48,7 +48,37 @@ internal static class FieldEditorTemplates
         var box = new TextBox();
         box.Bind(TextBox.TextProperty, new Binding(nameof(NumericFieldViewModel.Text)) { Source = vm, Mode = BindingMode.TwoWay });
         Wire(box, vm);
-        return box;
+
+        if (!vm.ShowSpinner)
+        {
+            return box;
+        }
+
+        // The descriptor advertises this affordance, so it has to exist. A property
+        // that silently does nothing is worse than no property.
+        var down = new Button
+        {
+            Content = "−",
+            Command = vm.DecrementCommand,
+            Width = 32,
+        };
+        Avalonia.Automation.AutomationProperties.SetName(down, $"Decrease {vm.Label}");
+
+        var up = new Button
+        {
+            Content = "+",
+            Command = vm.IncrementCommand,
+            Width = 32,
+        };
+        Avalonia.Automation.AutomationProperties.SetName(up, $"Increase {vm.Label}");
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        box.Width = 160;
+        row.Children.Add(box);
+        row.Children.Add(down);
+        row.Children.Add(up);
+
+        return row;
     }
 
     private static Control BuildBoolean(BooleanFieldViewModel vm)
