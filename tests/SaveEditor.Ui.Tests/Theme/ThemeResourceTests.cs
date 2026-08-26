@@ -217,6 +217,57 @@ public class ThemeResourceTests
         Assert.True(scanned >= 3, $"Only {scanned} view files were scanned; the view roots look wrong.");
     }
 
+    [Fact]
+    public void Code_Built_Templates_Reference_Only_Semantic_Resources()
+    {
+        // The XAML scan cannot see these. FieldCard, FieldList, and SectionToolbar
+        // build their templates in C# with string resource keys, so a typo yields a
+        // silently null brush and a fully green suite.
+        var source = Path.Combine(RepositoryRoot(), "src");
+        var known = SemanticTokens.All.ToHashSet(StringComparer.Ordinal);
+
+        var offenders = new List<string>();
+        var checkedKeys = 0;
+
+        foreach (var file in Directory.EnumerateFiles(source, "*.cs", SearchOption.AllDirectories))
+        {
+            foreach (var key in CodeResourceKeys(File.ReadAllText(file)))
+            {
+                checkedKeys++;
+                if (!known.Contains(key))
+                {
+                    offenders.Add($"{Path.GetFileName(file)} requests '{key}'");
+                }
+            }
+        }
+
+        Assert.True(
+            offenders.Count == 0,
+            "Code-built templates may only request semantic resources. " + string.Join("; ", offenders));
+
+        Assert.True(checkedKeys > 0, "No code-built resource lookups were found; the scan pattern is wrong.");
+    }
+
+    private static IEnumerable<string> CodeResourceKeys(string source)
+    {
+        foreach (var marker in new[] { "GetResourceObservable(\"", "TryGetResource(\"", "TryFindResource(\"" })
+        {
+            var index = 0;
+            while ((index = source.IndexOf(marker, index, StringComparison.Ordinal)) >= 0)
+            {
+                var start = index + marker.Length;
+                var end = source.IndexOf('"', start);
+                if (end < 0)
+                {
+                    yield break;
+                }
+
+                yield return source[start..end];
+                index = end;
+            }
+        }
+    }
+
     private static IEnumerable<string> ResourceReferences(string xaml)
     {
         foreach (var marker in new[] { "{DynamicResource ", "{StaticResource " })

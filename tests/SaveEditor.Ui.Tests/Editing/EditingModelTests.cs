@@ -211,7 +211,11 @@ public class EditingModelTests
             health.Apply();
         }
 
-        Assert.Equal(EditHistory.DefaultCapacity, history.Count);
+        // Pin the figure, not the constant against itself. Asserting
+        // DefaultCapacity == DefaultCapacity passes for any value, so silently
+        // changing 1,000 to 500 would leave the whole suite green.
+        Assert.Equal(1000, EditHistory.DefaultCapacity);
+        Assert.Equal(1000, history.Count);
     }
 
     [Fact]

@@ -64,6 +64,18 @@ public sealed record SectionDescriptor
     public IDataTemplate? BodyTemplate { get; init; }
 
     /// <summary>Content passed to the body template or field list.</summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>A body owns its own scrolling.</strong> The shell does not wrap it,
+    /// deliberately: wrapping measures the body against an unconstrained height,
+    /// which starves a virtualizing <c>FieldList</c> of the viewport it needs and
+    /// double-nests scroll areas for every body that already scrolls.
+    /// </para>
+    /// <para>
+    /// A body that is taller than the content area and does not scroll will simply
+    /// be clipped, so wrap non-scrolling content in a <c>ScrollViewer</c> yourself.
+    /// </para>
+    /// </remarks>
     public object? Body { get; init; }
 
     /// <summary>Whether the section is currently visible.</summary>

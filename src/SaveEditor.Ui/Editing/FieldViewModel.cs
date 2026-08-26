@@ -370,13 +370,56 @@ public sealed partial class NumericFieldViewModel : FieldViewModel<long>
 
 /// <summary>A field selected from a set of options.</summary>
 public sealed class ChoiceFieldViewModel(ChoiceFieldDescriptor descriptor, EditHistory history)
-    : FieldViewModel<string>(descriptor, history, descriptor.Read, descriptor.Write)
+    : FieldViewModel<string>(descriptor, history, descriptor.Read, descriptor.Write), IDisposable
 {
+    private readonly CancellationTokenSource _optionsCancellation = new();
+    private bool _disposed;
+
     /// <summary>Where the options come from.</summary>
     public IChoiceProvider Options => descriptor.Options;
 
     /// <summary>Whether a value outside the offered options is accepted.</summary>
     public bool AllowCustomValue => descriptor.AllowCustomValue;
+
+    /// <summary>Cancels an in-flight option lookup when the field is disposed.</summary>
+    public CancellationToken OptionsCancellation => _optionsCancellation.Token;
+
+    /// <summary>Whether the options could not be loaded.</summary>
+    public bool OptionsFailed { get; private set; }
+
+    /// <summary>
+    /// Records that the option provider failed, degrading this field rather than the
+    /// application.
+    /// </summary>
+    /// <param name="error">What went wrong.</param>
+    /// <remarks>
+    /// The message is deliberately about the lookup rather than the value: the field
+    /// is not invalid, it is unpopulated, and telling the user their entry is wrong
+    /// when the dropdown simply failed to load would send them hunting for a problem
+    /// that is not theirs.
+    /// </remarks>
+    public void ReportOptionsFailure(Exception error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+
+        OptionsFailed = true;
+        ValidationError = "Could not load the available options for this field.";
+        OnPropertyChanged(nameof(OptionsFailed));
+        NotifyEditState();
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _optionsCancellation.Cancel();
+        _optionsCancellation.Dispose();
+    }
 
     /// <inheritdoc />
     protected override string? ValidateDraft(string value) => null;

@@ -94,7 +94,13 @@ internal static class FieldEditorTemplates
         var combo = new ComboBox
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            ItemTemplate = new FuncDataTemplate<ChoiceOption>((option, _) => new TextBlock { Text = option.Label }),
+            // The selection presenter builds this template with null when nothing is
+            // selected — which is exactly the state an empty or failed option list
+            // leaves the control in, so dereferencing here crashes the field that was
+            // already having a bad time.
+            ItemTemplate = new FuncDataTemplate<ChoiceOption>(
+                (option, _) => new TextBlock { Text = option?.Label ?? string.Empty },
+                supportsRecycling: true),
         };
         Wire(combo, vm);
 
@@ -129,12 +135,43 @@ internal static class FieldEditorTemplates
         return combo;
     }
 
+    /// <summary>Loads choice options, containing any failure to this one field.</summary>
+    /// <remarks>
+    /// <para>
+    /// <c>IChoiceProvider</c> is consumer-supplied and documented as possibly doing
+    /// IO, so it can fail for entirely ordinary reasons. Uncontained, an exception
+    /// from an <c>async void</c> continuation reaches the dispatcher unhandled and
+    /// takes the application down — losing every unsaved edit in the document, which
+    /// is a spectacular outcome for a dropdown that could not populate.
+    /// </para>
+    /// <para>
+    /// The field degrades to an empty list with its validation message set instead.
+    /// The rest of the section keeps working.
+    /// </para>
+    /// </remarks>
     private static async void LoadOptionsAsync(
-        ChoiceFieldViewModel vm, ComboBox combo, Action<IReadOnlyList<ChoiceOption>> selectMatching)
+        ChoiceFieldViewModel vm,
+        ComboBox combo,
+        Action<IReadOnlyList<ChoiceOption>> selectMatching)
     {
-        var options = await vm.Options.GetOptionsAsync(string.Empty).ConfigureAwait(true);
-        combo.ItemsSource = options;
-        selectMatching(options);
+        try
+        {
+            var options = await vm.Options
+                .GetOptionsAsync(string.Empty, vm.OptionsCancellation)
+                .ConfigureAwait(true);
+
+            combo.ItemsSource = options;
+            selectMatching(options);
+        }
+        catch (OperationCanceledException)
+        {
+            // The field went away, or the document closed. Nothing to report.
+        }
+        catch (Exception ex)
+        {
+            combo.ItemsSource = Array.Empty<ChoiceOption>();
+            vm.ReportOptionsFailure(ex);
+        }
     }
 
     private static Control BuildReadOnly(ReadOnlyFieldViewModel vm)

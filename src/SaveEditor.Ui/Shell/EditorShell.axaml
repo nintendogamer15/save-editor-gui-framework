@@ -182,9 +182,15 @@
 
     <!-- Content: welcome state until a document is open. -->
     <Panel>
-      <ScrollViewer IsVisible="{Binding !IsWelcomeVisible}">
-        <ContentControl Content="{Binding SelectedSection.Body}" Margin="20" />
-      </ScrollViewer>
+      <!--
+        Section bodies own their own scrolling. Wrapping them here measured the body
+        against an unconstrained height, which starves a virtualizing FieldList of a
+        viewport so it realizes nothing at all, and double-nested scroll areas for
+        every body that already scrolls.
+      -->
+      <ContentControl IsVisible="{Binding !IsWelcomeVisible}"
+                      Content="{Binding SelectedSection.Body}"
+                      Margin="20" />
 
       <StackPanel IsVisible="{Binding IsWelcomeVisible}"
                   VerticalAlignment="Center"
