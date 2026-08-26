@@ -4,6 +4,7 @@
 
 # Screenshot baselines are compared byte-for-byte; never let them be transformed.
 *.png binary
+*.bin binary
 *.jpg binary
 *.ico binary
 *.ttf binary

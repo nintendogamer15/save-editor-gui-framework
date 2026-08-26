@@ -33,6 +33,8 @@ public class TokenGalleryScreenshotTests
         // require real variety: swatches, text, and borders across many tones.
         var distinctTones = pixels.Chunk(4).Select(p => (p[0], p[1], p[2])).Distinct().Count();
         Assert.True(distinctTones > 20, $"{variantName} rendered only {distinctTones} distinct colours.");
+
+        ScreenshotBaseline.Verify($"tokens-{variantName.ToLowerInvariant()}", pixels);
     }
 
     [AvaloniaFact]

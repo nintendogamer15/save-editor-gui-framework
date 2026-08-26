@@ -31,6 +31,8 @@ public class EditingSurfaceScreenshotTests
 
         var distinctTones = pixels.Chunk(4).Select(p => (p[0], p[1], p[2])).Distinct().Count();
         Assert.True(distinctTones > 20, $"{variantName} rendered only {distinctTones} distinct colours.");
+
+        ScreenshotBaseline.Verify($"editing-{variantName.ToLowerInvariant()}", pixels);
     }
 
     [AvaloniaFact]

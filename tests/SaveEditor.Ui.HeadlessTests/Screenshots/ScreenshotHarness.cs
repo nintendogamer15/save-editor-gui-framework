@@ -1,9 +1,11 @@
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace SaveEditor.Ui.HeadlessTests.Screenshots;
 
@@ -19,11 +21,10 @@ namespace SaveEditor.Ui.HeadlessTests.Screenshots;
 /// baseline would encode whatever the runner happened to have installed.
 /// </para>
 /// <para>
-/// Animation suppression is not yet wired up: nothing rendered so far animates,
-/// and <c>Capture</c> takes a single frame after pending jobs drain, so captures
-/// are already reproducible — <c>Capture_Is_Deterministic_Across_Runs</c> asserts
-/// it. Transitions arrive with real controls in P1, and suppression has to land
-/// with them or the first animated control will make this gate flap.
+/// Transitions are cleared across the realized tree before capture. A capture is a
+/// single frame taken after pending jobs drain, so a control mid-transition would
+/// contribute whatever value it had reached at that instant — timing-dependent, and
+/// enough to make a byte-exact gate flap rather than catch regressions.
 /// </para>
 /// <para>
 /// Committed baselines are generated on Ubuntu and compared there. Windows runs
@@ -66,12 +67,36 @@ public static class ScreenshotHarness
         window.Show();
         Dispatcher.UIThread.RunJobs();
 
+        SuppressTransitions(window);
+        Dispatcher.UIThread.RunJobs();
+
         using var frame = window.CaptureRenderedFrame()
                           ?? throw new InvalidOperationException(
                               "Headless capture returned no frame. The test application must be " +
                               "configured with UseHeadlessDrawing = false and UseSkia().");
 
         return ToBgraBytes(frame);
+    }
+
+    /// <summary>Clears transitions across the realized tree.</summary>
+    /// <remarks>
+    /// A capture is a single frame taken after pending jobs drain. Any control
+    /// mid-transition contributes whatever value the transition had reached at that
+    /// instant, which is timing-dependent — so a baseline gate over animated controls
+    /// flaps rather than catching regressions. Clearing transitions makes the frame a
+    /// function of state alone.
+    /// </remarks>
+    private static void SuppressTransitions(Visual root)
+    {
+        if (root is Animatable animatable)
+        {
+            animatable.Transitions = null;
+        }
+
+        foreach (var child in root.GetVisualChildren())
+        {
+            SuppressTransitions(child);
+        }
     }
 
     private static byte[] ToBgraBytes(WriteableBitmap bitmap)

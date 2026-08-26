@@ -1,0 +1,30 @@
+name: Seed screenshot baselines
+
+on:
+  workflow_dispatch:
+
+# Screenshot references are Ubuntu-golden: the platforms rasterise text
+# differently, so one golden set cannot serve both, and a reference generated on a
+# development machine would fail CI on its first run. This job produces them where
+# they will be compared. Run it deliberately, download the artifact, review the
+# result, and commit.
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Seed references
+        env:
+          SAVEEDITOR_UPDATE_BASELINES: "1"
+        run: dotnet test tests/SaveEditor.Ui.HeadlessTests -c Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-baselines
+          path: tests/SaveEditor.Ui.HeadlessTests/baselines/
+          if-no-files-found: error
