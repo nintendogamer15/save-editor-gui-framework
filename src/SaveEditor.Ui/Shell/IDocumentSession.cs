@@ -38,6 +38,18 @@ public interface IDocumentSession
     /// <summary>Path of the open document, or <see langword="null"/>.</summary>
     string? CurrentPath { get; }
 
+    /// <summary>
+    /// Full-sentence outcome of the last open or write, or <see langword="null"/>.
+    /// </summary>
+    /// <remarks>
+    /// The status bar is the canonical outcome channel, so the sentence it shows has
+    /// to come from whatever actually performed the operation. A shell that composed
+    /// its own message would be reporting what it asked for rather than what happened
+    /// — and the difference between those two is the entire point of a definitive
+    /// status.
+    /// </remarks>
+    string? LastStatusMessage { get; }
+
     /// <summary>Whether an undo is available.</summary>
     bool CanUndo { get; }
 

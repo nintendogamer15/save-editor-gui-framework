@@ -592,6 +592,10 @@ Two decisions recorded because they will look arbitrary later. **A numeric field
 - `SafeFileWorkflow` on the P0 `SafePath` primitive; codec registry and detection; backup, temp write, and atomic replace; permission preservation; round-trip verification; external-change guards; `IUserInteraction` default dialogs; progress, cancellation, and status announcements.
 - Replaces P2's stubbed document session with the real workflow.
 
+**Status: complete.** D1 through D7 now pass against the real workflow rather than the stub, which is what makes P2's deferral honest rather than a way of never proving the hard half. Writing them surfaced three gaps the plan had not anticipated: an immutable document type cannot be edited through a session that only exposes a getter, the status bar was composing its own sentences rather than reporting what the workflow did, and activating a recent that had been deleted left the entry in place.
+
+Two behaviours are asymmetric across platforms by design and are asserted as such rather than smoothed over. On Windows an external process **cannot** rewrite the open document at all, because the workflow holds it with write sharing denied; on Linux locks are advisory, so the write lands and the change guard catches it at save time. And a recent whose file is merely unreachable is kept while one confirmed missing is pruned — an unplugged drive is not a deleted save.
+
 **Acceptance:** every P4-owned row of §12's security table passes on both platforms; every §9 row dispositioned `FIX` (excluding the two `FIX (wording)` rows, which have no test by construction) maps to a passing test in that table; and P2's deferred checks D1 through D7 all pass against the real workflow.
 
 ### P5 — Template and adoption

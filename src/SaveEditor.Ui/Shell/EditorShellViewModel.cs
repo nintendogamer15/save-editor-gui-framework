@@ -314,11 +314,45 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         _interaction.ShowMessageAsync(
             new MessageRequest("Safety and manual testing", SafetyMessage), cancellationToken).AsTask();
 
+    /// <summary>
+    /// Decides whether a recent entry's file is confirmed missing.
+    /// </summary>
+    /// <remarks>
+    /// Probed only when an entry is activated, never at startup — an eager scan is
+    /// what makes a planted network path dangerous. Injectable so the pruning rule can
+    /// be tested without a filesystem.
+    /// </remarks>
+    public Func<string, bool> PathExists { get; set; } = File.Exists;
+
     [RelayCommand]
-    private Task OpenRecentAsync(RecentEntry? entry, CancellationToken cancellationToken) =>
-        entry is null
-            ? Task.CompletedTask
-            : OpenPathAsync(entry.Path, cancellationToken).AsTask();
+    private async Task OpenRecentAsync(RecentEntry? entry, CancellationToken cancellationToken)
+    {
+        if (entry is null)
+        {
+            return;
+        }
+
+        await OpenPathAsync(entry.Path, cancellationToken).ConfigureAwait(true);
+
+        if (_session.HasDocument || PathExists(entry.Path))
+        {
+            return;
+        }
+
+        // Confirmed missing at the moment the user reached for it. Temporarily
+        // unreachable paths are kept: an unplugged drive is not a deleted save, and
+        // silently dropping the entry would lose the only record of where it lived.
+        Recents.Remove(entry);
+
+        var settings = await _settings.LoadAsync(cancellationToken).ConfigureAwait(true);
+        await _settings
+            .SaveAsync(
+                settings with { RecentFiles = [.. Recents.Select(r => r.Path)] },
+                cancellationToken)
+            .ConfigureAwait(true);
+
+        StatusMessage = "That save is no longer at the recorded location. It has been removed from Recent.";
+    }
 
     [RelayCommand]
     private async Task SaveAsAsync(CancellationToken cancellationToken)
@@ -428,6 +462,15 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
 
     private void NotifyDocumentState()
     {
+        // The session's sentence wins when it has one. It describes what the workflow
+        // actually did; anything the shell composed would only describe what it asked
+        // for. A cancelled-by-guard message is the shell's own and is set at the call
+        // site, so it is not overwritten here.
+        if (_session.LastStatusMessage is { Length: > 0 } reported)
+        {
+            StatusMessage = reported;
+        }
+
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(CurrentPathLabel));
         OnPropertyChanged(nameof(HasUnsavedWork));

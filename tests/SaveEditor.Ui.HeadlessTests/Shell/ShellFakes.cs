@@ -17,6 +17,8 @@ internal sealed class FakeDocumentSession : IDocumentSession
 
     public string? CurrentPath { get; set; }
 
+    public string? LastStatusMessage { get; set; }
+
     public bool CanUndo { get; set; } = true;
 
     public bool CanRedo { get; set; } = true;

@@ -25,6 +25,9 @@ internal sealed class GalleryDocumentSession : IDocumentSession
 
     public string? CurrentPath { get; private set; }
 
+    /// <summary>The gallery performs no I/O, so it has no workflow outcome to report.</summary>
+    public string? LastStatusMessage => null;
+
     public bool CanUndo => _isDirty;
 
     public bool CanRedo => false;
