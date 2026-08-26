@@ -1,0 +1,78 @@
+name: Wayland smoke
+
+on:
+  workflow_dispatch:
+
+# Launches the gallery under a real Wayland compositor and proves it starts,
+# renders, and survives. That is all this can prove.
+#
+# The interactive half — file and folder drop, menu placement, portal pickers,
+# resizing, theme repaint — needs a human at a session, and the checklist is in
+# docs/WAYLAND-CHECKLIST.md. Headless tests deliberately inject drop paths into
+# the view-model rather than simulating a drop, so workflow correctness never
+# depends on a compositor; the consequence is that the compositor half of
+# drag-and-drop is covered by nothing but that checklist.
+jobs:
+  wayland:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Install Weston and Wayland runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y weston libwayland-client0 libwayland-cursor0 \
+            libwayland-egl1 libxkbcommon0 libfontconfig1 libfreetype6 libgl1 libegl1
+
+      - name: Build the gallery
+        run: dotnet build samples/SaveEditor.Ui.Gallery -c Release
+
+      - name: Launch under headless Weston
+        env:
+          XDG_RUNTIME_DIR: /tmp/wayland-runtime
+        run: |
+          set -euo pipefail
+          mkdir -p "$XDG_RUNTIME_DIR"
+          chmod 700 "$XDG_RUNTIME_DIR"
+
+          weston --backend=headless-backend.so --width=1600 --height=1000 \
+            --socket=wayland-ci &
+          WESTON_PID=$!
+
+          # Wait for the socket rather than sleeping a guessed interval: a fixed
+          # sleep either wastes time or races on a slow runner.
+          for _ in $(seq 1 40); do
+            [ -S "$XDG_RUNTIME_DIR/wayland-ci" ] && break
+            sleep 0.5
+          done
+          test -S "$XDG_RUNTIME_DIR/wayland-ci" || { echo "Weston never created its socket"; exit 1; }
+
+          export WAYLAND_DISPLAY=wayland-ci
+          unset DISPLAY   # or Avalonia silently takes the X11 backend and proves nothing
+
+          dotnet samples/SaveEditor.Ui.Gallery/bin/Release/net10.0/SaveEditor.Ui.Gallery.dll \
+            > gallery.log 2>&1 &
+          APP_PID=$!
+
+          # Survive, not merely start. A backend failure usually shows up as an
+          # exit within the first few seconds rather than a failure to launch.
+          for _ in $(seq 1 20); do
+            kill -0 "$APP_PID" 2>/dev/null || { echo "Gallery exited early:"; cat gallery.log; exit 1; }
+            sleep 1
+          done
+
+          echo "Gallery survived 20s under Wayland."
+          kill "$APP_PID" 2>/dev/null || true
+          kill "$WESTON_PID" 2>/dev/null || true
+
+      - name: Upload log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: wayland-gallery-log
+          path: gallery.log
+          if-no-files-found: warn
