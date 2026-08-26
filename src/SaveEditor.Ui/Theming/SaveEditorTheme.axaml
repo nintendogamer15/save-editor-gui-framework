@@ -1,0 +1,26 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    The framework theme. Consumers add this to Application.Styles:
+
+        <Application.Styles>
+          <FluentTheme />
+          <themes:SaveEditorTheme />
+        </Application.Styles>
+
+    Semantic.axaml carries every colour that does not depend on the accent.
+    Exactly one accent dictionary is merged at a time; ThemeController swaps it
+    when the user picks a different accent. Blue is the framework default and an
+    editor may override it.
+  -->
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://SaveEditor.Ui/Themes/Semantic.axaml" />
+        <ResourceInclude Source="avares://SaveEditor.Ui/Themes/Accents/Blue.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+</Styles>

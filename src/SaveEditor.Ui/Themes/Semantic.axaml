@@ -1,0 +1,94 @@
+<!--
+    GENERATED FILE. DO NOT EDIT.
+
+    Produced by eng/SaveEditor.PaletteGen from the pinned Catppuccin palette
+    at eng/palette/palette.json. Edit the generator, never this file, then
+    regenerate using the command in eng/palette/README.txt.
+
+    A drift test fails the build if these files and the generator disagree.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Light">
+
+      <!-- surfaces -->
+      <SolidColorBrush x:Key="WindowBackground">#eff1f5</SolidColorBrush>
+      <SolidColorBrush x:Key="PanelBackground">#e6e9ef</SolidColorBrush>
+      <SolidColorBrush x:Key="InputBackground">#dce0e8</SolidColorBrush>
+      <SolidColorBrush x:Key="CardBackground">#ccd0da</SolidColorBrush>
+      <SolidColorBrush x:Key="OverlayBackground">#dce0e8</SolidColorBrush>
+
+      <!-- text -->
+      <SolidColorBrush x:Key="Foreground">#4c4f69</SolidColorBrush>
+      <SolidColorBrush x:Key="MutedForeground">#56586f</SolidColorBrush>
+      <SolidColorBrush x:Key="SubtleForeground">#6c6f85</SolidColorBrush>
+
+      <!-- lines (BorderStrong and FocusRing are accent-dependent) -->
+      <SolidColorBrush x:Key="Border">#bcc0cc</SolidColorBrush>
+
+      <!-- status -->
+      <SolidColorBrush x:Key="Danger">#d20f39</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerText">#ab0c2f</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerBackground">#e9bfcc</SolidColorBrush>
+      <SolidColorBrush x:Key="Warning">#df8e1d</SolidColorBrush>
+      <SolidColorBrush x:Key="WarningText">#7d4f10</SolidColorBrush>
+      <SolidColorBrush x:Key="WarningBackground">#ebdbc5</SolidColorBrush>
+      <SolidColorBrush x:Key="Success">#40a02b</SolidColorBrush>
+      <SolidColorBrush x:Key="SuccessText">#29661c</SolidColorBrush>
+      <SolidColorBrush x:Key="SuccessBackground">#c9dfc9</SolidColorBrush>
+
+      <!-- elevation -->
+      <Color x:Key="ShadowColor">#6bdce0e8</Color>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+
+      <!-- surfaces -->
+      <SolidColorBrush x:Key="WindowBackground">#1e1e2e</SolidColorBrush>
+      <SolidColorBrush x:Key="PanelBackground">#181825</SolidColorBrush>
+      <SolidColorBrush x:Key="InputBackground">#11111b</SolidColorBrush>
+      <SolidColorBrush x:Key="CardBackground">#313244</SolidColorBrush>
+      <SolidColorBrush x:Key="OverlayBackground">#11111b</SolidColorBrush>
+
+      <!-- text -->
+      <SolidColorBrush x:Key="Foreground">#cdd6f4</SolidColorBrush>
+      <SolidColorBrush x:Key="MutedForeground">#bac2de</SolidColorBrush>
+      <SolidColorBrush x:Key="SubtleForeground">#a6adc8</SolidColorBrush>
+
+      <!-- lines (BorderStrong and FocusRing are accent-dependent) -->
+      <SolidColorBrush x:Key="Border">#45475a</SolidColorBrush>
+
+      <!-- status -->
+      <SolidColorBrush x:Key="Danger">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerText">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerBackground">#4d3649</SolidColorBrush>
+      <SolidColorBrush x:Key="Warning">#f9e2af</SolidColorBrush>
+      <SolidColorBrush x:Key="WarningText">#f9e2af</SolidColorBrush>
+      <SolidColorBrush x:Key="WarningBackground">#4e494a</SolidColorBrush>
+      <SolidColorBrush x:Key="Success">#a6e3a1</SolidColorBrush>
+      <SolidColorBrush x:Key="SuccessText">#a6e3a1</SolidColorBrush>
+      <SolidColorBrush x:Key="SuccessBackground">#3c4947</SolidColorBrush>
+
+      <!-- elevation -->
+      <Color x:Key="ShadowColor">#6b11111b</Color>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+  <FontFamily x:Key="FontFamilyDefault">avares://Avalonia.Fonts.Inter/Assets#Inter</FontFamily>
+  <FontFamily x:Key="FontFamilyMono">Cascadia Mono,Consolas,DejaVu Sans Mono,monospace</FontFamily>
+
+  <x:Double x:Key="SpaceXs">6</x:Double>
+  <x:Double x:Key="SpaceSm">8</x:Double>
+  <x:Double x:Key="SpaceMd">12</x:Double>
+  <x:Double x:Key="SpaceLg">16</x:Double>
+  <x:Double x:Key="SpaceXl">20</x:Double>
+
+  <CornerRadius x:Key="RadiusSm">6</CornerRadius>
+  <CornerRadius x:Key="RadiusMd">9</CornerRadius>
+  <CornerRadius x:Key="RadiusLg">14</CornerRadius>
+
+</ResourceDictionary>

@@ -38,4 +38,24 @@ public readonly record struct Srgb(byte R, byte G, byte B)
         (byte)Math.Round(R * factor, MidpointRounding.AwayFromZero),
         (byte)Math.Round(G * factor, MidpointRounding.AwayFromZero),
         (byte)Math.Round(B * factor, MidpointRounding.AwayFromZero));
+
+    /// <summary>Mixes two colours in sRGB.</summary>
+    /// <param name="a">The colour at <paramref name="t"/> = 0.</param>
+    /// <param name="b">The colour at <paramref name="t"/> = 1.</param>
+    /// <param name="t">Mix position in [0, 1].</param>
+    /// <returns>The mixed colour.</returns>
+    public static Srgb Mix(Srgb a, Srgb b, double t)
+    {
+        t = Math.Clamp(t, 0.0, 1.0);
+        return new Srgb(
+            (byte)Math.Round(a.R + ((b.R - a.R) * t), MidpointRounding.AwayFromZero),
+            (byte)Math.Round(a.G + ((b.G - a.G) * t), MidpointRounding.AwayFromZero),
+            (byte)Math.Round(a.B + ((b.B - a.B) * t), MidpointRounding.AwayFromZero));
+    }
+
+    /// <summary>Renders as <c>#aarrggbb</c> with the supplied alpha.</summary>
+    /// <param name="alpha">Alpha channel, 0 transparent to 255 opaque.</param>
+    /// <returns>An eight-digit hex string.</returns>
+    public string ToHexWithAlpha(byte alpha) =>
+        string.Create(CultureInfo.InvariantCulture, $"#{alpha:x2}{R:x2}{G:x2}{B:x2}");
 }

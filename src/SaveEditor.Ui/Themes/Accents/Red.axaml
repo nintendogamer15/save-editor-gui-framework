@@ -1,0 +1,45 @@
+<!--
+    GENERATED FILE. DO NOT EDIT.
+
+    Produced by eng/SaveEditor.PaletteGen from the pinned Catppuccin palette
+    at eng/palette/palette.json. Edit the generator, never this file, then
+    regenerate using the command in eng/palette/README.txt.
+
+    A drift test fails the build if these files and the generator disagree.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Light">
+
+      <!-- fill only - never text, lines, or focus -->
+      <SolidColorBrush x:Key="Primary">#d20f39</SolidColorBrush>
+      <SolidColorBrush x:Key="PrimaryHover">#d7274d</SolidColorBrush>
+      <SolidColorBrush x:Key="PrimaryPressed">#bd0e33</SolidColorBrush>
+      <SolidColorBrush x:Key="OnPrimaryForeground">#ffffff</SolidColorBrush>
+
+      <!-- derived ramp - text, focus, and stateful borders -->
+      <SolidColorBrush x:Key="PrimaryText">#b30d31</SolidColorBrush>
+      <SolidColorBrush x:Key="FocusRing">#b30d31</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderStrong">#b30d31</SolidColorBrush>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+
+      <!-- fill only - never text, lines, or focus -->
+      <SolidColorBrush x:Key="Primary">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="PrimaryHover">#f497b1</SolidColorBrush>
+      <SolidColorBrush x:Key="PrimaryPressed">#db7d97</SolidColorBrush>
+      <SolidColorBrush x:Key="OnPrimaryForeground">#000000</SolidColorBrush>
+
+      <!-- derived ramp - text, focus, and stateful borders -->
+      <SolidColorBrush x:Key="PrimaryText">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="FocusRing">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="BorderStrong">#f38ba8</SolidColorBrush>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+
+</ResourceDictionary>
