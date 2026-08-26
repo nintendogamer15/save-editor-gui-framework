@@ -11,6 +11,29 @@ public enum DetectionVerdict
 
     /// <summary>Distinctively this format.</summary>
     Confident,
+
+    /// <summary>
+    /// The header is consistent with this format, but which format it is cannot be
+    /// settled without decoding the payload.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// For formats whose discriminator is not in a plaintext prefix: two game schemas
+    /// sharing one encrypted envelope, or one compressed container, are indistinguishable
+    /// until the payload is decrypted or inflated. A detector limited to a bounded header
+    /// slice cannot answer, and answering
+    /// <see cref="Possible"/> would put such a format permanently behind an ambiguity
+    /// prompt the user cannot meaningfully resolve (finding F-8).
+    /// </para>
+    /// <para>
+    /// Ranked above <see cref="Possible"/> and below <see cref="Confident"/>: a detector
+    /// that recognises its own envelope has stronger evidence than one guessing, and
+    /// weaker than one that has actually identified the format. When this is the winning
+    /// tier the workflow decodes each candidate once and asks
+    /// <see cref="ISaveCodec{TDocument}.ConfirmDecoded"/> to settle it.
+    /// </para>
+    /// </remarks>
+    RequiresDecode,
 }
 
 /// <summary>
@@ -29,6 +52,11 @@ public enum DetectionVerdict
 /// <para>
 /// Ambiguity between two confident detectors is resolved by asking the user, never
 /// by registration order.
+/// </para>
+/// <para>
+/// A detector whose format cannot be recognised from a prefix at all answers
+/// <see cref="DetectionVerdict.RequiresDecode"/> and settles the question in
+/// <see cref="ISaveCodec{TDocument}.ConfirmDecoded"/> once the payload has been decoded.
 /// </para>
 /// </remarks>
 public interface ISaveCodecDetector
