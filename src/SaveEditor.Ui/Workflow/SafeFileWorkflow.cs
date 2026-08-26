@@ -405,9 +405,9 @@ public sealed class SafeFileWorkflow<TDocument>
                 progress,
                 cancellationToken).ConfigureAwait(false);
 
-            if (write.Outcome.Status == SaveStatus.Succeeded && isCurrentDocument && current is not null && write.Baseline is not null)
+            if (write.Replaced && isCurrentDocument && current is not null && write.Baseline is not null)
             {
-                await RebindAsync(current, write.Baseline, cancellationToken).ConfigureAwait(false);
+                await RebindAsync(current, write.Baseline, CancellationToken.None).ConfigureAwait(false);
             }
 
             if (backupPath is null)
@@ -570,17 +570,23 @@ public sealed class SafeFileWorkflow<TDocument>
                 progress,
                 cancellationToken).ConfigureAwait(false);
 
+            // Driven by whether the replacement happened, never by what the operation
+            // reported, and with CancellationToken.None because this is the bookkeeping that
+            // keeps the handle honest: a successful replace unlinks the inode this handle was
+            // opened on, and leaving it bound there would let a later overwrite sail through
+            // ReassertIdentity and the change guard against a ghost (finding F-3).
+            if (write.Replaced)
+            {
+                await RebindAsync(open, write.Baseline!, CancellationToken.None).ConfigureAwait(false);
+            }
+
             if (write.Outcome.Status != SaveStatus.Succeeded)
             {
                 return write.Outcome with { BackupPath = backup.Path };
             }
 
-            await RebindAsync(open, write.Baseline!, cancellationToken).ConfigureAwait(false);
-
-            return SaveOutcome.Success(open.Path, backup.Path) with
-            {
-                Message = SaveOutcome.Success(open.Path, backup.Path).Message + " " + write.Detail,
-            };
+            var success = SaveOutcome.Success(open.Path, backup.Path);
+            return string.IsNullOrEmpty(write.Detail) ? success : success with { Message = success.Message + " " + write.Detail };
         }
         catch (OperationCanceledException)
         {
@@ -625,7 +631,28 @@ public sealed class SafeFileWorkflow<TDocument>
         }
     }
 
-    private async ValueTask<(SaveOutcome Outcome, ContentBaseline? Baseline, string Detail)> WriteAsync(
+    /// <summary>
+    /// The result of one write attempt, including whether the replacement actually happened.
+    /// </summary>
+    /// <param name="Outcome">The definitive outcome.</param>
+    /// <param name="Baseline">What the bytes are now, when the replacement happened.</param>
+    /// <param name="Detail">A note to append to the caller's message, or empty.</param>
+    /// <param name="Replaced">
+    /// Whether the destination was superseded. This is the flag callers must drive rebinding
+    /// from, never <see cref="Outcome"/>: a replacement that happened has unlinked the inode
+    /// the caller's handle was opened on, whatever the operation went on to report.
+    /// </param>
+    private readonly record struct WriteAttempt(
+        SaveOutcome Outcome,
+        ContentBaseline? Baseline,
+        string Detail,
+        bool Replaced)
+    {
+        internal static WriteAttempt Abandoned(SaveOutcome outcome) =>
+            new(outcome, null, string.Empty, Replaced: false);
+    }
+
+    private async ValueTask<WriteAttempt> WriteAsync(
         TDocument document,
         ISaveCodec<TDocument> codec,
         string directory,
@@ -642,7 +669,7 @@ public sealed class SafeFileWorkflow<TDocument>
         var blocked = await BlockOnValidationErrorsAsync(codec, document, progress, cancellationToken).ConfigureAwait(false);
         if (blocked is not null)
         {
-            return (blocked, null, string.Empty);
+            return WriteAttempt.Abandoned(blocked);
         }
 
         progress?.Report(new SaveProgress(SavePhase.Serializing));
@@ -661,13 +688,13 @@ public sealed class SafeFileWorkflow<TDocument>
         catch (Exception ex)
         {
             var detail = $"The {codec.Format.DisplayName} codec failed while serializing ({ex.GetType().Name}: {ex.Message}). Nothing was written and the target is unchanged.";
-            return (await FailAsync(SaveFailureReason.CodecFailed, detail, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+            return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.CodecFailed, detail, destinationPath, cancellationToken).ConfigureAwait(false));
         }
 
         var roundTrip = await VerifyRoundTripAsync(codec, document, payload, progress, cancellationToken).ConfigureAwait(false);
         if (roundTrip is not null)
         {
-            return (await FailAsync(SaveFailureReason.RoundTripMismatch, roundTrip, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+            return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.RoundTripMismatch, roundTrip, destinationPath, cancellationToken).ConfigureAwait(false));
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -685,7 +712,7 @@ public sealed class SafeFileWorkflow<TDocument>
                 ? $"The temporary file could not be created exclusively: {refused.Detail} The save was abandoned rather than retried through a link-following open."
                 : "The temporary file could not be created exclusively.";
 
-            return (await FailAsync(SaveFailureReason.TempCreationFailed, detail, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+            return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.TempCreationFailed, detail, destinationPath, cancellationToken).ConfigureAwait(false));
         }
 
         Track(directory);
@@ -707,13 +734,13 @@ public sealed class SafeFileWorkflow<TDocument>
 
                 if (copy.Status == PermissionCopyStatus.Failed)
                 {
-                    return (await FailAsync(SaveFailureReason.PermissionCopyFailed, copy.Detail, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+                    return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.PermissionCopyFailed, copy.Detail, destinationPath, cancellationToken).ConfigureAwait(false));
                 }
 
                 var candidate = _options.Permissions.Capture(temporary.Stream);
                 if (_options.Permissions.IsBroaderThan(candidate, original, out var widening))
                 {
-                    return (await FailAsync(SaveFailureReason.PermissionWidening, widening, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+                    return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.PermissionWidening, widening, destinationPath, cancellationToken).ConfigureAwait(false));
                 }
             }
 
@@ -724,7 +751,7 @@ public sealed class SafeFileWorkflow<TDocument>
                 var check = await _options.ChangeGuard.VerifyAsync(destination, baseline, cancellationToken).ConfigureAwait(false);
                 if (check.Verdict != ExternalChangeVerdict.Unchanged)
                 {
-                    return (await FailAsync(SaveFailureReason.ExternalChange, check.Detail, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+                    return WriteAttempt.Abandoned(await FailAsync(SaveFailureReason.ExternalChange, check.Detail, destinationPath, cancellationToken).ConfigureAwait(false));
                 }
             }
 
@@ -748,36 +775,84 @@ public sealed class SafeFileWorkflow<TDocument>
                     ? SaveFailureReason.AtomicReplaceUnsupported
                     : SaveFailureReason.Unexpected;
 
-                return (await FailAsync(reason, replace.Detail, destinationPath, cancellationToken).ConfigureAwait(false), null, string.Empty);
+                return WriteAttempt.Abandoned(await FailAsync(reason, replace.Detail, destinationPath, cancellationToken).ConfigureAwait(false));
             }
 
             replaced = true;
 
-            var flush = await _options.Durability.FlushDirectoryAsync(directory, cancellationToken).ConfigureAwait(false);
-
-            progress?.Report(new SaveProgress(SavePhase.Completed, payload.LongLength, payload.LongLength));
-
+            // Past the point of no return. Everything below is bookkeeping, and none of it
+            // is allowed to turn a completed replacement into a report that nothing was
+            // written. Previously three awaits sat here inside the enclosing try -- a
+            // directory flush over the caller's token, a progress report, and the baseline --
+            // so a cancellation in this window, or a throwing IProgress sink, surfaced as
+            // "Cancelled. Nothing was written" or "The target is unchanged" about a file that
+            // had already been replaced (finding F-3).
             var newBaseline = new ContentBaseline(SHA256.HashData(payload), payload.LongLength, null);
+            var detail = string.Empty;
 
-            return (
-                SaveOutcome.Success(destinationPath),
-                newBaseline,
-                flush.Status == DirectoryFlushStatus.Failed ? flush.Detail : string.Empty);
+            try
+            {
+                // CancellationToken.None deliberately. FlushDirectoryAsync is a Task.Run over
+                // the token it is given, and there is nothing left to cancel usefully: the
+                // rename has landed and the only question is whether its directory entry is
+                // durable, which cancelling does not improve.
+                var flush = await _options.Durability.FlushDirectoryAsync(directory, CancellationToken.None).ConfigureAwait(false);
+                if (flush.Status == DirectoryFlushStatus.Failed)
+                {
+                    detail = flush.Detail;
+                }
+            }
+            catch (Exception ex)
+            {
+                detail = $"The containing directory could not be flushed after the replacement ({ex.GetType().Name}: {ex.Message}). The new bytes are on disk.";
+            }
+
+            try
+            {
+                progress?.Report(new SaveProgress(SavePhase.Completed, payload.LongLength, payload.LongLength));
+            }
+            catch (Exception)
+            {
+                // Progress is observational; nothing about correctness depends on a consumer
+                // subscribing, and a sink that throws does not get to change the outcome of a
+                // write that already landed.
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                detail = Join(detail, "The operation was cancelled after the replacement had already completed, so the new bytes are on disk.");
+            }
+
+            return new WriteAttempt(SaveOutcome.Success(destinationPath), newBaseline, detail, Replaced: true);
         }
         catch (OperationCanceledException)
         {
+            // Defensive. Nothing between the replace and the return above awaits the caller's
+            // token any more, so this should be unreachable once replaced is true. If it ever
+            // becomes reachable again, the contract still holds rather than silently
+            // inverting.
+            if (replaced)
+            {
+                return Landed(destinationPath, payload, "The operation was cancelled after the replacement had already completed, so the new bytes are on disk.");
+            }
+
             throw;
         }
         catch (Exception ex)
         {
-            return (
-                await FailAsync(
-                    SaveFailureReason.Unexpected,
-                    $"The write failed ({ex.GetType().Name}: {ex.Message}). The target is unchanged.",
+            if (replaced)
+            {
+                return Landed(
                     destinationPath,
-                    cancellationToken).ConfigureAwait(false),
-                null,
-                string.Empty);
+                    payload,
+                    $"The replacement completed, but bookkeeping after it failed ({ex.GetType().Name}: {ex.Message}).");
+            }
+
+            return WriteAttempt.Abandoned(await FailAsync(
+                SaveFailureReason.Unexpected,
+                $"The write failed ({ex.GetType().Name}: {ex.Message}). The target is unchanged.",
+                destinationPath,
+                cancellationToken).ConfigureAwait(false));
         }
         finally
         {
@@ -930,6 +1005,17 @@ public sealed class SafeFileWorkflow<TDocument>
 
         return new ContentBaseline(hash, length, lastWrite);
     }
+
+    /// <summary>Reports a replacement that happened, whatever went wrong after it.</summary>
+    private static WriteAttempt Landed(string destinationPath, byte[] payload, string detail) =>
+        new(
+            SaveOutcome.Success(destinationPath),
+            new ContentBaseline(SHA256.HashData(payload), payload.LongLength, null),
+            detail,
+            Replaced: true);
+
+    private static string Join(string first, string second) =>
+        first.Length == 0 ? second : first + " " + second;
 
     private async ValueTask<(ResolvedFile? File, string? Path, string Detail)> AcquireBackupAsync(
         string directory,

@@ -240,6 +240,16 @@ internal sealed class RecordingDurability : IDurabilityBarrier
 
     public Func<string, string, bool, ReplaceResult>? ReplaceOverride { get; set; }
 
+    /// <summary>
+    /// Runs immediately after a real replace has succeeded and before the workflow proceeds.
+    /// </summary>
+    /// <remarks>
+    /// This is the only way to act inside the post-replace window: no progress phase is
+    /// reported between the rename returning and the directory flush, so a progress sink
+    /// cannot reach it, and a test that acts on <c>SavePhase.Completed</c> is already past it.
+    /// </remarks>
+    public Action? AfterReplace { get; set; }
+
     public DirectoryFlushResult? LastDirectoryFlush { get; private set; }
 
     public ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken = default)
@@ -257,7 +267,14 @@ internal sealed class RecordingDurability : IDurabilityBarrier
             return ReplaceOverride(temporaryPath, destinationPath, destinationExists);
         }
 
-        return await _inner.ReplaceAsync(temporaryPath, temporaryIdentity, destinationPath, destinationExists, cancellationToken).ConfigureAwait(false);
+        var result = await _inner.ReplaceAsync(temporaryPath, temporaryIdentity, destinationPath, destinationExists, cancellationToken).ConfigureAwait(false);
+
+        if (result.Status == ReplaceStatus.Replaced)
+        {
+            AfterReplace?.Invoke();
+        }
+
+        return result;
     }
 
     public async ValueTask<DirectoryFlushResult> FlushDirectoryAsync(string directoryPath, CancellationToken cancellationToken = default)
