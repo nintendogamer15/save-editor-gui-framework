@@ -18,6 +18,51 @@ That produces a running editor — themed, with a working demo format, sample fi
 undo/redo, drag-and-drop, recents, and the full safe-save workflow already wired.
 Nothing is left as a TODO. Your first real task is deleting the demo codec.
 
+### Before it's on NuGet
+
+Nothing is published yet, so the line above has nothing to install. Build the
+packages from a clone instead — same two packages, produced the same way a release
+would, and the path CI exercises on every commit:
+
+```sh
+git clone https://github.com/nintendogamer15/save-editor-gui-framework
+cd save-editor-gui-framework
+dotnet pack src/SaveEditor.Ui       -c Release -o ./local-feed
+dotnet pack src/SaveEditor.Template -c Release -o ./local-feed
+dotnet new install ./local-feed/SaveEditor.Template.1.0.0-alpha.1.nupkg
+dotnet new save-editor -n MyGameEditor -o ../MyGameEditor
+```
+
+The generated editor consumes `SaveEditor.Ui` as a package rather than as a project
+reference, so tell it where that package is. A `NuGet.config` at the generated
+project's root, pointing at the feed you just built:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="save-editor-local" value="../save-editor-gui-framework/local-feed" />
+  </packageSources>
+</configuration>
+```
+
+Then `dotnet run --project src/MyGameEditor` as above. Skip that file and restore
+fails with `NU1101: Unable to find package SaveEditor.Ui`, because it is not on
+nuget.org.
+
+Two things that look like shortcuts and are not. **Installing the template from the
+source tree** — `dotnet new install src/SaveEditor.Template/templates/save-editor` —
+appears to work and generates a project that cannot restore: the framework version
+is a `__SaveEditorUiVersion__` token substituted during `pack`, so installing from
+source leaves it literal and restore fails with an `MSB4181` that names nothing
+useful. Install the packed `.nupkg`. And **the version in the install command
+tracks the package version**, currently `1.0.0-alpha.1` — if you have bumped it,
+the filename changes with it.
+
+If you are modifying the framework itself rather than building an editor on it,
+skip all of this and work in the repository: `dotnet run --project
+samples/SaveEditor.Ui.Gallery` runs the gallery against your working copy directly.
+
 ---
 
 ## What you get
