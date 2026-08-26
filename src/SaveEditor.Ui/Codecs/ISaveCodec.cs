@@ -106,6 +106,35 @@ public interface ISaveCodec<TDocument>
     bool RoundTripEquivalent(ReadOnlySpan<byte> original, ReadOnlySpan<byte> reserialized) =>
         original.SequenceEqual(reserialized);
 
+    /// <summary>
+    /// Settles a <see cref="DetectionVerdict.RequiresDecode"/> header verdict from the
+    /// decoded document.
+    /// </summary>
+    /// <param name="document">The document this codec has just decoded.</param>
+    /// <returns>
+    /// <see cref="DetectionVerdict.Confident"/> when the document is this format,
+    /// <see cref="DetectionVerdict.Declined"/> when it is not.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// Only consulted for a codec whose detector answered
+    /// <see cref="DetectionVerdict.RequiresDecode"/>. The default is
+    /// <see cref="DetectionVerdict.Confident"/>: a codec that decoded the payload without
+    /// throwing has already demonstrated more than any header check could.
+    /// </para>
+    /// <para>
+    /// Override it when several codecs share one envelope and are told apart by something
+    /// inside it — a schema marker or version field in the decrypted object. A codec whose
+    /// <see cref="DecodeAsync"/> throws on another schema's payload needs no override; the
+    /// throw is already a declination.
+    /// </para>
+    /// <para>
+    /// The document reaching here has been decoded from untrusted bytes and is not
+    /// validated. Read the discriminator; do not act on the rest of it.
+    /// </para>
+    /// </remarks>
+    DetectionVerdict ConfirmDecoded(TDocument document) => DetectionVerdict.Confident;
+
     /// <summary>Decodes a document from the supplied stream.</summary>
     /// <param name="source">Read-only stream over the save file.</param>
     /// <param name="cancellationToken">

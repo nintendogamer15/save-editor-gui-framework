@@ -46,6 +46,7 @@ SaveEditor.Ui.Codecs.DetectionResult`1 :: method Int32 GetHashCode()
 SaveEditor.Ui.Codecs.DetectionResult`1 :: method String ToString()
 SaveEditor.Ui.Codecs.DetectionResult`1 :: property Boolean IsAmbiguous get
 SaveEditor.Ui.Codecs.DetectionResult`1 :: property Boolean IsResolved get
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property Boolean RequiresDecode get set
 SaveEditor.Ui.Codecs.DetectionResult`1 :: property IReadOnlyList<DetectorReport> Reports get set
 SaveEditor.Ui.Codecs.DetectionResult`1 :: property IReadOnlyList<ISaveCodec<TDocument>> Candidates get set
 SaveEditor.Ui.Codecs.DetectionResult`1 :: property ISaveCodec<TDocument> Codec get set
@@ -53,6 +54,7 @@ SaveEditor.Ui.Codecs.DetectionResult`1 :: property String Detail get set
 SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Confident
 SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Declined
 SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Possible
+SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict RequiresDecode
 SaveEditor.Ui.Codecs.DetectionVerdict :: field Int32 value__
 SaveEditor.Ui.Codecs.DetectorReport :: ctor (SaveFormatDescriptor Format, DetectionVerdict Verdict, Int32 HeaderBytesOffered, Boolean Faulted, Boolean TimedOut, String Detail)
 SaveEditor.Ui.Codecs.DetectorReport :: method Boolean Equals(DetectorReport other)
@@ -69,6 +71,7 @@ SaveEditor.Ui.Codecs.ISaveCodecDetector :: method DetectionVerdict Detect(ReadOn
 SaveEditor.Ui.Codecs.ISaveCodecDetector :: property Int32 HeaderBytesRequired get
 SaveEditor.Ui.Codecs.ISaveCodecDetector :: property SaveFormatDescriptor Format get
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method Boolean RoundTripEquivalent(ReadOnlySpan<Byte> original, ReadOnlySpan<Byte> reserialized)
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: method DetectionVerdict ConfirmDecoded(TDocument document)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask SerializeAsync(TDocument document, Stream destination, CancellationToken cancellationToken)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<TDocument> DecodeAsync(Stream source, CancellationToken cancellationToken)
 SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<ValidationReport> ValidateAsync(TDocument document, CancellationToken cancellationToken)

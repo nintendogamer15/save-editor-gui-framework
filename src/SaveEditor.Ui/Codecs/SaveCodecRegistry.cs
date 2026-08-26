@@ -36,6 +36,18 @@ public sealed record DetectionResult<TDocument>(
     IReadOnlyList<DetectorReport> Reports,
     string Detail)
 {
+    /// <summary>
+    /// Whether <see cref="Candidates"/> were selected on a
+    /// <see cref="DetectionVerdict.RequiresDecode"/> verdict and still have to be settled by
+    /// decoding.
+    /// </summary>
+    /// <remarks>
+    /// When this is set, <see cref="Codec"/> is deliberately <see langword="null"/> even for
+    /// a single candidate: the header said only that the envelope is consistent, and the
+    /// candidate can still decline once it sees the payload (finding F-8).
+    /// </remarks>
+    public bool RequiresDecode { get; init; }
+
     /// <summary>Whether more than one codec claimed the file at the same confidence.</summary>
     public bool IsAmbiguous => Candidates.Count > 1;
 
@@ -84,6 +96,17 @@ public sealed record SaveCodecRegistryOptions
 /// <see cref="DetectionResult{TDocument}.IsAmbiguous"/> result. Registration order never
 /// breaks the tie, because registration order is an accident of composition-root wiring
 /// and the user is the only party who knows which game wrote the file.
+/// </para>
+/// <para>
+/// <strong>A format whose identity is in its payload is resolved by decoding it.</strong>
+/// A detector answering <see cref="DetectionVerdict.RequiresDecode"/> sets
+/// <see cref="DetectionResult{TDocument}.RequiresDecode"/>, and the workflow decodes each
+/// candidate once and asks <see cref="ISaveCodec{TDocument}.ConfirmDecoded"/> to settle it.
+/// The cost is accepted deliberately: <em>n</em> codecs all answering
+/// <see cref="DetectionVerdict.RequiresDecode"/> means up to <em>n</em> decode attempts over
+/// one untrusted file. That is bounded by the registration count, each attempt is contained
+/// exactly as any other codec call is, and the alternative was that an entire class of
+/// formats could not use the registry at all (finding F-8).
 /// </para>
 /// </remarks>
 public sealed class SaveCodecRegistry<TDocument>
@@ -135,6 +158,7 @@ public sealed class SaveCodecRegistry<TDocument>
     {
         var reports = new List<DetectorReport>(_registrations.Count);
         var confident = new List<ISaveCodec<TDocument>>();
+        var requiresDecode = new List<ISaveCodec<TDocument>>();
         var possible = new List<ISaveCodec<TDocument>>();
 
         foreach (var registration in _registrations)
@@ -157,12 +181,32 @@ public sealed class SaveCodecRegistry<TDocument>
                 case DetectionVerdict.Confident:
                     confident.Add(registration.Codec);
                     break;
+                case DetectionVerdict.RequiresDecode:
+                    requiresDecode.Add(registration.Codec);
+                    break;
                 case DetectionVerdict.Possible:
                     possible.Add(registration.Codec);
                     break;
                 default:
                     break;
             }
+        }
+
+        // Confident beats RequiresDecode beats Possible. A detector that identified the
+        // format from its header still wins outright, so no existing detection outcome
+        // changes; RequiresDecode only ever competes when nothing was confident.
+        if (confident.Count == 0 && requiresDecode.Count > 0)
+        {
+            return new DetectionResult<TDocument>(
+                null,
+                requiresDecode,
+                reports,
+                requiresDecode.Count == 1
+                    ? $"{requiresDecode[0].Format.DisplayName} recognized the container but cannot identify the format without decoding it."
+                    : $"{requiresDecode.Count} codecs recognized the container but cannot identify the format without decoding it.")
+            {
+                RequiresDecode = true,
+            };
         }
 
         var candidates = confident.Count > 0 ? confident : possible;

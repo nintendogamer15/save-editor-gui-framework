@@ -292,6 +292,8 @@ ISaveCodec<TDocument>
 
 Provide a registry/detector for one or more codecs. Ambiguous detection produces a confirmation flow resolved by user choice, never by registration order; unsupported files fail safely.
 
+**Detection is not limited to a plaintext prefix (finding F-8).** A bounded header slice cannot identify a format whose discriminator only exists after decryption or decompression — two game schemas sharing one encrypted envelope are indistinguishable until the payload is decoded. Such a detector answers `RequiresDecode`, ranked above `Possible` and below `Confident`, and the workflow settles it by decoding each candidate once and asking `ISaveCodec.ConfirmDecoded`. The chosen candidate's document is reused rather than decoded again. The accepted cost is up to *n* decode attempts over one untrusted file when *n* codecs all answer `RequiresDecode`; that is bounded by the registration count and each attempt is contained exactly as any other codec call is. The alternative was that an entire class of formats had to discriminate inside `DecodeAsync` and forgo the registry's ambiguity resolution and picker filtering entirely.
+
 ### Path resolution primitive
 
 `SafePath` is a first-class public contract, not an internal detail of the workflow, and is defined in Phase 0 because the workflow, settings, recents, and backup paths all depend on it. It implements **resolve once, then operate on the handle**:

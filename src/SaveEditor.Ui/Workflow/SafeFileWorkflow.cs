@@ -157,7 +157,45 @@ public sealed class SafeFileWorkflow<TDocument>
             var detection = await _options.Registry.DetectAsync(bytes, cancellationToken).ConfigureAwait(false);
 
             var codec = detection.Codec;
-            if (codec is null && detection.IsAmbiguous)
+            TDocument? settledDocument = default;
+            var alreadyDecoded = false;
+
+            if (codec is null && detection.RequiresDecode)
+            {
+                // The header only established that the container is consistent. Decode each
+                // candidate once and let it settle the question from the payload, which is the
+                // only place the discriminator exists for an encrypted or compressed envelope.
+                progress?.Report(new SaveProgress(SavePhase.Decoding, bytes.LongLength, bytes.LongLength));
+
+                var settled = await SettleByDecodingAsync(detection.Candidates, bytes, cancellationToken).ConfigureAwait(false);
+
+                if (settled.Count == 1)
+                {
+                    codec = settled[0].Codec;
+                    settledDocument = settled[0].Document;
+                    alreadyDecoded = true;
+                }
+                else if (settled.Count > 1)
+                {
+                    var chosenFormat = await _chooser
+                        .ChooseAsync([.. settled.Select(s => s.Codec.Format)], Path.GetFileName(file.CanonicalPath), cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (chosenFormat is null)
+                    {
+                        return new OpenOutcome<TDocument>.Declined("No format was chosen, so the file was not opened.");
+                    }
+
+                    var match = settled.FirstOrDefault(s => string.Equals(s.Codec.Format.Id, chosenFormat.Id, StringComparison.Ordinal));
+                    if (match.Codec is not null)
+                    {
+                        codec = match.Codec;
+                        settledDocument = match.Document;
+                        alreadyDecoded = true;
+                    }
+                }
+            }
+            else if (codec is null && detection.IsAmbiguous)
             {
                 var chosen = await _chooser
                     .ChooseAsync([.. detection.Candidates.Select(c => c.Format)], Path.GetFileName(file.CanonicalPath), cancellationToken)
@@ -173,28 +211,42 @@ public sealed class SafeFileWorkflow<TDocument>
 
             if (codec is null)
             {
-                await ReportAsync("Unsupported file", detection.Detail, cancellationToken).ConfigureAwait(false);
-                return new OpenOutcome<TDocument>.Failed(SaveFailureReason.DetectionFailed, detection.Detail);
+                var unsupported = detection.RequiresDecode
+                    ? "No registered codec could identify this file after decoding it, so it was not opened."
+                    : detection.Detail;
+
+                await ReportAsync("Unsupported file", unsupported, cancellationToken).ConfigureAwait(false);
+                return new OpenOutcome<TDocument>.Failed(SaveFailureReason.DetectionFailed, unsupported);
             }
 
             progress?.Report(new SaveProgress(SavePhase.Decoding, bytes.LongLength, bytes.LongLength));
 
             TDocument document;
-            try
+            if (alreadyDecoded)
             {
-                document = await RunCodecAsync(
-                    () => codec.DecodeAsync(new MemoryStream(bytes, writable: false), cancellationToken),
-                    cancellationToken).ConfigureAwait(false);
+                // Decoding a second time would run untrusted code over the same bytes for no
+                // new information, and a codec whose decode is not deterministic would then
+                // hold a document that differs from the one it was chosen on.
+                document = settledDocument!;
             }
-            catch (OperationCanceledException)
+            else
             {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                var detail = $"The {codec.Format.DisplayName} codec failed while decoding this file ({ex.GetType().Name}: {ex.Message}).";
-                await ReportAsync("Cannot read this save", detail, cancellationToken).ConfigureAwait(false);
-                return new OpenOutcome<TDocument>.Failed(SaveFailureReason.CodecFailed, detail);
+                try
+                {
+                    document = await RunCodecAsync(
+                        () => codec.DecodeAsync(new MemoryStream(bytes, writable: false), cancellationToken),
+                        cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    var detail = $"The {codec.Format.DisplayName} codec failed while decoding this file ({ex.GetType().Name}: {ex.Message}).";
+                    await ReportAsync("Cannot read this save", detail, cancellationToken).ConfigureAwait(false);
+                    return new OpenOutcome<TDocument>.Failed(SaveFailureReason.CodecFailed, detail);
+                }
             }
 
             var (verification, verificationDetail) = await VerifyPreservationClaimAsync(
@@ -451,6 +503,84 @@ public sealed class SafeFileWorkflow<TDocument>
                 destination?.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// Settles a payload-discriminated detection by decoding each candidate and asking it.
+    /// </summary>
+    /// <param name="candidates">Codecs whose detectors answered <c>RequiresDecode</c>.</param>
+    /// <param name="bytes">The bytes read through the retained handle.</param>
+    /// <param name="cancellationToken">Cancels between candidates and inside each call.</param>
+    /// <returns>
+    /// The candidates that confirmed, each with the document it decoded, so the caller does
+    /// not decode a second time. Confident confirmations if there are any, otherwise
+    /// possible ones.
+    /// </returns>
+    /// <remarks>
+    /// A candidate whose decode throws has declined the file — a codec that cannot read
+    /// another schema's payload needs no <c>ConfirmDecoded</c> override to say so. Every call
+    /// goes through the same containment boundary as any other codec call, so a throwing or
+    /// cancelled candidate removes itself rather than aborting detection for the rest
+    /// (finding F-8).
+    /// </remarks>
+    private async ValueTask<List<(ISaveCodec<TDocument> Codec, TDocument Document)>> SettleByDecodingAsync(
+        IReadOnlyList<ISaveCodec<TDocument>> candidates,
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        var confident = new List<(ISaveCodec<TDocument> Codec, TDocument Document)>();
+        var possible = new List<(ISaveCodec<TDocument> Codec, TDocument Document)>();
+
+        foreach (var candidate in candidates)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            TDocument document;
+            try
+            {
+                document = await RunCodecAsync(
+                    () => candidate.DecodeAsync(new MemoryStream(bytes, writable: false), cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+
+            DetectionVerdict verdict;
+            try
+            {
+                verdict = await RunCodecAsync(
+                    () => new ValueTask<DetectionVerdict>(candidate.ConfirmDecoded(document)),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+
+            switch (verdict)
+            {
+                case DetectionVerdict.Confident:
+                    confident.Add((candidate, document));
+                    break;
+                case DetectionVerdict.Possible:
+                    possible.Add((candidate, document));
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return confident.Count > 0 ? confident : possible;
     }
 
     /// <summary>Whether two path strings name the same entry, by this platform's rules.</summary>
