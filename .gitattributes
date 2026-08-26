@@ -1,0 +1,10 @@
+# CI builds on Windows and Ubuntu, so line endings are normalised in the repository
+# to keep diffs and lock files identical across both.
+* text=auto eol=lf
+
+# Screenshot baselines are compared byte-for-byte; never let them be transformed.
+*.png binary
+*.jpg binary
+*.ico binary
+*.ttf binary
+*.otf binary
