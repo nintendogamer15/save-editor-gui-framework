@@ -20,22 +20,65 @@ Nothing is left as a TODO. Your first real task is deleting the demo codec.
 
 ### Before it's on NuGet
 
-Nothing is published yet, so the line above has nothing to install. Build the
-packages from a clone instead — same two packages, produced the same way a release
-would, and the path CI exercises on every commit:
+Nothing is published yet, so the line above has nothing to install. There are two
+routes, and which one you want depends on whether anything other than your own
+machine has to build the result.
+
+**For a real project — git submodule and a `ProjectReference`.** This is the
+supported pre-NuGet path. It works on a clean checkout, it works in CI, and it is
+compatible with `dotnet restore --locked-mode`:
+
+```sh
+cd MyGameEditor
+git submodule add https://github.com/nintendogamer15/save-editor-gui-framework external/save-editor
+git commit -m "Vendor the save editor framework"
+```
+
+Then point your editor project at the framework project instead of at a package —
+replace the generated `PackageReference` with:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../../external/save-editor/src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
+</ItemGroup>
+```
+
+A submodule is not cloned by default, so CI needs to ask for it. GitHub Actions:
+
+```yaml
+- uses: actions/checkout@v4
+  with:
+    submodules: recursive
+
+- uses: actions/setup-dotnet@v4
+  with:
+    global-json-file: external/save-editor/global.json
+
+- run: dotnet restore --locked-mode
+- run: dotnet build -c Release --no-restore
+- run: dotnet test -c Release --no-build
+```
+
+Two things that bite. The framework pins its SDK in its own `global.json`, so either
+consume that as above or pin the same version in yours; a mismatch fails restore
+before anything useful happens. And `--locked-mode` needs your `packages.lock.json`
+committed — a `ProjectReference` pulls the framework's transitive Avalonia graph
+into your lock file, so regenerate it when you bump the submodule.
+
+**For a quick look on one machine — a local feed.** Shorter, and only correct where
+both repositories sit side by side:
 
 ```sh
 git clone https://github.com/nintendogamer15/save-editor-gui-framework
 cd save-editor-gui-framework
 dotnet pack src/SaveEditor.Ui       -c Release -o ./local-feed
 dotnet pack src/SaveEditor.Template -c Release -o ./local-feed
-dotnet new install ./local-feed/SaveEditor.Template.1.0.0-alpha.1.nupkg
+dotnet new install ./local-feed/SaveEditor.Template.1.0.0-alpha.2.nupkg
 dotnet new save-editor -n MyGameEditor -o ../MyGameEditor
 ```
 
-The generated editor consumes `SaveEditor.Ui` as a package rather than as a project
-reference, so tell it where that package is. A `NuGet.config` at the generated
-project's root, pointing at the feed you just built:
+The generated editor consumes `SaveEditor.Ui` as a package, so tell it where that
+package is. A `NuGet.config` at the generated project's root:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -46,9 +89,13 @@ project's root, pointing at the feed you just built:
 </configuration>
 ```
 
-Then `dotnet run --project src/MyGameEditor` as above. Skip that file and restore
-fails with `NU1101: Unable to find package SaveEditor.Ui`, because it is not on
-nuget.org.
+Then `dotnet run --project src/MyGameEditor`. Skip that file and restore fails with
+`NU1101: Unable to find package SaveEditor.Ui`, because it is not on nuget.org.
+
+**That relative path is why this route is the quick one and not the supported one.**
+`../save-editor-gui-framework/local-feed` resolves only on a machine where the two
+repositories happen to be siblings. On a clean CI checkout it fails, and a local feed
+is incompatible with `--locked-mode` besides. Use the submodule.
 
 Two things that look like shortcuts and are not. **Installing the template from the
 source tree** — `dotnet new install src/SaveEditor.Template/templates/save-editor` —
@@ -56,7 +103,7 @@ appears to work and generates a project that cannot restore: the framework versi
 is a `__SaveEditorUiVersion__` token substituted during `pack`, so installing from
 source leaves it literal and restore fails with an `MSB4181` that names nothing
 useful. Install the packed `.nupkg`. And **the version in the install command
-tracks the package version**, currently `1.0.0-alpha.1` — if you have bumped it,
+tracks the package version**, currently `1.0.0-alpha.2` — if you have bumped it,
 the filename changes with it.
 
 If you are modifying the framework itself rather than building an editor on it,
@@ -208,12 +255,27 @@ The codec boundary is a correctness boundary the framework can bound and instrum
 it is **not a sandbox**. Only install codecs you trust, and review any you did not
 write.
 
-**Another program writing the file.** On Windows the workflow holds the open document
-with write sharing denied, so an external write is refused outright. On Linux locks are
-advisory, so the write lands and the change guard catches it at save time. Neither
-covers a game rewriting its own save on exit, or a cloud-sync client rewriting it after
-a successful save. The status wording claims only "no change detected between the check
-and the write".
+**Another program writing the file.** The two platforms behave differently and the
+framework says so rather than averaging them.
+
+On **Windows** the workflow holds the open document with write sharing denied, so an
+external write is refused outright. That has a consequence worth knowing before you
+ship: **the game itself may fail to save while your editor has the file open.** If a
+user leaves the editor open on a save and alts back into the game, the game's own
+write can fail. Close the document when you are not editing it.
+
+On **Linux** no lock of any kind is taken. Earlier versions of this file said Linux
+locks are "advisory"; there is no `flock`, `fcntl`, `F_SETLK` or `LOCK_EX` anywhere in
+the framework, so there was no lock to be advisory about. What actually happens is that
+the external write lands, and the change guard catches it at save time by re-hashing the
+file through the retained handle and comparing against the baseline. The outcome is the
+same — you do not overwrite someone else's write — but it is a detection, not an
+exclusion, and `rename` offers no compare-and-swap, so the window is narrowed to the
+last instruction rather than closed.
+
+Neither covers a game rewriting its own save on exit, or a cloud-sync client rewriting
+it after a successful save. The status wording claims only "no change detected between
+the check and the write".
 
 **Everything else it deliberately doesn't do:** no autosave, no telemetry, no network
 activity, no privilege elevation.
@@ -317,7 +379,7 @@ The public surface is pinned in `eng/PublicApi.SaveEditor.Ui.txt`; any change to
 fails the build, so the "breaking changes require a major version" promise is enforced
 rather than merely stated.
 
-Packages are `1.0.0-alpha.1`. They stay prerelease until the two human gates above have
+Packages are `1.0.0-alpha.2`. They stay prerelease until the two human gates above have
 actually been run — shipping `1.0.0` while a named release gate has never been executed
 would claim more than the evidence supports.
 

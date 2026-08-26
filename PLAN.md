@@ -79,7 +79,7 @@ THIRD-PARTY-NOTICES
 
 The repository uses a central solution, `Directory.Build.props`, and `Directory.Packages.props` with central package management. The first stable release is `1.0`; public breaking changes require a major version.
 
-**The contract freezes before the version does.** `eng/PublicApi.SaveEditor.Ui.txt` pins the public surface and any change to it fails the build, so the major-version promise is enforced from now on rather than from the moment a tag is cut. The packages remain `1.0.0-alpha.1` until the two gates that require a person have actually been run — the Windows screen-reader pass in `docs/ACCESSIBILITY.md` and the Wayland session checklist in `docs/WAYLAND-CHECKLIST.md`. Shipping `1.0.0` while a named release gate has never been executed would make the version claim something the evidence does not support, and those two gates are precisely the ones no amount of CI can close.
+**The contract freezes before the version does.** `eng/PublicApi.SaveEditor.Ui.txt` pins the public surface and any change to it fails the build, so the major-version promise is enforced from now on rather than from the moment a tag is cut. The packages remain `1.0.0-alpha.2` until the two gates that require a person have actually been run — the Windows screen-reader pass in `docs/ACCESSIBILITY.md` and the Wayland session checklist in `docs/WAYLAND-CHECKLIST.md`. Shipping `1.0.0` while a named release gate has never been executed would make the version claim something the evidence does not support, and those two gates are precisely the ones no amount of CI can close.
 
 ### Pinned versions
 
@@ -406,6 +406,74 @@ Counts: 24 `FIX`, 1 `FIX (narrow)`, 2 `FIX (wording)`, 1 `DEFER` — 28 findings
 | B13 | Drag-dropped temp path later used as an overwrite target | P3 | **DEFER** | Post-1.0 — see below |
 
 **B13 deferral rationale.** Detecting "a known temp location" requires a platform-specific directory list that is incomplete by construction and would produce false positives on legitimate save locations. The existing posture already covers the substance of the risk: Save As is the default write path, Overwrite is a separately named command, and §10's path formatter shows the full final two path components in every destructive confirmation. Revisit if real usage shows users overwriting into browser-download or archive-extraction directories.
+
+## 9a. Adopter review findings and dispositions
+
+Recorded from a fix brief raised by the **Suikoden I & II HD Remaster Save Editor**
+migration — the framework's first real adopter — after an adversarial review of §6–§7 as
+implemented. The brief's own framing is worth keeping: it tried hard to falsify the central
+claim (*on failure, the target path bytes are exactly the pre-operation bytes*) and **could
+not break it**. Failure atomicity held at every step, including the atomic replace. The
+defects below were concentrated in the post-replace window, the `Save As` path, and
+adopter-supplied configuration.
+
+Dispositions use the same four labels as §9, plus one the first round did not need:
+
+- **`FIX (accepted limitation)`** — the finding is real, the framework cannot decide it, and
+  the response is a test that pins the boundary plus documentation that names it. Not a
+  behaviour change, and deliberately not counted as a `FIX`.
+
+Counts: 14 `FIX`, 2 `FIX (wording)`, 1 `FIX (accepted limitation)` — 17 findings, of which
+F-16 and F-17 were raised during this round rather than by the brief.
+
+| ID | Finding | Pri | Disposition | Closed by |
+| --- | --- | --- | --- | --- |
+| F-1 | Preservation verified by byte-identical re-serialization, which a salted-encryption codec can satisfy only by reusing its key and IV | P1 | FIX | §7 step 12; `ISaveCodec.RoundTripEquivalent`, `VerifiedEquivalent` |
+| F-2 | `Save As` onto an existing file was an unbacked destructive overwrite, and a picker could suppress the prompt | P1 | FIX | §7 steps 3 and 7; supersedes A7 |
+| F-3 | Post-replace cancellation reported "nothing was written" and stranded the handle on the unlinked inode | P2 | FIX | §7 step 9; `WriteAttempt.Replaced` |
+| F-4 | `BackupRetention = 0` deleted the backup it had just verified | P2 | FIX | §7 step 7; rejected at construction, applied after the write |
+| F-5 | The bytes that landed in the temp file were never read back | P2 | FIX | §7 step 9; `TempVerificationFailed` |
+| F-6 | Round-trip check silently skipped above its size limit, reported as a plain success | P2 | FIX | §7 step 12; `RoundTripVerification` |
+| F-7 | Linux `rename(2)` did not re-assert the temp file's identity, where Windows did | P2 | FIX (narrow) | §7 step 10; window narrowed, residual documented |
+| F-8 | `ISaveCodecDetector` could not express payload-based detection | P2 | FIX | §7 step 1; `RequiresDecode`, `ConfirmDecoded` |
+| F-9 | `EditHistory` sealed with no seam, forcing an adopter to abandon its own undo model | P2 | FIX | §6; `IEditHistory` |
+| F-10 | No backup restore existed | P3 | FIX | §7 step 15; `RestoreFromBackupAsync` |
+| F-11 | The documented adoption path could not work in CI | P3 | FIX (wording) | README; submodule + `ProjectReference` with a CI example |
+| F-12 | README claimed a Linux locking mechanism that does not exist | P3 | FIX (wording) | §7 step 10; README, plus the undocumented Windows consequence |
+| F-13 | `Falsified` message compared lengths only, printing two identical numbers | P3 | FIX | §7 step 12; first differing offset and hash pair, in the dialog |
+| F-14 | `PosixRename` hardcoded x64 `FILE_RENAME_INFO` offsets | P3 | FIX | §7 step 9; offsets computed from pointer size |
+| F-15 | Adopters could not impose their own save policy without reimplementing `IDocumentSession` | P2 | FIX | §7 step 16; `IWritePolicy`, path-taking `SaveAsAsync`, derivable session |
+| F-16 | Windows DACL copy was a silent no-op that reported success, making the identity guard beneath it dead code | P2 | FIX | §7 step 11 |
+| F-17 | Retention could delete the backup it had just reported, because name ordering cannot separate two backups taken in the same second | P2 | FIX | §7 step 7; `BackupRetention.Apply(protect:)` |
+
+**F-1 is a deliberate reduction in what the framework proves, and it is the only one.**
+Byte-identical re-serialization is still framework-verified and still reported as
+`Verified`. A codec that supplies its own equivalence relation is *trusted*, and that
+outcome is reported as the weaker `VerifiedEquivalent` so nothing claims more than was
+proven. The alternative was a check that could only be satisfied by reusing an AES key and
+IV across differing plaintexts — catastrophic for an AEAD format — while injecting a false
+data-loss warning into every overwrite for any codec that refused. A weaker guarantee
+reported honestly beats a stronger one nobody can satisfy safely.
+
+**F-16 and F-17 were found while working this list, not by the brief.** F-16 was the brief's
+first "unverified" item; investigating it confirmed the conclusion and refuted the proposed
+mechanism, and the real defect was worse — because the no-op always reported success, the
+identity check guarding the only path that writes a security descriptor by path had never
+executed. F-17 surfaced from a test written for F-4.
+
+**One finding is an accepted limitation rather than a fix.** A `DocumentComparer` that omits
+a field silently disables the pre-replace round-trip check for that field. The framework
+holds one document pair when it asks and has no oracle for what equality means for a type it
+knows nothing about, so a comparer wrongly reporting equality is indistinguishable from one
+correctly reporting a lossless round trip. Disposition: `FIX (accepted limitation)` — two
+tests pin the boundary, and `DocumentComparer`'s remarks and the README name it as trusted
+on the same footing as the codec. The one decidable case, the default comparer falling back
+to reference equality, was already detected and explains itself.
+
+**Two fixes are implemented but not executed on this platform, and are not claimed as
+verified.** The 32-bit Windows rename (F-14) has its offset arithmetic pinned for both
+pointer sizes, but the end-to-end P/Invoke cannot run on an x64 host. The Linux `statx`
+identity re-assertion (F-7) likewise cannot run on Windows. Both fail closed.
 
 ## 10. Dialogs and feedback
 
