@@ -1,5 +1,13 @@
 # Save Editor GUI Framework — V1 Implementation Plan
 
+> **Revision 2 — 2026-08-26.** Supersedes revision 1. This revision closes seven
+> readiness blockers raised by plan review and folds in a pre-approval security
+> review of the state and file-workflow surfaces (findings and dispositions in §9).
+> Material changes: pinned dependencies (§3), host lifecycle seam (§4), a measurable
+> contrast contract (§5), hardened settings and file workflow (§6–§7), an explicit
+> threat model (§8), and phases restructured into independently approvable slices
+> with explicit prerequisites and acceptance checks (§13).
+
 ## 1. Objective
 
 Build a reusable Avalonia/.NET 10 framework for save editors on Windows and Linux. A new editor should be able to run:
@@ -19,7 +27,7 @@ The framework is save-editor-first. It provides reusable UI, services, and safet
 - `SaveEditor.Ui` NuGet package
 - `SaveEditor.Template` NuGet template package
 - `SaveEditor.Ui.Gallery` sample/control catalog
-- .NET 10 and Avalonia on Windows/Linux
+- .NET 10 and Avalonia 12 on Windows/Linux
 - Catppuccin Mocha dark default and Catppuccin Latte light theme
 - Per-editor accent default, user accent override, and persisted accent choice
 - Embeddable `EditorShell` with menu bar, header, sidebar, content, and status-bar slots
@@ -38,8 +46,9 @@ The framework is save-editor-first. It provides reusable UI, services, and safet
 - Domain-specific bulk actions
 - Arbitrary custom palettes or a third theme mode
 - Dedicated byte-array, bitmask, or date controls in the initial control set
+- Sandboxing or otherwise defending against a hostile codec (see §8)
 
-## 3. Repository structure
+## 3. Repository structure and pinned dependencies
 
 ```text
 src/SaveEditor.Ui
@@ -56,7 +65,27 @@ LICENSE
 THIRD-PARTY-NOTICES
 ```
 
-The repository should use a central solution and build properties file. The first stable release is `1.0`; public breaking changes require a major version.
+The repository uses a central solution, `Directory.Build.props`, and `Directory.Packages.props` with central package management. The first stable release is `1.0`; public breaking changes require a major version.
+
+### Pinned versions
+
+All versions below are verified to restore and build together against `net10.0`. Central package management pins exact versions; the shipped package declares minimum-version dependencies.
+
+| Component | Pinned | Notes |
+| --- | --- | --- |
+| .NET SDK | 10.0.400 | `global.json`, `rollForward: latestFeature` |
+| Target framework | `net10.0` | Single TFM for all projects |
+| Avalonia | 12.1.1 | Native `net10.0` target. **Major version 12, not 11** — control-theme and headless APIs differ materially |
+| Avalonia.Themes.Fluent | 12.1.1 | Behavior/infrastructure only; not the visual contract |
+| Avalonia.Fonts.Inter | 12.1.1 | Embedded font package — see §5 |
+| Avalonia.Headless.XUnit | 12.1.1 | Headless UI tests |
+| Avalonia.Skia | 12.1.1 | Screenshot capture backend |
+| CommunityToolkit.Mvvm | 8.4.2 | Source-generated observables/commands |
+| Microsoft.Extensions.DependencyInjection | 10.0.11 | Optional integration only; never mandatory |
+| xunit.v3 | 3.2.2 | Test framework |
+| Catppuccin palette | commit `07d02aa110ef9eb7e7427afca5c73ba9cf7f8ebd` | `catppuccin/palette`, `palette.json`; attributed in `THIRD-PARTY-NOTICES` |
+
+Screenshot comparison uses a framework-owned pixel comparator in `eng/` rather than an external image-diff dependency, so the visual gate carries no unpinned tooling.
 
 ## 4. Public architecture
 
@@ -64,16 +93,25 @@ The repository should use a central solution and build properties file. The firs
 
 Implement `EditorShell` as an embeddable `UserControl`. The consuming app owns its `Window`, lifecycle, size, and platform integration.
 
-The shell exposes named content slots for:
+The shell exposes named content slots for branding, header actions, sidebar, content, status bar, and menu extensions. The framework owns the shell grid, spacing, focus behavior, default commands, and accessibility behavior.
 
-- Branding
-- Header actions
-- Sidebar
-- Content
-- Status bar
-- Menu extensions
+### Host lifecycle seam
 
-The framework owns the shell grid, spacing, focus behavior, default commands, and accessibility behavior.
+`EditorShell` is a `UserControl` and cannot own window sizing or application shutdown. Everything requiring window or application authority is delegated to a host-supplied `IEditorHost`, with a shipped `WindowEditorHost` covering the common single-window case:
+
+```text
+IEditorHost
+  ApplySize(Size)          framework -> host, restoring persisted size
+  ReportSize(Size)         host -> framework, on host resize, for persistence
+  RequestShutdownAsync()   framework -> host, raised by File > Exit
+  ShutdownRequested        host -> framework, raised by window close
+```
+
+Shutdown is veto-capable in both directions. `File > Exit` and a host-initiated window close both route through one guard: the framework inspects pending drafts and unsaved changes, runs the confirmation flow, and returns allow or veto. The host performs the actual shutdown only on allow. The framework never calls application-lifetime APIs itself.
+
+When no `IEditorHost` is supplied, window size is not persisted and `File > Exit` is hidden rather than present-but-inert.
+
+### Menus
 
 Core menus are always available in-window:
 
@@ -92,16 +130,9 @@ The framework supplies an optional `SectionToolbar` for search, filters, bulk-ac
 
 ### Field editing
 
-Provide typed field descriptors and view-models for:
+Provide typed field descriptors and view-models for text, numeric values with invariant parsing and validation, boolean values, in-memory or asynchronous choice/autocomplete providers, read-only values, and warning/help text.
 
-- Text
-- Numeric values with invariant parsing, validation, and optional spinner affordance
-- Boolean values
-- In-memory or asynchronous choice/autocomplete providers
-- Read-only values
-- Warning/help text
-
-`FieldCard` owns labels, paths, warning presentation, accessibility, and Apply actions. Custom editors use templates/content presenters rather than subclassing. `FieldList` virtualizes by default.
+`FieldCard` owns labels, paths, warning presentation, accessibility, and Apply actions. Custom editors use templates and content presenters rather than subclassing. `FieldList` virtualizes by default.
 
 Typing creates an in-memory pending draft. Per-field Apply creates one history entry; Apply All creates one transactional section entry.
 
@@ -113,26 +144,62 @@ Use async, cancellation-aware interfaces for file operations and all `IUserInter
 
 ## 5. Theme system
 
-Generate and pin the official Catppuccin Latte/Mocha palette source revision. Include its source URL and attribution in `THIRD-PARTY-NOTICES`.
+Generate Latte/Mocha resources at build time from the pinned `palette.json` revision (§3) using a generator in `eng/`. Generated resources are committed; a test regenerates and asserts no drift.
 
-Expose only semantic resources to application views:
+### Semantic resources
+
+Only semantic resources are exposed to application views. Raw palette names (`mauve`, `surface0`, …) stay internal, enforced by a resource-resolution test that fails if any view or control theme references a raw palette key.
 
 ```text
-WindowBackground, PanelBackground, CardBackground, InputBackground
-Foreground, MutedForeground, SubtleForeground
-Border, FocusRing, Primary, Danger, Warning, Success
+Surfaces      WindowBackground, PanelBackground, CardBackground,
+              InputBackground, OverlayBackground
+Text          Foreground, MutedForeground, SubtleForeground
+Lines         Border, BorderStrong, FocusRing
+Accent        Primary, PrimaryHover, PrimaryPressed,
+              PrimaryText, OnPrimaryForeground
+Status        Danger, Warning, Success,
+              DangerText, WarningText, SuccessText,
+              DangerBackground, WarningBackground, SuccessBackground
+Elevation     ShadowColor
+Typography    FontFamilyDefault, FontFamilyMono
+Metrics       SpaceXs, SpaceSm, SpaceMd, SpaceLg, SpaceXl,
+              RadiusSm, RadiusMd, RadiusLg
 ```
 
-Raw palette names remain internal. Every promised control gets a framework-owned default style; Avalonia theme infrastructure may provide behavior, but Fluent-default visuals are not the visual contract.
+The text, status-background, elevation, typography, and metric roles exist because the mockup already depends on them (`--accent-contrast`, `--danger-bg`, `--success-bg`, `--warning-bg`, `--shadow`, `--font-mono`, and the spacing/radius scales) and revision 1's list omitted every one of them.
 
-Support exactly two modes:
+### Contrast contract
 
-- Mocha/Dark, default
-- Latte/Light
+Measured against the pinned palette, raw Catppuccin accents are **not** usable as text in Latte: only `mauve` (4.79:1) and `red` (4.80:1) reach 4.5:1 on `base`, nine of fourteen fail even the 3:1 non-text floor, and none reaches 4.5:1 on `surface0`. Mocha accents all pass comfortably (7.08:1 worst on `base`). The theme therefore separates accent-as-fill from accent-as-text.
 
-`View > Appearance > Themes` changes the mode immediately and persists it. `View > Appearance > Accent` exposes all 14 Catppuccin accents. The framework supplies a default accent, an editor may override that default, and a user selection wins on later launches. A reset action returns to the editor default. Palette roles use contrast-safe semantic mappings rather than forcing weak Latte accent text.
+Required ratios, asserted by test across all 14 accents × 2 modes:
 
-Inter is the default font and must be easy to replace. English is the only shipped culture, but framework strings use resource keys. Layout should respect RTL flow direction without making RTL a v1 release gate.
+| Role | Measured against | Minimum |
+| --- | --- | --- |
+| `Foreground`, `MutedForeground` | `WindowBackground`, `PanelBackground`, `CardBackground` | 4.5:1 |
+| `PrimaryText`, `DangerText`, `WarningText`, `SuccessText` | `WindowBackground`, `PanelBackground`, `CardBackground` | 4.5:1 |
+| `SubtleForeground` (non-essential text only) | `WindowBackground` | 3.0:1 |
+| `OnPrimaryForeground` | `Primary` | 4.5:1 |
+| `FocusRing`, `BorderStrong`, `Primary` as fill or indicator | adjacent surface | 3.0:1 |
+
+Resolution rules:
+
+- **`Primary`** is the raw accent, used for fills, indicators, borders, and focus rings only — never for text.
+- **`PrimaryText`** is derived: darken the raw accent in sRGB toward black by the smallest factor achieving ≥4.5:1 against *both* `WindowBackground` and `PanelBackground`. Verified achievable for all 14 Latte accents (factors 0.561–0.853, all landing ≥4.50:1) and a no-op in Mocha (factor 1.0, worst 5.43:1). Hue is preserved.
+- **`OnPrimaryForeground`** is chosen per accent per mode as whichever neutral endpoint yields the higher ratio against `Primary`. Verified to always clear 4.5:1 (worst case Latte `blue`, 4.91:1).
+- `DangerText`, `WarningText`, and `SuccessText` derive by the same rule, since Latte `yellow` (2.31:1) and `green` (2.96:1) fail as text for the same reason.
+
+Derived values are produced by the `eng/` generator and asserted by test; they are not hand-authored constants. No accent is excluded from the picker — the derivation makes all 14 usable in both modes.
+
+### Modes, fonts, and culture
+
+Support exactly two modes: Mocha/Dark (default) and Latte/Light.
+
+`View > Appearance > Themes` changes the mode immediately and persists it. `View > Appearance > Accent` exposes all 14 Catppuccin accents. The framework supplies a default accent, an editor may override that default, and a user selection wins on later launches. A reset action returns to the editor default.
+
+Inter is the default font and ships **embedded** via `Avalonia.Fonts.Inter`, not resolved by family name. Embedding is required: Inter is absent from a default Ubuntu image, so a name-resolved default would silently fall back and make the Ubuntu screenshot baseline both non-deterministic and unrepresentative of Windows. The OFL-1.1 notice obligation is recorded in `THIRD-PARTY-NOTICES`. `FontFamilyDefault` stays overridable by the consuming app in one place.
+
+English is the only shipped culture, but framework strings use resource keys. Layout should respect RTL flow direction without making RTL a v1 release gate.
 
 ## 6. State, settings, and history
 
@@ -145,15 +212,36 @@ Track pending drafts separately from committed document changes:
 
 Use revision-based dirty tracking with a saved-baseline revision. Cap history at 1,000 committed operations by default; do not persist history.
 
+### Settings storage
+
 Store versioned settings at:
 
 ```text
 LocalApplicationData/<ApplicationId>/settings.json
 ```
 
-Require an explicit stable `ApplicationId`. Persist theme, accent, up to 10 file recents, up to 10 folder recents, last-selected section, and window size. Do not persist window position or document drafts. Writes are atomic and fail-soft; migrations handle known schema versions, while malformed settings are backed up/replaced with defaults without blocking startup.
+`ApplicationId` is validated at construction against `[A-Za-z0-9._-]{1,64}`, rejecting `.`, `..`, Windows reserved device names (case-insensitively, including with extensions), trailing dots or spaces, and any path or stream separator. An invalid id throws rather than falling back to a default directory.
 
-Recent files are case-insensitively deduplicated. Confirmed-missing paths are pruned automatically; temporarily inaccessible paths are retained. Folder slots are optional and provider-driven.
+Persist theme, accent, up to 10 file recents, up to 10 folder recents, last-selected section, and window size. Do not persist window position or document drafts.
+
+### Settings as a trust boundary
+
+`settings.json` is user-writable, may arrive from a roaming profile or a restored backup, and feeds paths into the recents menu and the open workflow. It is treated as untrusted input:
+
+- Deserialization uses `System.Text.Json` with a **source-generated, closed POCO context**. Polymorphic type resolution is prohibited — no `TypeNameHandling`, no `$type` discriminators, no caller-supplied type resolvers.
+- Bounds are enforced **on read**, not only on write: maximum file size before parsing, `MaxDepth`, maximum string length, and the 10-entry recents caps.
+- Window size is clamped to a sane range intersected with available screen bounds; negative, zero, and `int.MaxValue` values are rejected rather than applied.
+- Path values must be rooted and local. UNC paths, `\\?\` and `\\.\` device namespaces, and `GLOBALROOT` paths are rejected unless the consuming editor explicitly opts in. This is a security control, not only a robustness one: a stored UNC path probed at startup triggers an outbound SMB connection and an automatic NTLM authentication attempt, which would both leak credential material and violate the no-network non-goal.
+- An unknown or absurd schema version routes to the malformed path, never to the newest migrator.
+- A file failing validation follows the same route as a malformed one.
+
+Writes are atomic and fail-soft. Malformed settings are backed up and replaced with defaults without blocking startup; the backup uses exclusive-create with a disambiguating component and bounded retention, so a second malformed startup never destroys the first backup. If the settings directory is unwritable, the framework runs on in-memory defaults and says so once through the announcement region rather than silently discarding every later change.
+
+### Recents
+
+Recent files are deduplicated on the canonical path from the resolution primitive in §7, using **platform-appropriate comparison** — ordinal on Linux, ordinal-ignore-case on Windows. Case-insensitive comparison on Linux would merge `Save.dat` and `save.dat`, which are different files, and a recents entry that resolves to a file other than the one the user believes is a data-loss hazard in a tool whose purpose is not destroying saves.
+
+Existence checking is **lazy and time-boxed**, performed when a recent is rendered or activated — never as an unconditional startup scan, and never automatically against a non-local path. Confirmed-missing paths are pruned at that point; temporarily inaccessible paths are retained. Folder slots are optional and provider-driven.
 
 ## 7. Safe file workflow
 
@@ -168,115 +256,238 @@ ISaveCodec<TDocument>
   Unknown-data preservation capability
 ```
 
-Provide a registry/detector for one or more codecs. Ambiguous detection produces a confirmation flow; unsupported files fail safely.
+Provide a registry/detector for one or more codecs. Ambiguous detection produces a confirmation flow resolved by user choice, never by registration order; unsupported files fail safely.
+
+### Path resolution primitive
+
+`SafePath` is a first-class public contract, not an internal detail of the workflow, and is defined in Phase 0 because the workflow, settings, recents, and backup paths all depend on it. It implements **resolve once, then operate on the handle**:
+
+1. Open the target with link-following disabled — `O_NOFOLLOW | O_CLOEXEC` on Linux, `FILE_FLAG_OPEN_REPARSE_POINT` with reparse-tag inspection on Windows.
+2. Walk and check **every ancestor component** from the volume root, not just the leaf. A junction or symlink in an intermediate directory redirects the write just as effectively as one on the file itself.
+3. Record the resolved identity: `dev` + `ino` on Linux, volume serial + file ID on Windows.
+4. Require that every later step re-asserts that identity or operates on the retained handle. No later step re-resolves a path string.
+5. Verify the target is a **regular file**. FIFOs, devices, and named pipes are refused: opening a FIFO blocks decode forever behind a cancel button that cannot help, and `/dev/zero` yields an unbounded read.
+6. Enforce a configurable maximum input size, with explicit confirmation above it, and time-box all reads.
+
+A hardlink count greater than 1 is a distinct condition requiring its own confirmation, since replacing content changes every alias. Bind mounts carry no link attribute, are undetectable, and are stated as out of scope rather than implied to be covered.
+
+### Workflow steps
 
 `SafeFileWorkflow` owns:
 
 1. Async open, detect, decode, and validation.
 2. Save As as the default write path; `Ctrl+S` always means Save As.
-3. OS picker overwrite confirmation without duplicating it. Custom picker implementations declare whether they provide confirmation; the framework supplies a fallback when they do not.
-4. Full validation immediately before writing. Errors block; warnings show the first eight plus a count and require explicit continuation.
-5. Symlink/reparse-point refusal, no privilege elevation, and no automatic permission changes.
-6. UTC timestamped sibling backup before explicit Overwrite + Backup.
-7. Same-directory temp write, flush, and atomic replacement.
-8. Original-file preservation and temp cleanup on failure.
-9. External-change detection using watcher hints plus an authoritative pre-action metadata/hash check.
-10. Progress, cancellation, definitive status, and close-operation coordination.
+3. Overwrite confirmation. Custom picker implementations may declare that they confirm, but the default is **does not confirm**, and the declaration only suppresses the *duplicate* prompt: the framework still confirms whenever it independently observes that the chosen target exists and is not the currently-open document. A duplicated prompt costs less than one silent overwrite.
+4. Full validation immediately before writing. Errors block; warnings show the most severe eight plus a count and require explicit continuation. Errors block on both Save As and Overwrite in v1 — a deliberate decision, recorded so it is not an implementation accident.
+5. Refusal — never modification — for symlink, reparse-point, ReadOnly, and immutable targets. No privilege elevation, no attribute clearing, no delete-and-recreate workaround. If an attribute is cleared transiently by platform replace semantics, it is restored on every exit path including failure.
+6. Backup before explicit Overwrite + Backup, as an **all-or-nothing** step: written from the same retained handle that produced the external-change baseline hash, flushed, and its hash compared against that baseline. Any failure at any step aborts the overwrite with the original untouched and the partial backup removed. If the sibling directory is unwritable, the user is offered an explicit alternate location; the workflow never silently proceeds without a backup. The backup filename grammar uses a Windows-safe time separator, carries a random disambiguating component, and is subject to a stated retention cap applied only to files matching the framework's own grammar.
+7. Same-directory temp write, then atomic replacement. Both the temp and backup files are created with **exclusive-create semantics only** (`FileMode.CreateNew` / `O_CREAT|O_EXCL|O_NOFOLLOW`) and the temp name carries cryptographic entropy rather than a derived suffix, so a pre-planted symlink or hardlink at a predictable path cannot turn the safety feature into an arbitrary-write or disclosure primitive. An `AlreadyExists` result aborts rather than retrying through a link-following open.
+8. Durability and preservation. The file is flushed **and** fsync'd, replaced via `File.Replace` / `rename(2)`, and on Linux the containing directory is fsync'd after the rename — without which the rename itself can be lost on power failure. There is **no non-atomic fallback**: a destination on a filesystem that cannot support atomic replacement, or held open without share-delete, aborts with a message naming the limitation rather than degrading to delete-then-move.
+9. External-change detection. The baseline hash is captured at decode from the retained handle and re-verified immediately before the replace, not only at the start of the action. A hash is required for a positive result; metadata may serve only as a fast-path negative, since mtime granularity is coarse and trivially restorable. On Windows the original is held with write sharing denied from check through replace, which closes the window against cooperative writers. On Linux locks are advisory and `rename` offers no compare-and-swap, so the window is *narrowed* to the last instruction rather than closed — the documentation and the status text say so rather than claiming more. Mismatch aborts and prompts; it never auto-overwrites. The baseline updates after a successful write.
+10. Permission preservation. `rename(2)` gives the destination the temp file's mode and ownership, which would silently widen a `0600` save to `0644` — the exact opposite of step 5's promise. Before replacing, the framework copies mode, ACL, and extended attributes from the retained original handle onto the temp, aborts if the resulting permission set would be broader than the original, and treats ACL and xattr copying as best-effort with the widening check as the hard gate. Backups inherit the original's mode, not the directory default.
+11. Round-trip verification of unknown data. A codec's preservation capability is **verified, not trusted**: immediately after decode the framework serializes the unmodified document and byte-compares it against the source. A mismatch means the declaration is empirically false, and the workflow automatically downgrades to the warning-requiring-confirmation path instead of reporting success. Before replacing, the serialized temp is decoded and compared against the in-memory document to catch serializers that lose fields. Both checks are skippable through a documented opt-out for very large saves. This converts the framework's central promise from codec self-assertion into a property the framework itself checks.
+12. Codec containment. The codec never receives a handle or path resolving to the destination; serialization completes into the temp or memory in full and is size- and hash-checked before any replace is attempted. Any exception from `Decode`, `Validate`, or `Serialize` is caught at the workflow boundary, converted to a definitive failure status, leaves the destination byte-identical, and removes the temp. Detectors receive a bounded read-only header slice rather than a seekable stream over the whole file, run isolated so a throwing detector is recorded as "declined" instead of aborting detection, and are individually time-boxed.
+13. Progress, cancellation, definitive status, and close coordination. `CancellationToken` against third-party codec code is cooperative only, so cancellation is made authoritative **at the workflow boundary**: after cancellation the workflow abandons the operation, unconditionally discards any late-returning result, and guarantees no write can originate from a cancelled operation. Status text reports the user-visible operation as cancelled without implying the background work stopped.
+14. Temp residue cleanup. Cleanup on handled failure does not cover process kill, OOM, or power loss, each of which can leave a complete copy of the save payload in the user's directory. Temp names carry a fixed recognizable prefix, and a bounded startup sweep removes only prefix-matching entries older than a stated age, in directories the framework itself has written to.
 
-Unknown data must be preserved whenever a codec declares that capability. A codec that cannot preserve it must surface a warning requiring explicit confirmation.
+### Guarantee wording
 
-## 8. Dialogs and feedback
+"Original-file preservation" means precisely: **on any failure, the bytes at the target path are exactly the pre-operation bytes.** Explicitly *not* guaranteed, and stated as such in the README: file identity (`rename` unlinks the original inode on Linux), hardlink aliasing, views held by other processes through open handles, and creation/change timestamps. Permissions *are* preserved per step 10.
 
-Ship a themed default implementation behind `IUserInteraction` for storage pickers, confirmations, messages, and read-only documents. Destructive actions require verb-specific accept labels; generic `OK` is not used for destructive choices.
+The settings writer and the save writer share the hardened primitive but **not** the failure policy: settings are fail-soft, saves are fail-loud with definitive status. Failure policy is a parameter of the caller, never of the primitive.
+
+## 8. Threat model and trust boundaries
+
+The safety properties in §6–§7 are stated against three adversaries:
+
+- **U — untrusted bytes.** A malicious or malformed save file processed by an honest-but-buggy codec. Mitigated by size and time bounds, detector isolation, exception containment, and sanitized display of codec-supplied text.
+- **L — local unprivileged process.** Another process able to write into the save file's directory or the settings directory — removable media, shared machines, loosely-ACL'd game directories such as Steam `userdata`, network shares. Mitigated by the resolution primitive, exclusive-create with entropy, and identity re-assertion.
+- **A — accident.** Crash, power loss, disk-full, concurrent writer, misclick. Mitigated by durability ordering, all-or-nothing backup, and fail-loud save status.
+
+**A hostile codec is explicitly not defended against.** `ISaveCodec` implementations are in-process, full-privilege .NET running as the user. The codec boundary is a *correctness* boundary the framework can instrument and bound — not a sandbox. The README states this plainly rather than letting "safe file workflow" imply otherwise.
+
+Concurrent writers outside this process — the game itself rewriting saves on exit or autosave, a second editor instance, or a cloud-sync client such as Steam Cloud or OneDrive rewriting the file after a successful save — are outside the guard's reach. The documentation says so, and the status wording claims only "no change detected between check and write."
+
+## 9. Security findings and dispositions
+
+Recorded 2026-08-26 from a read-only pre-approval review of §6–§7. Every finding carries an explicit disposition. `FIX` items are closed by the corresponding text in §6–§8 and are each backed by a named test in §12.
+
+| ID | Finding | Pri | Disposition | Closed by |
+| --- | --- | --- | --- | --- |
+| GAP | No stated adversary for the safety claims | — | FIX | §8 |
+| A1 | Path resolution order undefined; leaf-only checks; incomplete link taxonomy | P0 | FIX | §7 SafePath 1–4 |
+| A2 | Predictable backup/temp names allow symlink or hardlink planting | P1 | FIX | §7 step 7 |
+| A3 | Settings path values untrusted; startup probe of a UNC path leaks NTLM | P1 | FIX | §6 trust boundary; lazy recents |
+| A4 | Non-regular files (FIFO, device, pipe) and unbounded sizes openable | P1 | FIX | §7 SafePath 5–6 |
+| A5 | TOCTOU between the change check and the replace | P1 | FIX (narrow) | §7 step 9; residual documented |
+| A6 | `rename` silently widens `0600` to `0644`, contradicting step 5 | P2 | FIX | §7 step 10 |
+| A7 | Picker self-asserts that it confirmed; framework suppresses its own prompt | P2 | FIX | §7 step 3 (fail closed) |
+| A8 | Codec-supplied text rendered inside a destructive confirmation | P2 | FIX | §7 step 4; §10 sanitization |
+| A9 | `ApplicationId` unvalidated; traversal and reserved names | P2 | FIX | §6 validation |
+| A10 | Settings deserialization unbounded and possibly polymorphic | P2 | FIX | §6 trust boundary |
+| A11 | Detector fan-out widens parse surface to all installed codecs | P2 | FIX | §7 step 12 |
+| A12 | ReadOnly/immutable target invites attribute clearing | P2 | FIX | §7 step 5 |
+| A13 | Bidi/control characters in displayed paths spoof the overwrite target | P3 | FIX | §10 path formatter |
+| A14 | Temp residue survives process kill | P3 | FIX | §7 step 14 |
+| B1 | Backup only attempted, never verified, before a destructive overwrite | P1 | FIX | §7 step 6 |
+| B2 | Atomic replace under-specified; missing directory fsync; unsafe fallback | P1 | FIX | §7 step 8 |
+| B3 | "Original-file preservation" undefined and false under some readings | P1 | FIX | §7 guarantee wording |
+| B4 | Unknown-data preservation entirely codec-self-asserted | P1 | FIX | §7 step 11 |
+| B5 | Codec exception mid-serialize leaves state unspecified | P2 | FIX | §7 step 12 |
+| B6 | Cooperative cancellation presented as authoritative | P2 | FIX | §7 step 13 |
+| B7 | Case-insensitive recents dedup is wrong on Linux | P2 | FIX | §6 recents |
+| B8 | Backup timestamp collisions; unbounded growth | P2 | FIX | §7 step 6 |
+| B9 | Settings backup overwrites the last good copy | P2 | FIX | §6 settings storage |
+| B10 | Two write paths with opposite failure policies share a helper | P2 | FIX | §7 guarantee wording |
+| B11 | Validation blocking asymmetry between Save As and Overwrite | P3 | FIX | §7 step 4 (decision recorded) |
+| B12 | Concurrent writers outside the process | P3 | FIX (wording) | §8 |
+| B13 | Drag-dropped temp path later used as an overwrite target | P3 | **DEFER** | Post-1.0 — see below |
+
+**B13 deferral rationale.** Detecting "a known temp location" requires a platform-specific directory list that is incomplete by construction and would produce false positives on legitimate save locations. The existing posture already covers the substance of the risk: Save As is the default write path, Overwrite is a separately named command, and §10's path formatter shows the full final two path components in every destructive confirmation. Revisit if real usage shows users overwriting into browser-download or archive-extraction directories.
+
+## 10. Dialogs and feedback
+
+Ship a themed default implementation behind `IUserInteraction` for storage pickers, confirmations, messages, and read-only documents. Destructive actions require verb-specific accept labels naming the actual outcome — "Overwrite save file", not "Continue" or "OK".
+
+Codec-supplied strings — validation messages and unknown-data warnings — are **untrusted display data** derived from attacker-controlled bytes. They render as plain text in a visually distinct, non-chrome region; control and bidi characters are stripped; per-warning length, line count, and total warning count are capped; and the framework's own title, framing sentence, and accept label stay entirely outside codec influence. Shown warnings are the most severe eight, not the first eight.
+
+One shared path-display formatter serves the recents menu, status bar, announcement region, and every confirmation dialog. It strips or replaces control and bidi characters, isolates with directional-isolate marks, truncates in the middle while always showing the full final two components, and exposes the full raw path through the tooltip and accessible description.
 
 Keep the status bar as the canonical outcome channel, with full-sentence status, current path, last backup, progress, and cancellation. Add a persistent accessible inline announcement region for important errors and outcomes instead of transient toasts.
 
 Include a reusable themed About/Credits dialog with consumer slots for app identity, credits, and licenses. Raw/advanced data presentation remains editor-owned.
 
-## 9. Template and gallery
+## 11. Template and gallery
 
 `dotnet new save-editor` generates:
 
 - .NET 10/Avalonia app and solution
-- Framework-owned themed shell and in-window menus
+- Framework-owned themed shell, in-window menus, and a `WindowEditorHost`
 - Welcome state and one populated example section
 - Text, numeric, boolean, choice, warning, Apply, Apply All, undo/redo, and dirty-state examples
 - In-memory document, codec/workflow seams, settings/recents, accent/theme configuration, and drag/drop adapter
 - Sample `IUserInteraction` composition
-- README explaining replacement points and safe workflow guarantees
+- README explaining replacement points, the safe workflow guarantees of §7, and the trust boundaries of §8
 
-The gallery starts with the full shell and includes token swatches, both themes, controls, dialogs, workflow states, keyboard/accessibility notes, and custom-section examples. It is the visual regression surface and must not require network access.
+The gallery starts with the full shell and includes token swatches, both themes, all 14 accents, controls, dialogs, workflow states, keyboard/accessibility notes, and custom-section examples. It is the visual regression surface and must not require network access.
 
-## 10. Verification plan
+## 12. Verification plan
 
 ### Unit tests
 
-Cover settings migration/failure, recent pruning/deduplication, revision dirty state, history limits, validation aggregation, codec detection, unknown-data capability, path safety, symlink/reparse rejection, backup naming, atomic workflow ordering, cancellation, and external-change guards.
+Cover settings migration and failure, recent pruning and deduplication, revision dirty state, history limits, validation aggregation, codec detection, unknown-data capability, path safety, symlink/reparse rejection, backup naming, atomic workflow ordering, cancellation, and external-change guards.
+
+### Security test corpus
+
+Each `FIX` disposition in §9 is backed by at least one named test:
+
+- Link in an **intermediate directory component**, not only the leaf; hardlinked original; Windows junction and non-symlink reparse tags (A1).
+- Pre-planted temp and backup paths as symlink, hardlink, and plain file (A2).
+- Non-regular open targets: FIFO, device, named pipe, oversized file (A4).
+- Tampered `settings.json` corpus: UNC path, device path, oversized and deeply nested JSON, negative and `int.MaxValue` window size, 100k recents, bidi and control characters in paths, unknown schema version (A3, A9, A10).
+- Cross-volume, removable-media, and destination-held-open replace; durability ordering including directory fsync (B2).
+- Backup write failing mid-way on a full or read-only volume, with the overwrite correctly refusing (B1).
+- Round-trip falsification: a deliberately lossy codec that *declares* unknown-data preservation must be caught and downgraded (B4).
+- Codec throwing from `Validate` after backup, and from `Serialize` at 90% completion (B5); codec ignoring the cancellation token and returning late (B6).
+- Linux case-sensitive recents deduplication (B7).
+- Mode preservation across replace: a `0600` original stays `0600` (A6).
 
 ### Headless UI tests
 
-Use xUnit and Avalonia headless testing for shell commands, keyboard shortcuts, menu routing, focus/tab order, section selection, pending/committed transitions, dialogs, and accessible names.
+Use xUnit and Avalonia headless testing for shell commands, keyboard shortcuts, menu routing, focus and tab order, section selection, pending/committed transitions, dialogs, and accessible names. Drop paths are injected directly so workflow correctness does not depend on compositor availability.
 
 ### Visual regression
 
-Use Ubuntu as the golden screenshot baseline. Cover:
+Ubuntu is the golden baseline. The harness captures through `Avalonia.Skia` headless rendering at a fixed 1600×1000 logical size, scale 1.0, with the embedded Inter font and animations disabled. Baselines live in `tests/SaveEditor.Ui.HeadlessTests/baselines/`. Comparison uses the `eng/` pixel comparator with a **zero-tolerance** default: any differing pixel fails. A failing comparison **blocks** CI and emits a side-by-side diff artifact; updating a baseline is an explicit committed change reviewed like code.
 
-- Mocha and Latte welcome states
-- Populated shell
-- Dirty/pending state
-- Validation banner
-- Read-only and custom section bodies
-- Appearance menus and dialogs
+Covered: Mocha and Latte welcome states, populated shell, dirty/pending state, validation banner, read-only and custom section bodies, appearance menus, and dialogs.
 
-Run behavioral/headless tests on Ubuntu and Windows. Review screenshot changes deliberately.
+Determinism is itself gated: two runs of the same commit on Ubuntu must produce byte-identical captures.
+
+Behavioral and headless tests run on both Ubuntu and Windows. Screenshot baselines are Ubuntu-only.
 
 ### Template and platform smoke
 
-Build and run the generated template in a smoke test, exercise its sample fields and theme settings, and validate both NuGet packages.
+Build and run the generated template in a smoke test, exercise its sample fields and theme settings, and validate both NuGet packages install and restore from a local feed.
 
-Provide a manually invoked real-Wayland job that runs the gallery and checks file drop, folder drop, menus, dialogs, resizing, theme switching, and keyboard behavior. Headless tests inject drop paths separately so workflow correctness is not dependent on compositor availability.
+Provide a manually invoked real-Wayland job that runs the gallery and checks file drop, folder drop, menus, dialogs, resizing, theme switching, and keyboard behavior.
 
-Accessibility is a release gate: keyboard operation, visible focus, logical tab order, accessible names/descriptions, WCAG AA body text, and Windows screen-reader smoke coverage.
+Accessibility is a release gate: keyboard operation, visible focus, logical tab order, accessible names and descriptions, the contrast ratios of §5, and Windows screen-reader smoke coverage.
 
-## 11. Delivery phases
+## 13. Delivery phases
 
-### Phase 0 — Repository and contracts
+Each phase has a stable ID, one outcome, explicit prerequisites, and acceptance checks that prove that phase alone. A phase is approvable without approving its successors.
 
-- Initialize solution, license, notices, build properties, package metadata, and README.
-- Define public interfaces and test fixtures before control implementation.
-- Pin palette source and establish semantic resource names.
+### P0 — Repository, contracts, and safety primitives
 
-### Phase 1 — Theme and primitives
+**Prerequisites:** none.
+**Outcome:** the solution builds on both platforms, every public contract exists, and the path-safety primitive is implemented and tested.
 
-- Implement Latte/Mocha resources, accent precedence, font override, semantic styles, and custom default control themes.
-- Build the gallery token/control pages.
-- Add contrast and resource-resolution tests.
+- Solution, `LICENSE`, `THIRD-PARTY-NOTICES`, `Directory.Build.props`, `Directory.Packages.props`, `global.json`, package metadata, README skeleton.
+- Public interfaces: `ISaveCodec`, codec registry, `IUserInteraction`, `IEditorHost`, settings and recents stores, and `SafePath`.
+- **`SafePath` implementation** — moved here from revision 1's Phase 4 because the workflow, settings, recents, and backup paths all depend on it, and because A1 changes the shape of the primitive rather than adding tests to it.
+- Palette pin plus the `eng/` generator and semantic resource names.
+- Test fixtures, the headless harness, and the screenshot harness skeleton — moved here from revision 1's Phase 6 so later phases can assert visually as they land.
 
-### Phase 2 — Shell
+**Acceptance:** solution restores and builds on Windows and Ubuntu with every dependency at its pinned version; `SafePath` unit tests pass including intermediate-component link rejection, non-regular-file refusal, and identity re-assertion; one placeholder headless test and one placeholder screenshot comparison both run in CI.
 
-- Implement `EditorShell`, menus, slots, section descriptors, welcome state, sidebar, status bar, responsive behavior, keyboard commands, and drag/drop adapter.
-- Add headless navigation/focus tests.
+### P1 — Theme and primitives
 
-### Phase 3 — Editing surface
+**Prerequisites:** P0.
+**Outcome:** both themes and all 14 accents render correctly, meet the §5 contrast contract, and persist across restart.
 
-- Implement typed field descriptors, `FieldCard`, virtualized `FieldList`, `SectionToolbar`, custom editor templates, pending drafts, Apply/Apply All, validation, and history.
-- Add representative gallery sections and screenshots.
+- Generated Latte/Mocha resources, derived accent ramps, semantic styles, embedded Inter, custom default control themes.
+- Settings store *implementation* (interface came from P0) — needed here, not in Phase 4, because §5 requires theme and accent to persist.
+- Gallery token and control pages.
 
-### Phase 4 — Services and safety
+**Acceptance:** a test enumerates 14 accents × 2 modes and asserts every ratio in §5's table; the resource-resolution test proves no view references a raw palette key; the generator reproduces committed resources with no drift; theme and accent survive a simulated restart; the gallery token page produces stable baselines in both modes.
 
-- Implement settings/recents, codec registry/detection, `IUserInteraction`, dialogs, `SafeFileWorkflow`, external-change guards, progress/cancellation, and status announcements.
-- Add failure-path and filesystem safety tests.
+### P2 — Shell
 
-### Phase 5 — Template and adoption
+**Prerequisites:** P0, P1.
+**Outcome:** the shell, its menus, and its navigation work end to end against a stubbed document session.
 
-- Build the generated starter app and template package.
-- Add template smoke tests, replacement-point documentation, and package-install validation.
+- `EditorShell`, menus, slots, section descriptors, welcome state, sidebar, status bar, responsive behavior, keyboard commands, drag/drop adapter, and the `IEditorHost` seam.
+- Open and save commands route through a stubbed `IDocumentSession`; the real codec registry and `SafeFileWorkflow` arrive in P4. Recents render from the P1 settings store.
 
-### Phase 6 — Release hardening
+**Acceptance:** headless tests prove Exit with pending edits raises the guard and does *not* shut down; every menu command routes to its handler; tab order and accessible names are correct; the welcome state lists recents; an injected drop path reaches the same open entry point as the menu. Stubbed behavior is named explicitly, and the acceptance checks it defers are recorded against P4.
 
-- Add Ubuntu/Windows CI, screenshot review workflow, manual Wayland job, accessibility checklist, third-party notices, and package metadata.
-- Run the mockup/design review against the gallery and freeze the `1.0` public contract.
+### P3 — Editing surface
 
-## 12. Definition of done
+**Prerequisites:** P2.
+**Outcome:** typed fields edit, validate, commit, and undo correctly.
 
-V1 is complete when both packages pack and install, the generated app runs without manual framework wiring, the gallery demonstrates every promised control in Latte and Mocha, the safe workflow and failure paths are tested, the Ubuntu/Windows checks pass, the Wayland smoke checklist is executable, accessibility gates pass, and the README is sufficient for a new editor author to replace the demo codec and start editing real saves.
+- Field descriptors, `FieldCard`, virtualized `FieldList`, `SectionToolbar`, custom editor templates, pending drafts, Apply and Apply All, validation, history.
+
+**Acceptance:** pending edits survive section navigation; per-field Apply produces exactly one history entry and Apply All exactly one transactional entry; the 1,000-entry cap holds; `FieldList` virtualizes under a large section; dirty/pending and validation-banner baselines are captured using the P0 harness.
+
+### P4 — Services and safety
+
+**Prerequisites:** P0, P2, P3.
+**Outcome:** the safe file workflow is implemented and every `FIX` disposition in §9 is closed by a passing test.
+
+- `SafeFileWorkflow` on the P0 `SafePath` primitive; codec registry and detection; backup, temp write, and atomic replace; permission preservation; round-trip verification; external-change guards; `IUserInteraction` default dialogs; progress, cancellation, and status announcements.
+- Replaces P2's stubbed document session with the real workflow.
+
+**Acceptance:** the full security corpus in §12 passes on both platforms; every §9 `FIX` row maps to a named passing test; the P2 acceptance checks deferred to this phase now pass against the real workflow.
+
+### P5 — Template and adoption
+
+**Prerequisites:** P1, P2, P3, P4.
+**Outcome:** `dotnet new save-editor` produces a running editor with no manual framework wiring.
+
+**Acceptance:** the template smoke test generates, builds, and runs the app headlessly, exercises a sample field edit and a theme switch, and both packages install and restore from a local feed.
+
+### P6 — Release hardening
+
+**Prerequisites:** P5.
+**Outcome:** the `1.0` public contract is frozen and every release gate is green.
+
+- Ubuntu/Windows CI, screenshot review workflow, manual Wayland job, accessibility checklist, third-party notices, package metadata.
+- Design review of the gallery against `mockup/index.html`.
+
+**Acceptance:** all gates in §14 pass on a clean checkout.
+
+## 14. Definition of done
+
+V1 is complete when both packages pack and install, the generated app runs without manual framework wiring, the gallery demonstrates every promised control in Latte and Mocha across all 14 accents, the §5 contrast contract passes for every accent and mode, every `FIX` disposition in §9 is closed by a passing test, the safe workflow and its failure paths are tested on both platforms, the Ubuntu screenshot baselines compare clean and reproducibly, the Ubuntu/Windows behavioral checks pass, the Wayland smoke checklist is executable, accessibility gates pass, and the README is sufficient for a new editor author to replace the demo codec — and to understand, from §8, exactly what the framework does and does not defend against.
