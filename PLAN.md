@@ -235,6 +235,8 @@ English is the only shipped culture, but framework strings use resource keys. La
 
 ## 6. State, settings, and history
 
+**The editing surface depends on `IEditHistory`, not on `EditHistory` (finding F-9).** `EditHistory` remains the default implementation and the right answer for an application with no history model of its own. It is a seam because `FieldViewModel`, `SectionEditor` and `DocumentSession` previously demanded that exact sealed type, which made `FieldCard`, `FieldList` and `SectionEditor` — the highest-reuse pieces in the framework — all-or-nothing for anyone who already had one. An application whose model is a whole-tree snapshot rollback would have been dropping to per-field undo purely because a class was sealed, which is a behavioural regression caused by a modifier rather than by any design intent. The interface carries exactly the members the framework calls; capacity, entry count and the menu labels stay on the implementation.
+
 Track pending drafts separately from committed document changes:
 
 - Pending edits stay in memory while typing and survive section navigation.

@@ -7,7 +7,8 @@ namespace SaveEditor.Ui.Editing;
 public sealed record HistoryEntry(string Label, Action Undo, Action Redo);
 
 /// <summary>
-/// Undo/redo over committed edits, with revision-based dirty tracking.
+/// The framework's default <see cref="IEditHistory"/>: undo/redo over committed edits, with
+/// revision-based dirty tracking.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,7 +28,7 @@ public sealed record HistoryEntry(string Label, Action Undo, Action Redo);
 /// document into a state that disagrees with the file it came from.
 /// </para>
 /// </remarks>
-public sealed class EditHistory
+public sealed class EditHistory : IEditHistory
 {
     /// <summary>Committed operations retained by default.</summary>
     public const int DefaultCapacity = 1000;
