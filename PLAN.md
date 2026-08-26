@@ -79,7 +79,7 @@ THIRD-PARTY-NOTICES
 
 The repository uses a central solution, `Directory.Build.props`, and `Directory.Packages.props` with central package management. The first stable release is `1.0`; public breaking changes require a major version.
 
-**The contract freezes before the version does.** `eng/PublicApi.SaveEditor.Ui.txt` pins the public surface and any change to it fails the build, so the major-version promise is enforced from now on rather than from the moment a tag is cut. The packages remain `1.0.0-alpha.2` until the two gates that require a person have actually been run — the Windows screen-reader pass in `docs/ACCESSIBILITY.md` and the Wayland session checklist in `docs/WAYLAND-CHECKLIST.md`. Shipping `1.0.0` while a named release gate has never been executed would make the version claim something the evidence does not support, and those two gates are precisely the ones no amount of CI can close.
+**The contract freezes before the version does.** `eng/PublicApi.SaveEditor.Ui.txt` pins the public surface and any change to it fails the build, so the major-version promise is enforced from now on rather than from the moment a tag is cut. The packages remain `1.0.0-alpha.3` until the two gates that require a person have actually been run — the Windows screen-reader pass in `docs/ACCESSIBILITY.md` and the Wayland session checklist in `docs/WAYLAND-CHECKLIST.md`. Shipping `1.0.0` while a named release gate has never been executed would make the version claim something the evidence does not support, and those two gates are precisely the ones no amount of CI can close.
 
 ### Pinned versions
 
@@ -234,6 +234,8 @@ Inter is the default font and ships **embedded** via `Avalonia.Fonts.Inter`, not
 English is the only shipped culture, but framework strings use resource keys. Layout should respect RTL flow direction without making RTL a v1 release gate.
 
 ## 6. State, settings, and history
+
+**Apply All is one operation or none (findings F-18, F-19).** The transaction returned by `IEditHistory.BeginTransaction` has an explicit `Commit` and `Abort`, and disposing without committing aborts — the dangerous default is the one that keeps work nobody confirmed. A field write that throws is a rejection rather than a crash: its message reaches the user through the field's validation channel, the draft stays pending, nothing is recorded, and the exception does not escape the bound command. `Apply` keeps the `void` signature its generated command requires and delegates to `TryApply`, whose boolean is what lets Apply All distinguish "this field was rejected" from "this field had nothing left to do" — the second happens legitimately whenever an earlier write settles a later field, and treating it as failure would roll batches back with no message anywhere. What the framework does **not** promise is that the document is unchanged after a rejected write: that depends on whether the setter validates before it assigns, and no compensating write is attempted, because that is a second call into the code that just failed.
 
 **The editing surface depends on `IEditHistory`, not on `EditHistory` (finding F-9).** `EditHistory` remains the default implementation and the right answer for an application with no history model of its own. It is a seam because `FieldViewModel`, `SectionEditor` and `DocumentSession` previously demanded that exact sealed type, which made `FieldCard`, `FieldList` and `SectionEditor` — the highest-reuse pieces in the framework — all-or-nothing for anyone who already had one. An application whose model is a whole-tree snapshot rollback would have been dropping to per-field undo purely because a class was sealed, which is a behavioural regression caused by a modifier rather than by any design intent. The interface carries exactly the members the framework calls; capacity, entry count and the menu labels stay on the implementation.
 
@@ -474,6 +476,58 @@ to reference equality, was already detected and explains itself.
 verified.** The 32-bit Windows rename (F-14) has its offset arithmetic pinned for both
 pointer sizes, but the end-to-end P/Invoke cannot run on an x64 host. The Linux `statx`
 identity re-assertion (F-7) likewise cannot run on Windows. Both fail closed.
+
+## 9b. Adopter review findings, round 2
+
+Raised by the same Suikoden migration while designing against the round-1 API — a follow-up,
+not a re-review. All three sit in `Editing/`; the save and write layer from round 1 was
+explicitly not in question and is untouched.
+
+**Numbering.** The brief numbers its items F-16, F-17 and F-18. §9a already uses F-16 and F-17
+for defects found *during* round 1, and `FilePermissions.cs` and `BackupRetention.cs` both
+carry source comments citing those numbers, so reusing them would make a code comment ambiguous
+about which finding it means. This round is recorded one step on, and the mapping is stated
+rather than left to be inferred:
+
+| Brief | Recorded here | Subject |
+| --- | --- | --- |
+| F-16 | **F-18** | `BeginTransaction` is commit-only, so a failed Apply All partially applies |
+| F-17 | **F-19** | No contract for a `Write` delegate that throws |
+| F-18 | **F-20** | `RefreshFromDocument` has no in-framework caller |
+
+Counts: 2 `FIX`, 1 `FIX (wording)`.
+
+| ID | Finding | Pri | Disposition | Closed by |
+| --- | --- | --- | --- | --- |
+| F-18 | Transaction scope committed on disposal, so a rejected write partway through Apply All left the earlier fields written | P1 | FIX | §6; `IEditTransaction`, `SectionEditor.ApplyAll` |
+| F-19 | A `Write` delegate that throws recorded nothing, desynchronised the display, and escaped a bound command | P1 | FIX | §6; `FieldViewModel.TryApply` |
+| F-20 | `RefreshFromDocument` public with no in-framework caller, reading as the supported refresh route | P3 | FIX (wording) | §6; four doc sites and README |
+
+**F-18 and F-19 could not be fixed separately, and the brief's two sketches contradict each
+other.** F-18's sketch reaches its abort by relying on `Apply` throwing; F-19 requires `Apply`
+to catch and report instead. Both as written leaves the loop seeing no exception and committing
+whichever fields succeeded — the partial application F-18 exists to prevent. `Apply` keeps the
+`void` signature its command needs and delegates to `TryApply`, whose boolean the loop consumes.
+
+**Three defects in the fix were caught in plan review before implementation**, and are recorded
+because each would have shipped: `Abort` that discarded entries without clearing the
+open-transaction field, which would have made the first failed Apply All break every later one;
+an abort triggered by a field that merely became non-applicable mid-loop, which would have
+rolled batches back silently in exactly the cross-field models this work is for; and
+`EditHistory.Undo` moving its cursor before running the action, so a throwing undo left the
+history describing a document that had not changed.
+
+**Two costs are accepted and pinned by tests rather than hidden.** Rolling back replays the
+recorded undo actions, which re-read their fields from the document, so a rolled-back field
+loses the draft the user typed — the rejected field keeps both its draft and its message.
+And routing rejection through `ValidationError` makes the field invalid, so retrying after
+fixing a *different* field needs this one's draft touched first. Separating rejection from
+validation would need its own observable plus card, theme and headless coverage.
+
+**The undo/redo path is outside the rejection contract.** Those closures call the same `Write`
+delegate, but there is no pending edit to reject and an undo that cannot be performed is a
+fault rather than a validation result, so it propagates. This round guarantees only that it
+leaves the history consistent.
 
 ## 10. Dialogs and feedback
 

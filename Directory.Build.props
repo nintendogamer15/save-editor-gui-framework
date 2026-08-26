@@ -32,7 +32,7 @@
     <RepositoryUrl>https://github.com/nintendogamer15/save-editor-gui-framework</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <VersionPrefix>1.0.0</VersionPrefix>
-    <VersionSuffix>alpha.2</VersionSuffix>
+    <VersionSuffix>alpha.3</VersionSuffix>
   </PropertyGroup>
 
 </Project>
