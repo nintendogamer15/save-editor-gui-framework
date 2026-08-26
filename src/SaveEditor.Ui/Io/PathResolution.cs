@@ -45,6 +45,19 @@ public enum PathRefusalReason
     /// <summary>The target is read-only, immutable, or otherwise write-protected.</summary>
     /// <remarks>Reported rather than cleared; see <see cref="PathRefusalReason"/>.</remarks>
     WriteProtected,
+
+    /// <summary>
+    /// An entry already exists where an exclusive create was requested.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="LinkTarget"/> and <see cref="InvalidPath"/> because it
+    /// is the signal that a backup or temporary path was pre-planted: a caller must be
+    /// able to tell "something is already sitting at my predictable path" from "the path
+    /// was malformed". The framework aborts on this result and never retries through a
+    /// link-following open. When the pre-existing entry is itself a link,
+    /// <see cref="LinkTarget"/> is reported instead as the more specific cause.
+    /// </remarks>
+    AlreadyExists,
 }
 
 /// <summary>
