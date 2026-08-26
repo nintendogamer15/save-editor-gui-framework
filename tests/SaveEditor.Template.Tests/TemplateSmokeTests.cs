@@ -64,6 +64,8 @@ public sealed class TemplateSmokeTests
                 .GetFiles(feedDirectory, "SaveEditor.Template.*.nupkg")
                 .Single();
 
+            AssertPackageCarriesTemplateContent(templatePackage);
+
             // 2. Install the template from the packed nupkg, not from source.
             await RunAsync("dotnet", $"new install \"{templatePackage}\"", workDirectory);
             templateInstalled = true;
@@ -163,6 +165,45 @@ public sealed class TemplateSmokeTests
             TryDeleteDirectory(workDirectory);
             TryDeleteDirectory(feedDirectory);
         }
+    }
+
+    /// <summary>
+    /// Asserts the packed template actually contains its content tree.
+    /// </summary>
+    /// <remarks>
+    /// An empty template package is not an obvious failure: "dotnet new install"
+    /// accepts it, "dotnet new save-editor" resolves the short name and exits 0,
+    /// and the only symptom is an empty output directory three steps later. That
+    /// is exactly what backslash separators in the packaging target produced on
+    /// Linux while Windows packed correctly. Checking the archive puts the
+    /// failure at the step that caused it.
+    /// </remarks>
+    private static void AssertPackageCarriesTemplateContent(string nupkgPath)
+    {
+        using var archive = System.IO.Compression.ZipFile.OpenRead(nupkgPath);
+
+        var entries = archive.Entries
+            .Select(entry => entry.FullName.Replace('\\', '/'))
+            .ToList();
+
+        var manifest = entries.FirstOrDefault(
+            name => name.EndsWith(".template.config/template.json", StringComparison.Ordinal));
+
+        Assert.True(
+            manifest is not null,
+            "The packed template contains no .template.config/template.json, so it would "
+            + "install and generate nothing. Entries:" + Environment.NewLine
+            + string.Join(Environment.NewLine, entries.Take(40).Select(e => "  " + e)));
+
+        // The manifest alone is not enough: the content tree has to be there too.
+        var csproj = entries.Count(
+            name => name.EndsWith("SaveEditor.Generated.csproj", StringComparison.Ordinal));
+
+        Assert.True(
+            csproj > 0,
+            "The packed template carries a manifest but no project content. Entries:"
+            + Environment.NewLine
+            + string.Join(Environment.NewLine, entries.Take(40).Select(e => "  " + e)));
     }
 
     /// <summary>

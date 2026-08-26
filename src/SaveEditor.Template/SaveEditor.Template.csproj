@@ -67,6 +67,15 @@
     package — before the staged copy is packed as Content. Nothing under the
     tracked templates/ directory is mutated; only the staged copy is.
   -->
+  <!--
+    Every path below uses forward slashes deliberately. MSBuild translates "/"
+    to the platform separator but does not reliably translate the backslash on
+    Unix, where it is an ordinary filename character. With backslashes the
+    staging copy and the Content glob silently matched nothing on Linux, so the
+    package packed with no template content at all: "dotnet new install" then
+    succeeded, "dotnet new save-editor" exited 0, and generation produced an
+    empty directory. Do not "normalize" these back.
+  -->
   <Target Name="StageTemplateContent" BeforeTargets="_GetPackageFiles;GenerateNuspec">
     <ItemGroup>
       <_TemplateSourceFiles Include="templates/**/*"
@@ -74,7 +83,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <_StagedTemplateDestination Include="@(_TemplateSourceFiles->'$(IntermediateOutputPath)templates-staged\%(RecursiveDir)%(Filename)%(Extension)')" />
+      <_StagedTemplateDestination Include="@(_TemplateSourceFiles->'$(IntermediateOutputPath)templates-staged/%(RecursiveDir)%(Filename)%(Extension)')" />
     </ItemGroup>
 
     <Copy SourceFiles="@(_TemplateSourceFiles)"
@@ -82,7 +91,7 @@
           SkipUnchangedFiles="false" />
 
     <PropertyGroup>
-      <_GeneratedCsprojPath>$(IntermediateOutputPath)templates-staged\save-editor\src\SaveEditor.Generated\SaveEditor.Generated.csproj</_GeneratedCsprojPath>
+      <_GeneratedCsprojPath>$(IntermediateOutputPath)templates-staged/save-editor/src/SaveEditor.Generated/SaveEditor.Generated.csproj</_GeneratedCsprojPath>
       <_GeneratedCsprojContent>$([System.IO.File]::ReadAllText('$(_GeneratedCsprojPath)'))</_GeneratedCsprojContent>
       <_GeneratedCsprojContent>$(_GeneratedCsprojContent.Replace('__SaveEditorUiVersion__', '$(PackageVersion)'))</_GeneratedCsprojContent>
     </PropertyGroup>
@@ -90,9 +99,9 @@
     <WriteLinesToFile File="$(_GeneratedCsprojPath)" Lines="$(_GeneratedCsprojContent)" Overwrite="true" />
 
     <ItemGroup>
-      <Content Include="$(IntermediateOutputPath)templates-staged\**\*">
+      <Content Include="$(IntermediateOutputPath)templates-staged/**/*">
         <Pack>true</Pack>
-        <PackagePath>content\%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
+        <PackagePath>content/%(RecursiveDir)%(Filename)%(Extension)</PackagePath>
         <Visible>false</Visible>
       </Content>
     </ItemGroup>
