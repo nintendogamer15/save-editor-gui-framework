@@ -1,5 +1,22 @@
 namespace SaveEditor.Ui.Shell;
 
+/// <summary>Progress through a long document operation.</summary>
+/// <param name="Description">Human-readable phase, ready to show.</param>
+/// <param name="Fraction">
+/// Completion in [0, 1], or <see langword="null"/> when the phase has no measurable
+/// size — hashing a file of unknown length, or waiting on a codec.
+/// </param>
+/// <param name="IsFinished">Whether the operation has ended and progress should clear.</param>
+/// <remarks>
+/// Deliberately a shell-level type rather than the workflow's own. The shell must not
+/// depend on the workflow — that is what let it be built and tested against a stub —
+/// so the session translates rather than the shell reaching across.
+/// </remarks>
+public readonly record struct DocumentProgress(
+    string Description,
+    double? Fraction,
+    bool IsFinished = false);
+
 /// <summary>
 /// The shell's view of the open document and the operations it can invoke on it.
 /// </summary>
@@ -37,6 +54,25 @@ public interface IDocumentSession
 
     /// <summary>Path of the open document, or <see langword="null"/>.</summary>
     string? CurrentPath { get; }
+
+    /// <summary>
+    /// Where the last backup was written, or <see langword="null"/> if none.
+    /// </summary>
+    /// <remarks>
+    /// Named separately from the outcome sentence because "a backup was written" and
+    /// "here is where to find it" are different pieces of information, and only the
+    /// second is any use to somebody who needs to recover.
+    /// </remarks>
+    string? LastBackupPath { get; }
+
+    /// <summary>Raised as a long operation advances, for the status bar.</summary>
+    /// <remarks>
+    /// Reported rather than polled because the workflow hashes, backs up, and
+    /// verifies, any of which can take real time on a large save or a network volume.
+    /// A status bar that only updates when the operation ends cannot distinguish slow
+    /// from hung, which is when a user reaches for the process manager.
+    /// </remarks>
+    event EventHandler<DocumentProgress>? ProgressChanged;
 
     /// <summary>
     /// Full-sentence outcome of the last open or write, or <see langword="null"/>.

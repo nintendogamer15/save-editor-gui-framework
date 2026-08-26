@@ -28,6 +28,12 @@ internal sealed class GalleryDocumentSession : IDocumentSession
     /// <summary>The gallery performs no I/O, so it has no workflow outcome to report.</summary>
     public string? LastStatusMessage => null;
 
+    /// <summary>No I/O means no backups.</summary>
+    public string? LastBackupPath => null;
+
+    /// <summary>Never raised: nothing here takes long enough to report on.</summary>
+    public event EventHandler<DocumentProgress>? ProgressChanged;
+
     public bool CanUndo => _isDirty;
 
     public bool CanRedo => false;
@@ -105,5 +111,11 @@ internal sealed class GalleryDocumentSession : IDocumentSession
         Changed();
     }
 
-    private void Changed() => StateChanged?.Invoke(this, EventArgs.Empty);
+    private void Changed()
+    {
+        // Nothing here is slow enough to have real progress, but the event must still
+        // be raised so the status bar clears rather than holding a stale phase.
+        ProgressChanged?.Invoke(this, new DocumentProgress(string.Empty, null, IsFinished: true));
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

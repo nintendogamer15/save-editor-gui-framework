@@ -216,6 +216,51 @@ public class DeferredWorkflowChecksTests : IDisposable
     }
 
     [AvaloniaFact]
+    public async Task D7_The_Status_Bar_Reports_Progress_And_The_Backup_Location()
+    {
+        var (vm, session, _, _) = Build();
+        using var _s = session;
+
+        var phases = new List<string>();
+        vm.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(vm.ProgressDescription) && vm.ProgressDescription.Length > 0)
+            {
+                phases.Add(vm.ProgressDescription);
+            }
+        };
+
+        var path = WriteSave("progress.sav", new Doc("Aerith", 1));
+        await vm.OpenPathAsync(path, TestContext.Current.CancellationToken);
+
+        session.ReplaceDocument(session.Document! with { Level = 2 });
+        await vm.OverwriteWithBackupCommand.ExecuteAsync(null);
+
+        Assert.True(session.LastOutcome!.IsSuccess);
+
+        // Progress must actually have been observed, not merely wired. A status bar
+        // that only updates when the operation ends cannot distinguish slow from hung.
+        Assert.NotEmpty(phases);
+        Assert.Contains(phases, p => p.Contains("backup", StringComparison.OrdinalIgnoreCase));
+
+        // And it must clear afterwards rather than leaving a stale phase on screen.
+        Assert.Empty(vm.ProgressDescription);
+        Assert.False(vm.IsBusy);
+
+        // "A backup was written" is only useful alongside where to find it.
+        Assert.NotNull(vm.LastBackupLabel);
+        Assert.NotNull(session.LastBackupPath);
+
+        // Containment, not equality: the label is isolate-wrapped so it can never be
+        // byte-equal to a path, which is the property that stops it being fed back to
+        // the filesystem. The filename still has to be legible in it.
+        Assert.Contains(
+            Path.GetFileName(session.LastBackupPath!),
+            vm.LastBackupLabel!.FullLabel,
+            StringComparison.Ordinal);
+    }
+
+    [AvaloniaFact]
     public async Task D7_A_Failed_Open_Reports_The_Failure_Not_A_Success()
     {
         var (vm, session, _, _) = Build();

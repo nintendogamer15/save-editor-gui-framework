@@ -64,6 +64,7 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         _theme = theme;
 
         _session.StateChanged += OnSessionStateChanged;
+        _session.ProgressChanged += OnSessionProgress;
         _host?.SetShutdownGuard(ct => ConfirmDiscardAsync(DiscardReason.Exit, ct));
     }
 
@@ -97,6 +98,28 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
 
     /// <summary>The open document's path, neutralised for display.</summary>
     public PathLabel CurrentPathLabel => _formatter.Format(_session.CurrentPath);
+
+    /// <summary>
+    /// Where the last backup was written, neutralised for display, or
+    /// <see langword="null"/> if there is none.
+    /// </summary>
+    /// <remarks>
+    /// Shown because "a backup was written" is only useful alongside where to find
+    /// it. Somebody reaching for a backup is usually already having a bad day.
+    /// </remarks>
+    public PathLabel? LastBackupLabel =>
+        _session.LastBackupPath is { Length: > 0 } backup ? _formatter.Format(backup) : null;
+
+    /// <summary>What the workflow is currently doing, or empty when idle.</summary>
+    [ObservableProperty]
+    public partial string ProgressDescription { get; private set; } = string.Empty;
+
+    /// <summary>Completion in [0, 1], or <see langword="null"/> when indeterminate.</summary>
+    [ObservableProperty]
+    public partial double? ProgressFraction { get; private set; }
+
+    /// <summary>Whether a long operation is running.</summary>
+    public bool IsBusy => ProgressDescription.Length > 0;
 
     /// <summary>Whether Exit is offered at all.</summary>
     public bool CanExit => _host is not null;
@@ -456,9 +479,19 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
 
         _disposed = true;
         _session.StateChanged -= OnSessionStateChanged;
+        _session.ProgressChanged -= OnSessionProgress;
     }
 
     private void OnSessionStateChanged(object? sender, EventArgs e) => NotifyDocumentState();
+
+    private void OnSessionProgress(object? sender, DocumentProgress progress)
+    {
+        // A finished report clears the phase rather than leaving the last one on
+        // screen, where it would read as work still in flight.
+        ProgressDescription = progress.IsFinished ? string.Empty : progress.Description;
+        ProgressFraction = progress.IsFinished ? null : progress.Fraction;
+        OnPropertyChanged(nameof(IsBusy));
+    }
 
     private void NotifyDocumentState()
     {
@@ -473,6 +506,7 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
 
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(CurrentPathLabel));
+        OnPropertyChanged(nameof(LastBackupLabel));
         OnPropertyChanged(nameof(HasUnsavedWork));
         OnPropertyChanged(nameof(IsWelcomeVisible));
         UndoCommand.NotifyCanExecuteChanged();

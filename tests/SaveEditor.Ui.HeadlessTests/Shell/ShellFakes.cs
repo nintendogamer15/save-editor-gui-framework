@@ -19,6 +19,13 @@ internal sealed class FakeDocumentSession : IDocumentSession
 
     public string? LastStatusMessage { get; set; }
 
+    public string? LastBackupPath { get; set; }
+
+    public event EventHandler<DocumentProgress>? ProgressChanged;
+
+    /// <summary>Drives the progress path from tests without a real operation.</summary>
+    public void RaiseProgress(DocumentProgress progress) => ProgressChanged?.Invoke(this, progress);
+
     public bool CanUndo { get; set; } = true;
 
     public bool CanRedo { get; set; } = true;

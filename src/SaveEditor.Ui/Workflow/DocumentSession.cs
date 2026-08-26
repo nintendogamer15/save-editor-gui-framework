@@ -137,6 +137,47 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     public string? LastStatusMessage => LastOutcome?.Message;
 
     /// <inheritdoc />
+    public string? LastBackupPath => LastOutcome?.BackupPath;
+
+    /// <inheritdoc />
+    public event EventHandler<DocumentProgress>? ProgressChanged;
+
+    /// <summary>Translates workflow progress into something a status bar can show.</summary>
+    /// <remarks>
+    /// The phrasing describes what is happening to the user's file rather than naming
+    /// an internal phase. "Checking the file has not changed" is actionable if it
+    /// stalls; "CheckingForExternalChange" is not.
+    /// </remarks>
+    private IProgress<SaveProgress> Progress() => new Progress<SaveProgress>(report =>
+    {
+        var description = report.Phase switch
+        {
+            SavePhase.Reading => "Reading the save file",
+            SavePhase.Detecting => "Identifying the save format",
+            SavePhase.Decoding => "Reading the save contents",
+            SavePhase.VerifyingPreservationClaim => "Checking nothing would be lost",
+            SavePhase.Validating => "Validating",
+            SavePhase.WritingBackup => "Writing a backup",
+            SavePhase.VerifyingBackup => "Verifying the backup",
+            SavePhase.Serializing => "Preparing the new contents",
+            SavePhase.VerifyingRoundTrip => "Checking nothing would be lost",
+            SavePhase.WritingTemp => "Writing",
+            SavePhase.PreservingPermissions => "Preserving permissions",
+            SavePhase.CheckingForExternalChange => "Checking the file has not changed",
+            SavePhase.Replacing => "Replacing the original",
+            _ => "Finishing",
+        };
+
+        var fraction = report.BytesTotal is > 0
+            ? Math.Clamp((double)report.BytesCompleted / report.BytesTotal.Value, 0, 1)
+            : (double?)null;
+
+        ProgressChanged?.Invoke(
+            this,
+            new DocumentProgress(description, fraction, report.Phase == SavePhase.Completed));
+    });
+
+    /// <inheritdoc />
     public bool CanUndo => _history.CanUndo;
 
     /// <inheritdoc />
@@ -145,7 +186,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     /// <inheritdoc />
     public async ValueTask OpenAsync(string path, CancellationToken cancellationToken = default)
     {
-        var outcome = await _workflow.OpenAsync(path, null, cancellationToken).ConfigureAwait(true);
+        var outcome = await _workflow.OpenAsync(path, Progress(), cancellationToken).ConfigureAwait(true);
 
         switch (outcome)
         {
@@ -210,7 +251,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
 
         var codec = _open?.Codec ?? _defaultCodec;
         var outcome = await _workflow
-            .SaveAsAsync(document, codec, _open, null, cancellationToken)
+            .SaveAsAsync(document, codec, _open, Progress(), cancellationToken)
             .ConfigureAwait(true);
 
         LastOutcome = outcome;
@@ -240,7 +281,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
         }
 
         var outcome = await _workflow
-            .OverwriteWithBackupAsync(document, _open, null, cancellationToken)
+            .OverwriteWithBackupAsync(document, _open, Progress(), cancellationToken)
             .ConfigureAwait(true);
 
         LastOutcome = outcome;
@@ -318,7 +359,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
 
     private async ValueTask ReopenAsync(string path, CancellationToken cancellationToken)
     {
-        var reopened = await _workflow.OpenAsync(path, null, cancellationToken).ConfigureAwait(true);
+        var reopened = await _workflow.OpenAsync(path, Progress(), cancellationToken).ConfigureAwait(true);
 
         if (reopened is OpenOutcome<TDocument>.Opened opened)
         {
@@ -354,5 +395,9 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
 
     private void OnHistoryChanged(object? sender, EventArgs e) => Notify();
 
-    private void Notify() => StateChanged?.Invoke(this, EventArgs.Empty);
+    private void Notify()
+    {
+        ProgressChanged?.Invoke(this, new DocumentProgress(string.Empty, null, IsFinished: true));
+        StateChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

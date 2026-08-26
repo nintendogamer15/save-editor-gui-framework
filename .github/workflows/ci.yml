@@ -30,5 +30,18 @@ jobs:
       - name: Build
         run: dotnet build --no-restore -c Release
 
+      # Native deps the headless Skia renderer needs. Present on the current image,
+      # installed explicitly so a future image change surfaces as a failed step rather
+      # than as silently unrun UI tests.
+      - name: Install headless rendering dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1 libfreetype6
+
+      # Run the test executables directly rather than through `dotnet test`.
+      # The dotnet test bridge reports success when tests *error* during host setup:
+      # a missing native dependency left 87 headless tests unrun while it printed
+      # Passed and exited 0. The runner itself reports Errors and exits non-zero.
       - name: Test
-        run: dotnet test --no-build -c Release
+        run: |
+          dotnet exec tests/SaveEditor.Ui.Tests/bin/Release/net10.0/SaveEditor.Ui.Tests.dll
+          dotnet exec tests/SaveEditor.Ui.HeadlessTests/bin/Release/net10.0/SaveEditor.Ui.HeadlessTests.dll
