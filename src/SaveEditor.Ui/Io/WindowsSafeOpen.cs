@@ -127,11 +127,12 @@ internal static class WindowsSafeOpen
                 $"The attributes of a directory component could not be read (Win32 error {error}).");
         }
 
-        if ((tagInfo.FileAttributes & FileAttributeReparsePoint) != 0)
+        if ((tagInfo.FileAttributes & FileAttributeReparsePoint) != 0 &&
+            WindowsPathFacts.IsNamespaceRedirectingReparseTag(tagInfo.ReparseTag))
         {
             return new NativeOpenOutcome.Refused(
                 PathRefusalReason.LinkInAncestor,
-                $"A directory component between the volume root and the leaf is a reparse point (tag 0x{tagInfo.ReparseTag:X8}). Junctions, mount points, and directory symlinks redirect the write even when the leaf looks like a plain file.");
+                $"A directory component between the volume root and the leaf is a name-surrogate reparse point (tag 0x{tagInfo.ReparseTag:X8}). Junctions, mount points, and directory symlinks redirect the write even when the leaf looks like a plain file.");
         }
 
         if ((tagInfo.FileAttributes & FileAttributeDirectory) == 0)
@@ -175,11 +176,13 @@ internal static class WindowsSafeOpen
                 $"The attributes of the target could not be read (Win32 error {error}).");
         }
 
-        if ((tagInfo.FileAttributes & FileAttributeReparsePoint) != 0)
+        var isReparsePoint = (tagInfo.FileAttributes & FileAttributeReparsePoint) != 0;
+
+        if (isReparsePoint && WindowsPathFacts.IsNamespaceRedirectingReparseTag(tagInfo.ReparseTag))
         {
             return NativeOpenOutcome.Refuse(
                 PathRefusalReason.LinkTarget,
-                $"The final path component is a reparse point (tag 0x{tagInfo.ReparseTag:X8}). Symbolic links, junctions, mount points, and every other reparse tag are refused rather than followed.");
+                $"The final path component is a name-surrogate reparse point (tag 0x{tagInfo.ReparseTag:X8}). Symbolic links, junctions, and mount points are refused rather than followed.");
         }
 
         if ((tagInfo.FileAttributes & FileAttributeDirectory) != 0)
@@ -211,13 +214,21 @@ internal static class WindowsSafeOpen
             access |= GenericWrite;
         }
 
+        // A non-surrogate reparse point — a cloud placeholder, a deduplicated or
+        // WOF-compressed file — must be opened *through* its filter, not as the
+        // placeholder itself, or the retained handle would read raw reparse data instead
+        // of the file's bytes. Dropping the flag cannot silently follow a link: phase 1
+        // already established this tag does not redirect the namespace, and the identity
+        // comparison below refuses if the entry changed between the two opens.
+        var retainedFlags = isReparsePoint ? 0u : FileFlagOpenReparsePoint;
+
         var handle = CreateFileW(
             leafPath,
             access,
             FileShareRead | FileShareDelete,
             IntPtr.Zero,
             DispositionOpenExisting,
-            FileFlagOpenReparsePoint,
+            retainedFlags,
             IntPtr.Zero);
 
         if (handle.IsInvalid)
@@ -230,7 +241,7 @@ internal static class WindowsSafeOpen
                 $"The target could not be opened for the requested access (Win32 error {error}). {mapped.Detail}");
         }
 
-        return Finish(handle, probeInfo, leafPath);
+        return Finish(handle, probeInfo, leafPath, allowNonSurrogateReparsePoint: isReparsePoint);
     }
 
     private static NativeOpenOutcome CreateNewLeaf(string leafPath)
@@ -269,7 +280,7 @@ internal static class WindowsSafeOpen
                 $"The identity of the created file could not be read (Win32 error {error}).");
         }
 
-        return Finish(handle, info, leafPath);
+        return Finish(handle, info, leafPath, allowNonSurrogateReparsePoint: false);
     }
 
     private static NativeOpenOutcome ClassifyPrePlantedEntry(string leafPath, int originalError)
@@ -285,11 +296,12 @@ internal static class WindowsSafeOpen
 
         if (!probe.IsInvalid &&
             GetFileInformationByHandleEx(probe, FileAttributeTagInfoClass, out var tagInfo, 8) &&
-            (tagInfo.FileAttributes & FileAttributeReparsePoint) != 0)
+            (tagInfo.FileAttributes & FileAttributeReparsePoint) != 0 &&
+            WindowsPathFacts.IsNamespaceRedirectingReparseTag(tagInfo.ReparseTag))
         {
             return NativeOpenOutcome.Refuse(
                 PathRefusalReason.LinkTarget,
-                $"A reparse point (tag 0x{tagInfo.ReparseTag:X8}) already exists at the exclusive-create path. Creation is refused; it is never retried through a link-following open.");
+                $"A name-surrogate reparse point (tag 0x{tagInfo.ReparseTag:X8}) already exists at the exclusive-create path. Creation is refused; it is never retried through a link-following open.");
         }
 
         return NativeOpenOutcome.Refuse(
@@ -300,7 +312,8 @@ internal static class WindowsSafeOpen
     private static NativeOpenOutcome Finish(
         SafeFileHandle handle,
         BY_HANDLE_FILE_INFORMATION probeInfo,
-        string leafPath)
+        string leafPath,
+        bool allowNonSurrogateReparsePoint)
     {
         var fileType = GetFileType(handle);
         if (fileType != FileTypeDisk)
@@ -320,13 +333,23 @@ internal static class WindowsSafeOpen
                 $"The identity of the retained handle could not be read (Win32 error {error}).");
         }
 
-        if ((info.FileAttributes & FileAttributeReparsePoint) != 0 ||
-            (info.FileAttributes & FileAttributeDirectory) != 0)
+        if ((info.FileAttributes & FileAttributeDirectory) != 0)
+        {
+            handle.Dispose();
+            return NativeOpenOutcome.Refuse(
+                PathRefusalReason.NotARegularFile,
+                "The retained handle refers to a directory.");
+        }
+
+        // Belt and braces against a swap between the two opens. A reparse point is only
+        // tolerated here when phase 1 classified it as non-surrogate; the identity
+        // comparison below is what proves it is still the same object.
+        if (!allowNonSurrogateReparsePoint && (info.FileAttributes & FileAttributeReparsePoint) != 0)
         {
             handle.Dispose();
             return NativeOpenOutcome.Refuse(
                 PathRefusalReason.LinkTarget,
-                "The retained handle refers to a reparse point or directory.");
+                "The retained handle refers to a reparse point that was not present when the target was checked.");
         }
 
         var probeIdentity = IdentityOf(probeInfo);

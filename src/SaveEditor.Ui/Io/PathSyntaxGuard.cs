@@ -66,6 +66,18 @@ internal static class PathSyntaxGuard
             return Refuse(PathRefusalReason.InvalidPath, "The path has no volume root.");
         }
 
+        // A drive letter mapped to an SMB share carries the same outbound connection and
+        // NTLM exposure as the UNC path it stands for, so it is gated by the same option.
+        // GetDriveType reads the local drive table; it reports an existing mapping rather
+        // than establishing one, so this stays ahead of any open.
+        if (windows && !options.AllowNonLocalPaths &&
+            WindowsPathFacts.IsRemoteDriveType(WindowsPathFacts.GetDriveType(pathRoot)))
+        {
+            return Refuse(
+                PathRefusalReason.NonLocalPath,
+                "The path is on a mapped network drive. Mapped drives are refused unless PathResolutionOptions.AllowNonLocalPaths is set, for the same reason UNC paths are.");
+        }
+
         var separators = windows ? WindowsSeparators : UnixSeparators;
         var parts = path[pathRoot.Length..].Split(separators);
         var collected = new List<string>(parts.Length);

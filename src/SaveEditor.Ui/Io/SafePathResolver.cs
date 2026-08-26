@@ -28,7 +28,15 @@ namespace SaveEditor.Ui.Io;
 /// </description></item>
 /// <item><description>
 /// A leaf open with link following disabled — <c>O_NOFOLLOW | O_CLOEXEC</c> on Linux,
-/// <c>FILE_FLAG_OPEN_REPARSE_POINT</c> with reparse-tag inspection on Windows.
+/// <c>FILE_FLAG_OPEN_REPARSE_POINT</c> with reparse-tag inspection on Windows. A Windows
+/// reparse point is refused when its tag carries the name-surrogate bit, which is what
+/// marks a tag as standing in for an object elsewhere: symbolic links and junctions do,
+/// and are refused in either leaf or ancestor position. Tags that do not — cloud
+/// placeholders, deduplicated content, WOF-compressed files — name the same object and
+/// redirect nothing, so they pass through to the regular-file and identity checks
+/// unchanged. Note that reading such a file may cause the operating system to hydrate it
+/// from cloud storage; that is the OS acting on a file the user selected, not the
+/// framework opening a connection of its own.
 /// </description></item>
 /// <item><description>
 /// A regular-file check read from the open descriptor. FIFOs, devices, sockets, named
@@ -45,12 +53,17 @@ namespace SaveEditor.Ui.Io;
 /// converted to refusals. Only cancellation propagates.
 /// </para>
 /// <para>
+/// <strong>Non-local paths.</strong> Both UNC syntax and a drive letter mapped to a
+/// network share are gated by <see cref="PathResolutionOptions.AllowNonLocalPaths"/>.
+/// The exposure the option exists for is the outbound SMB connection and the NTLM
+/// authentication attempt, which a mapped drive letter produces exactly as a UNC path
+/// does, so the two are refused identically.
+/// </para>
+/// <para>
 /// <strong>Out of scope.</strong> Bind mounts on Linux, and volume mount points reached
 /// through a drive letter on Windows, carry no link attribute on the components the
 /// caller names. They are undetectable by this primitive and are stated as out of scope
-/// rather than implied to be covered. Mapped network drive letters are likewise not
-/// distinguished from local ones; only the UNC syntax is gated by
-/// <see cref="PathResolutionOptions.AllowNonLocalPaths"/>.
+/// rather than implied to be covered.
 /// </para>
 /// </remarks>
 public sealed class SafePathResolver : ISafePathResolver

@@ -67,7 +67,12 @@ public sealed class SafePathResolverSecurityTests
         var target = Path.Combine(realDirectory, "save.dat");
         File.WriteAllBytes(target, new byte[8]);
 
-        // IO_REPARSE_TAG_MOUNT_POINT (0xA0000003) — a reparse point that is not a symlink.
+        // IO_REPARSE_TAG_MOUNT_POINT (0xA0000003) is a reparse point that is not a
+        // symlink, and it carries the name-surrogate bit, which is the property the
+        // resolver actually keys off. Tags without that bit are deliberately permitted;
+        // see SafePathResolverWindowsClassificationTests.
+        Assert.True(WindowsPathFacts.IsNamespaceRedirectingReparseTag(WindowsPathFacts.ReparseTagMountPoint));
+
         var junction = workspace.Path("junction");
         var failure = PlatformFixtures.TryCreateJunction(junction, realDirectory);
         Assert.SkipWhen(failure is not null, $"Could not create a junction: {failure}");
