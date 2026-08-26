@@ -551,6 +551,10 @@ The screenshot clause is satisfied by a determinism assertion rather than a stor
 
 **Acceptance:** headless tests prove Exit with pending edits raises the guard and does *not* shut down; every menu command routes to its handler; tab order and accessible names are correct; the welcome state lists recents; an injected drop path reaches the same open entry point as the menu; `PathFormatter_StripsBidiAndShowsFinalTwoComponents` passes (A13).
 
+**Status: complete.** Verification initially refuted the "every menu command routes to its handler" clause: `Open Folder…` was bound to the file-open command, and command coverage stood at six of twelve — the untested half being exactly where the mis-route survived. Both are closed, and the guards were mutation-checked rather than assumed.
+
+One lesson is recorded here because it will recur: **a command-level test passes straight through a wrong menu binding.** Two tests now inspect bindings directly — one walking the statically declared menu, one realizing the `ItemsSource`-driven groups (Recent, Themes, Accent), which the static walk cannot see. The second exists because a mis-bound Accent item was demonstrated to ship green against the first.
+
 **Checks deferred to P4.** The stubbed `IDocumentSession` cannot prove the following. This list is finite and is the exact set P4's acceptance refers to:
 
 | ID | Deferred check |

@@ -39,6 +39,13 @@ internal sealed class GalleryDocumentSession : IDocumentSession
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>Opens a folder. Aliased to <see cref="OpenAsync"/> here, and only here.</summary>
+    /// <remarks>
+    /// Legitimate in a catalogue that records a path and reads nothing. Do not copy
+    /// this into a real session: the two paths diverge the moment a file is actually
+    /// opened, because the resolver refuses anything that is not a regular file, so a
+    /// directory routed through the file open is refused by design.
+    /// </remarks>
     public ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default) =>
         OpenAsync(path, cancellationToken);
 

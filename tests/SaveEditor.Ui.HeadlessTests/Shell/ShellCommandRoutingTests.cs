@@ -2,7 +2,9 @@ using System.Reflection;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SaveEditor.Ui.Settings;
 using SaveEditor.Ui.Shell;
@@ -111,6 +113,94 @@ public class ShellCommandRoutingTests
             Assert.True(found.ContainsKey(header), $"Menu item '{header}' was not found.");
             Assert.Same(command, found[header]);
         }
+    }
+
+    [AvaloniaFact]
+    public void Data_Driven_Menu_Groups_Are_Bound_To_Their_Own_Commands()
+    {
+        // Recent, Themes, and Accent are realized from ItemsSource, so the static
+        // menu walk never sees them - the same wrong-binding defect can ship green
+        // in exactly these three groups unless their containers are inspected.
+        var session = new FakeDocumentSession();
+        var store = new FakeSettingsStore
+        {
+            Current = new EditorSettings { RecentFiles = ["/saves/a.dat"] },
+        };
+
+        var theme = new ThemeController(
+            Application.Current!.Styles.OfType<SaveEditorTheme>().Single(), new FakeSettingsStore());
+
+        var vm = new EditorShellViewModel(session, new FakeUserInteraction(), store, null, theme);
+        vm.Recents.Add(new RecentEntry("/saves/a.dat", Display.PathDisplayFormatter.Default.Format("/saves/a.dat")));
+
+        var shell = new EditorShell { DataContext = vm };
+        var window = new Window { Width = 1000, Height = 700, Content = shell };
+        window.Show();
+
+        var menu = shell.GetVisualDescendants().OfType<Menu>().Single();
+        var top = menu.Items.OfType<MenuItem>().ToList();
+
+        var file = top.Single(m => (string?)m.Header == "_File");
+        var view = top.Single(m => (string?)m.Header == "_View");
+
+        var recent = Realize(window, file).Single(m => (string?)m.Header == "_Recent");
+        Assert.All(Realize(window, recent), item =>
+        {
+            Assert.Same(vm.OpenRecentCommand, item.Command);
+            Assert.IsType<RecentEntry>(item.CommandParameter);
+        });
+
+        var appearance = Realize(window, view).Single(m => (string?)m.Header == "_Appearance");
+        var appearanceChildren = Realize(window, appearance);
+
+        var themes = appearanceChildren.Single(m => (string?)m.Header == "_Themes");
+        Assert.All(Realize(window, themes), item =>
+        {
+            Assert.Same(vm.SetThemeCommand, item.Command);
+            Assert.IsType<ThemeMode>(item.CommandParameter);
+        });
+
+        var accents = appearanceChildren.Single(m => (string?)m.Header == "A_ccent");
+        var accentItems = Realize(window, accents);
+
+        Assert.Equal(14, accentItems.Count);
+        Assert.All(accentItems, item =>
+        {
+            Assert.Same(vm.SetAccentCommand, item.Command);
+            Assert.IsType<CatppuccinAccent>(item.CommandParameter);
+        });
+    }
+
+    /// <summary>Opens a submenu and returns its realized containers.</summary>
+    /// <remarks>
+    /// Containers do not exist until the submenu opens and a frame is produced, so
+    /// reading them without the render pump returns null commands and would make
+    /// this test pass against a completely broken binding.
+    /// </remarks>
+    private static IReadOnlyList<MenuItem> Realize(Window window, MenuItem parent)
+    {
+        parent.IsSubMenuOpen = true;
+        Dispatcher.UIThread.RunJobs();
+        window.CaptureRenderedFrame();
+        Dispatcher.UIThread.RunJobs();
+
+        var realized = Enumerable.Range(0, parent.ItemCount)
+            .Select(parent.ContainerFromIndex)
+            .OfType<MenuItem>()
+            .ToList();
+
+        // Separators are items but not MenuItem containers, so the expected count is
+        // the non-separator items rather than ItemCount. The guard matters either
+        // way: if nothing realized, every Assert.All below would pass over an empty
+        // collection and the test would prove nothing.
+        var expected = parent.Items.Count(item => item is not Separator);
+
+        Assert.True(
+            realized.Count == expected,
+            $"Only {realized.Count} of {expected} menu containers realized under " +
+            $"'{parent.Header}'; the assertions below would be vacuous.");
+
+        return realized;
     }
 
     private static IEnumerable<MenuItem> Descend(IEnumerable<MenuItem> items)
