@@ -103,12 +103,14 @@ public interface IFilePermissionPolicy
 /// the hard gate.</strong> On Linux the copy walks the extended attributes of the open
 /// descriptor, which carries POSIX ACLs along with it because they are stored as
 /// <c>system.posix_acl_access</c>; attributes in namespaces the process may not write are
-/// skipped. On Windows the discretionary ACL is copied, first through the handle the
-/// workflow already holds and, if that handle lacks <c>WRITE_DAC</c>, through one re-open
-/// of the temporary path whose file identity is re-asserted against the identity recorded
-/// at exclusive-create time before anything is written. A re-open that lands on a
-/// different object is abandoned rather than used, so the re-open cannot become a
-/// primitive for stamping the original save's descriptor onto an attacker-named file.
+/// skipped. On Windows the discretionary ACL is written onto the temporary file through
+/// exactly one re-open of the temporary path, whose file identity is re-asserted against
+/// the identity recorded at exclusive-create time before anything is written. Writing
+/// through the handle the workflow already holds is not attempted at all: a descriptor
+/// that was only read persists nothing, so that call was a silent no-op that reported
+/// success on every save (finding F-16). A re-open that lands on a different object is
+/// abandoned rather than used, so the re-open cannot become a primitive for stamping the
+/// original save's descriptor onto an attacker-named file.
 /// </para>
 /// </remarks>
 public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
@@ -153,7 +155,7 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
 
         if (OperatingSystem.IsWindows())
         {
-            return CopyWindows(original, target, targetPath, targetIdentity);
+            return CopyWindows(original, targetPath, targetIdentity);
         }
 
         return CopyUnix(original, target);
@@ -164,6 +166,24 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
     {
         ArgumentNullException.ThrowIfNull(candidate);
         ArgumentNullException.ThrowIfNull(original);
+
+        // Fail closed when nothing at all could be read about the candidate. Both
+        // dimensions null is precisely what Capture returns when the mode or the
+        // descriptor was unreadable, and it used to fall through to "the replacement
+        // grants nothing the original does not" — the hard widening gate quietly
+        // disappearing at the one moment nothing is known about what the destination
+        // would end up with (finding F-16). Only the candidate side needs this: Capture
+        // and CopyOnto read the original through the same call on the same handle, so an
+        // unreadable original has already aborted the save with
+        // PermissionCopyStatus.Failed before this comparison is reached.
+        if (candidate.UnixMode is null && candidate.WindowsEffectiveRights is null)
+        {
+            detail =
+                $"The permission set the destination would end up with could not be read ({candidate.Summary}), " +
+                $"so it cannot be shown to grant nothing beyond the original's ({original.Summary}). " +
+                "The save was refused rather than proceeding past a comparison that cannot be made.";
+            return true;
+        }
 
         if (candidate.UnixMode is { } candidateMode && original.UnixMode is { } originalMode)
         {
@@ -367,7 +387,6 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
     [SupportedOSPlatform("windows")]
     private static PermissionCopyResult CopyWindows(
         FileStream original,
-        FileStream target,
         string targetPath,
         FileIdentity targetIdentity)
     {
@@ -383,39 +402,89 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
                 $"The discretionary ACL of the original could not be read ({ex.GetType().Name}: {ex.Message}).");
         }
 
-        try
-        {
-            target.SetAccessControl(security);
-            return new PermissionCopyResult(PermissionCopyStatus.Copied, "The discretionary ACL was carried over through the retained handle.");
-        }
-        catch (Exception)
-        {
-            // The retained temp handle was opened for data access, which on Windows does
-            // not include WRITE_DAC. Fall through to the identity-checked re-open.
-        }
-
+        // There is deliberately no first attempt through the retained temporary handle.
+        // Finding F-16: a FileSecurity that has only been read has none of its
+        // AccessRulesModified / AuditRulesModified / OwnerModified / GroupModified flags
+        // set, so FileSystemSecurity.Persist computes an empty SECURITY_INFORMATION and
+        // NativeObjectSecurity.Persist returns before it ever reaches SetSecurityInfo. The
+        // target.SetAccessControl(security) that used to stand here therefore wrote
+        // nothing, threw nothing, and reported Copied on every single save. Forcing the
+        // descriptor to count as modified does not rescue that route either: the handle the
+        // exclusive create returned carries data access, which on Windows does not include
+        // WRITE_DAC, and the same call then fails with UnauthorizedAccessException. Keeping
+        // it as a first tier would only raise and swallow one exception per save for a
+        // route that cannot succeed, so the identity-checked re-open is the only route.
         return CopyWindowsThroughReopen(security, targetPath, targetIdentity);
     }
 
+    /// <summary>
+    /// Writes the original's discretionary ACL onto the temporary file through one
+    /// identity-checked re-open of its path.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The access mask is <c>FILE_READ_ATTRIBUTES | READ_CONTROL | WRITE_DAC</c> and
+    /// nothing else, and the share mode allows read, write and delete. Only data, execute
+    /// and delete rights take part in the pairwise sharing check Windows runs against every
+    /// other open handle to the same file, so a mask built solely from attribute and
+    /// security rights is share-neutral and opens alongside the exclusive-create handle the
+    /// workflow is still holding; asking for <c>GENERIC_READ | GENERIC_WRITE</c> as well
+    /// fails that check with <c>ERROR_SHARING_VIOLATION</c> (32) instead.
+    /// <see cref="WindowsSafeOpen"/> already depends on the same property for its ancestor
+    /// attribute probes.
+    /// </para>
+    /// <para>
+    /// The descriptor is written with <c>SetKernelObjectSecurity</c> rather than through a
+    /// <see cref="FileStream"/>, because a <c>WRITE_DAC</c>-only handle has no data access
+    /// for a stream to wrap and because <see cref="FileSystemSecurity"/> decides for itself
+    /// which sections to persist — the exact mechanism behind finding F-16.
+    /// </para>
+    /// </remarks>
     [SupportedOSPlatform("windows")]
     private static PermissionCopyResult CopyWindowsThroughReopen(
         FileSecurity security,
         string targetPath,
         FileIdentity targetIdentity)
     {
-        const uint GenericRead = 0x8000_0000;
-        const uint GenericWrite = 0x4000_0000;
+        const uint FileReadAttributes = 0x0000_0080;
         const uint ReadControl = 0x0002_0000;
         const uint WriteDac = 0x0004_0000;
         const uint FileShareRead = 0x0000_0001;
+        const uint FileShareWrite = 0x0000_0002;
         const uint FileShareDelete = 0x0000_0004;
         const uint OpenExisting = 3;
         const uint FileFlagOpenReparsePoint = 0x0020_0000;
+        const uint DaclSecurityInformation = 0x0000_0004;
+        const uint UnprotectedDaclSecurityInformation = 0x2000_0000;
+        const uint ProtectedDaclSecurityInformation = 0x8000_0000;
+
+        byte[] descriptor;
+        bool protectedRules;
+        try
+        {
+            // Already self-relative, which is the form SetKernelObjectSecurity wants.
+            descriptor = security.GetSecurityDescriptorBinaryForm();
+            protectedRules = security.AreAccessRulesProtected;
+        }
+        catch (Exception ex)
+        {
+            return new PermissionCopyResult(
+                PermissionCopyStatus.PartiallyCopied,
+                $"The discretionary ACL could not be carried over: the original's security descriptor could not be serialized ({ex.GetType().Name}: {ex.Message}). The widening comparison still applies.");
+        }
+
+        // SE_DACL_PROTECTED has to be asked for explicitly, and it is load-bearing. Without
+        // it the temporary file keeps the inheritable ACEs it picked up from the containing
+        // directory at create time and the copied ACEs merely join them, which is how a
+        // destination whose own ACL is narrower than its parent directory's inheritable set
+        // used to fail its own save with PermissionWidening (finding F-16).
+        var securityInformation = DaclSecurityInformation |
+            (protectedRules ? ProtectedDaclSecurityInformation : UnprotectedDaclSecurityInformation);
 
         var handle = CreateFileW(
             targetPath,
-            GenericRead | GenericWrite | ReadControl | WriteDac,
-            FileShareRead | FileShareDelete,
+            FileReadAttributes | ReadControl | WriteDac,
+            FileShareRead | FileShareWrite | FileShareDelete,
             IntPtr.Zero,
             OpenExisting,
             FileFlagOpenReparsePoint,
@@ -432,6 +501,8 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
 
         try
         {
+            // GetFileInformationByHandle needs no data access, so the identity check still
+            // functions on a mask that deliberately grants none.
             if (!GetFileInformationByHandle(handle, out var info))
             {
                 return new PermissionCopyResult(
@@ -448,17 +519,26 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
                 // Something replaced the temporary file between its exclusive creation and
                 // this re-open. Writing the original save's descriptor onto whatever is
                 // there now would be an arbitrary-ACL-write primitive, so it is abandoned.
+                // This re-open is now the only path that writes a descriptor by path, which
+                // makes this check the whole of that control rather than a second layer.
                 return new PermissionCopyResult(
                     PermissionCopyStatus.Failed,
                     "The temporary file was replaced between its exclusive creation and the permission copy. The save was abandoned rather than writing a security descriptor to an unknown object.");
             }
 
-            using var stream = new FileStream(handle, FileAccess.ReadWrite);
-            stream.SetAccessControl(security);
+            if (!SetKernelObjectSecurity(handle, securityInformation, descriptor))
+            {
+                var error = Marshal.GetLastPInvokeError();
+                return new PermissionCopyResult(
+                    PermissionCopyStatus.PartiallyCopied,
+                    $"The discretionary ACL could not be carried over: writing the security descriptor onto the temporary file failed with Win32 error {error}. The widening comparison still applies.");
+            }
 
             return new PermissionCopyResult(
                 PermissionCopyStatus.Copied,
-                "The discretionary ACL was carried over through an identity-checked re-open.");
+                protectedRules
+                    ? "The original's discretionary ACL was written onto the temporary file through an identity-checked re-open, with inheritance left disabled as it is on the original."
+                    : "The original's discretionary ACL was written onto the temporary file through an identity-checked re-open.");
         }
         catch (Exception ex)
         {
@@ -468,10 +548,9 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
         }
         finally
         {
-            if (!handle.IsClosed)
-            {
-                handle.Dispose();
-            }
+            // No FileStream is wrapped around the handle any more, so this is its single
+            // owner and the disposal cannot be a double release.
+            handle.Dispose();
         }
     }
 
@@ -512,6 +591,13 @@ public sealed class PlatformFilePermissionPolicy : IFilePermissionPolicy
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetFileInformationByHandle(SafeFileHandle hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetKernelObjectSecurity(
+        SafeFileHandle handle,
+        uint securityInformation,
+        byte[] securityDescriptor);
 
 #pragma warning disable IDE1006 // libc entry points keep their own names.
 
