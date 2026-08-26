@@ -86,6 +86,20 @@ public enum SaveFailureReason
     Unexpected,
 }
 
+/// <summary>The outcome of restoring a backup, and the document that was restored.</summary>
+/// <typeparam name="TDocument">The editor's in-memory document type.</typeparam>
+/// <param name="Outcome">The definitive outcome, on the same terms as any other write.</param>
+/// <param name="Document">
+/// The document decoded from the backup, when the restore succeeded; otherwise
+/// <see langword="default"/>.
+/// </param>
+/// <remarks>
+/// The document is returned rather than pushed anywhere because the framework does not own
+/// the application's document reference. After a successful restore the caller's in-memory
+/// document no longer matches the file, so adopting this one — or reopening — is not optional.
+/// </remarks>
+public sealed record RestoreResult<TDocument>(SaveOutcome Outcome, TDocument? Document);
+
 /// <summary>
 /// Whether the serialized bytes were decoded and compared to the document before the replace.
 /// </summary>

@@ -973,6 +973,13 @@ SaveEditor.Ui.Workflow.ReplaceStatus :: field Int32 value__
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Failed
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus NotAtomic
 SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Replaced
+SaveEditor.Ui.Workflow.RestoreResult`1 :: ctor (SaveOutcome Outcome, TDocument Document)
+SaveEditor.Ui.Workflow.RestoreResult`1 :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.RestoreResult`1 :: method Boolean Equals(RestoreResult<TDocument> other)
+SaveEditor.Ui.Workflow.RestoreResult`1 :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.RestoreResult`1 :: method String ToString()
+SaveEditor.Ui.Workflow.RestoreResult`1 :: property SaveOutcome Outcome get set
+SaveEditor.Ui.Workflow.RestoreResult`1 :: property TDocument Document get set
 SaveEditor.Ui.Workflow.RoundTripVerification :: field Int32 value__
 SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification Mismatched
 SaveEditor.Ui.Workflow.RoundTripVerification :: field RoundTripVerification NotReached
@@ -1005,6 +1012,7 @@ SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property TimeSpan TemporaryR
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: ctor (SafeFileWorkflowOptions<TDocument> options)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method TempSweepReport SweepTemporaryResidue(IEnumerable<String> additionalDirectories)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<OpenOutcome<TDocument>> OpenAsync(String path, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<RestoreResult<TDocument>> RestoreFromBackupAsync(String backupPath, OpenSaveFile<TDocument> open, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> OverwriteWithBackupAsync(TDocument document, OpenSaveFile<TDocument> open, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> SaveAsAsync(TDocument document, ISaveCodec<TDocument> codec, OpenSaveFile<TDocument> current, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: property IReadOnlyCollection<String> DirectoriesWrittenTo get
@@ -1233,6 +1241,7 @@ type SaveEditor.Ui.Workflow.PlatformDurabilityBarrier
 type SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy
 type SaveEditor.Ui.Workflow.ReplaceResult
 type SaveEditor.Ui.Workflow.ReplaceStatus
+type SaveEditor.Ui.Workflow.RestoreResult`1
 type SaveEditor.Ui.Workflow.RoundTripVerification
 type SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1
 type SaveEditor.Ui.Workflow.SafeFileWorkflow`1
