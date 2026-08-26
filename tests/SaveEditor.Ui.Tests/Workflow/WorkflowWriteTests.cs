@@ -353,8 +353,10 @@ public sealed class WorkflowWriteTests
         Assert.Equal("Overwrite save file", confirmation.AcceptLabel);
         Assert.DoesNotContain("OK", confirmation.AcceptLabel, StringComparison.Ordinal);
 
-        // The declaration does suppress the genuinely duplicate prompt: the same claim over
-        // the document that is already open produces no second confirmation.
+        // Nor over the document that is already open. Revision 3 suppressed that one as a
+        // genuine duplicate, which held only while this path took no backup and restated no
+        // preservation claim -- neither is true now, so the picker's declaration suppresses
+        // nothing anywhere (finding F-2 supersedes finding A7).
         harness.Interaction.Confirmations.Clear();
         harness.Interaction.SavePicker = _ => new SaveFilePickResult(open.Path, PickerConfirmedOverwrite: true);
 
@@ -362,7 +364,180 @@ public sealed class WorkflowWriteTests
             .SaveAsAsync(document with { Level = 8 }, harness.Codec, open, cancellationToken: Token);
 
         WorkflowHarness.AssertSucceeded(sameFile);
+
+        var sameFileConfirmation = Assert.Single(harness.Interaction.Confirmations);
+        Assert.True(sameFileConfirmation.IsDestructive);
+        Assert.Contains("verified backup", sameFileConfirmation.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A <c>Save As</c> whose target already exists is a destructive overwrite, and takes the
+    /// same all-or-nothing verified backup as the operation named after it.
+    /// </summary>
+    /// <remarks>
+    /// Before this, <c>Save As</c> -- the path the README presents as the safe default -- was
+    /// the only one that could replace an existing file leaving no recoverable copy, which
+    /// inverted the safety labelling relative to the actual behaviour.
+    /// </remarks>
+    [Fact]
+    public async Task SaveAs_OntoAnExistingFileTakesAVerifiedBackup()
+    {
+        using var harness = new WorkflowHarness("save-as-backup");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        var victimDocument = new TestDocument("victim", 1, "victim-trailer");
+        var victim = harness.WriteSave("victim.sav", victimDocument);
+        var victimBytes = File.ReadAllBytes(victim);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        harness.Interaction.SavePicker = _ => new SaveFilePickResult(victim, PickerConfirmedOverwrite: false);
+
+        var written = document with { Level = 7 };
+        var outcome = await harness.Create()
+            .SaveAsAsync(written, harness.Codec, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(outcome);
+
+        // The new bytes landed.
+        Assert.Equal(TestCodec.Encode(written), File.ReadAllBytes(victim));
+
+        // And what was there is recoverable, byte for byte, at a path the outcome names.
+        Assert.NotNull(outcome.BackupPath);
+        Assert.True(File.Exists(outcome.BackupPath), "Save As reported a backup path that does not exist.");
+        Assert.Equal(victimBytes, File.ReadAllBytes(outcome.BackupPath!));
+
+        var backup = Assert.Single(WorkflowHarness.Backups(harness.Workspace.Root));
+        Assert.Equal(backup, outcome.BackupPath);
+
+        // The file that was open is not the file that was written, so it is untouched.
+        Assert.Equal(TestCodec.Encode(document), File.ReadAllBytes(target));
+    }
+
+    [Fact]
+    public async Task SaveAs_OntoTheOpenDocumentLeavesARecoverableCopy()
+    {
+        using var harness = new WorkflowHarness("save-as-self-backup");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+        var originalBytes = File.ReadAllBytes(target);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        harness.Interaction.SavePicker = _ => new SaveFilePickResult(open.Path, PickerConfirmedOverwrite: false);
+
+        var written = document with { Level = 12 };
+        var outcome = await harness.Create()
+            .SaveAsAsync(written, harness.Codec, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(outcome);
+        Assert.Equal(TestCodec.Encode(written), File.ReadAllBytes(target));
+
+        Assert.NotNull(outcome.BackupPath);
+        Assert.Equal(originalBytes, File.ReadAllBytes(outcome.BackupPath!));
+    }
+
+    /// <summary>
+    /// A <c>Save As</c> to a path that does not exist stays exactly as cheap as it was: no
+    /// backup, no prompt.
+    /// </summary>
+    [Fact]
+    public async Task SaveAs_ToANewPathTakesNoBackupAndAsksNothing()
+    {
+        using var harness = new WorkflowHarness("save-as-new");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        var fresh = harness.Workspace.Path("fresh.sav");
+        harness.Interaction.SavePicker = _ => new SaveFilePickResult(fresh, PickerConfirmedOverwrite: false);
+
+        var outcome = await harness.Create()
+            .SaveAsAsync(document with { Level = 3 }, harness.Codec, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(outcome);
+        Assert.True(File.Exists(fresh));
+        Assert.Null(outcome.BackupPath);
         Assert.Empty(harness.Interaction.Confirmations);
+        Assert.Empty(WorkflowHarness.Backups(harness.Workspace.Root));
+    }
+
+    /// <summary>
+    /// The backup on the <c>Save As</c> path is all-or-nothing on the same terms as the
+    /// overwrite path: if it cannot be taken, the destination is not touched.
+    /// </summary>
+    [Fact]
+    public async Task SaveAs_AbandonsTheWriteWhenTheBackupCannotBeTaken()
+    {
+        using var harness = new WorkflowHarness("save-as-backup-refused");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        var victim = harness.WriteSave("victim.sav", new TestDocument("victim", 1, "victim-trailer"));
+        var victimBytes = File.ReadAllBytes(victim);
+
+        var names = new FixedFileNames(
+            ".saveeditor-tmp-00112233445566778899aabbccddeeff.part",
+            "victim.sav.saveeditor-backup.20260101T000000Z.deadbeef.bak");
+        harness.FileNames = names;
+
+        // Something is already sitting at the backup name. Exclusive creation refuses it, and
+        // the write is abandoned rather than proceeding without a backup.
+        File.WriteAllBytes(harness.Workspace.Path(names.BackupName), [9, 9, 9]);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        harness.Interaction.SavePicker = _ => new SaveFilePickResult(victim, PickerConfirmedOverwrite: false);
+
+        var outcome = await harness.Create()
+            .SaveAsAsync(document with { Level = 7 }, harness.Codec, open, cancellationToken: Token);
+
+        Assert.Equal(SaveStatus.Failed, outcome.Status);
+        Assert.Equal(SaveFailureReason.BackupFailed, outcome.Reason);
+        Assert.Equal(victimBytes, File.ReadAllBytes(victim));
+        Assert.DoesNotContain("replace", harness.Durability.Calls);
+        Assert.Empty(WorkflowHarness.TemporaryResidue(harness.Workspace.Root));
+    }
+
+    /// <summary>
+    /// Capturing a baseline for a destination the workflow never decoded has a second effect:
+    /// the pre-replace external-change check now runs on this path, which it previously
+    /// skipped for every target other than the open document.
+    /// </summary>
+    [Fact]
+    public async Task SaveAs_OntoAnExistingFileChecksForExternalChangeBeforeReplacing()
+    {
+        using var harness = new WorkflowHarness("save-as-external-change");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+        var victim = harness.WriteSave("victim.sav", new TestDocument("victim", 1, "victim-trailer"));
+        var victimBytes = File.ReadAllBytes(victim);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        harness.Interaction.SavePicker = _ => new SaveFilePickResult(victim, PickerConfirmedOverwrite: false);
+
+        // The destination's bytes change after its baseline was captured. The guard is what
+        // notices; before this slice there was no baseline for it to compare against.
+        var verifyCallsAtStart = harness.Guard.VerifyCalls;
+        harness.Guard.VerifyOverride = call => call > verifyCallsAtStart
+            ? new ExternalChangeCheck(ExternalChangeVerdict.Changed, true, false, "the destination changed")
+            : null;
+
+        var outcome = await harness.Create()
+            .SaveAsAsync(document with { Level = 7 }, harness.Codec, open, cancellationToken: Token);
+
+        Assert.Equal(SaveStatus.Failed, outcome.Status);
+        Assert.Equal(SaveFailureReason.ExternalChange, outcome.Reason);
+        Assert.Equal(victimBytes, File.ReadAllBytes(victim));
+        Assert.DoesNotContain("replace", harness.Durability.Calls);
     }
 
     [Fact]
