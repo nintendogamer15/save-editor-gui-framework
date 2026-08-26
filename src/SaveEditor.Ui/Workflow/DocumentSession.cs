@@ -138,6 +138,22 @@ public class DocumentSession<TDocument> : IDocumentSession, IDisposable
     public event EventHandler? StateChanged;
 
     /// <summary>Raised when a different document becomes current, so sections can rebuild.</summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Rebuild the sections here; do not refresh them.</strong> This is the supported
+    /// pattern for any operation that replaces the document — opening, reloading, closing, or
+    /// restoring a backup — and the generated template does exactly that
+    /// (finding F-20).
+    /// </para>
+    /// <para>
+    /// The distinction matters because field descriptors capture <c>Read</c> and <c>Write</c>
+    /// delegates over the document instance that was current when the section was built.
+    /// After a swap those delegates still point at the previous object, so
+    /// <see cref="Editing.SectionEditor.RefreshFromDocument"/> re-reads the document that is no
+    /// longer open: the section looks correct and is editing something that will never be
+    /// saved. Refreshing is only ever right when the same instance was mutated in place.
+    /// </para>
+    /// </remarks>
     public event EventHandler? DocumentChanged;
 
     /// <summary>Raised after a document is opened, carrying its canonical path.</summary>

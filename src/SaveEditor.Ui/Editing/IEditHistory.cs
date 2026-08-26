@@ -72,6 +72,17 @@ public interface IEditTransaction : IDisposable
 /// values. An implementation that records every keystroke will produce an editor that
 /// behaves differently from every other editor built on this framework.
 /// </para>
+/// <para>
+/// <strong>An implementation that restores state wholesale must refresh the sections
+/// itself.</strong> The default drives per-field refresh from the closures recorded at apply
+/// time, so <see cref="Undo"/> and <see cref="Redo"/> update the fields as a side effect of
+/// replaying them. A history backed by document snapshots bypasses those closures entirely:
+/// the document changes underneath fields that are never told, and they keep displaying values
+/// it no longer holds. Call
+/// <see cref="SectionEditor.RefreshFromDocument"/> after restoring a snapshot over the same
+/// document instance, and rebuild the sections instead if the restore produces a different one
+/// (finding F-20).
+/// </para>
 /// </remarks>
 public interface IEditHistory
 {

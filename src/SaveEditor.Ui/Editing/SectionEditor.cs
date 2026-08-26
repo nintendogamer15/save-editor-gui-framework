@@ -171,7 +171,31 @@ public partial class SectionEditor : ObservableObject
         NotifyState();
     }
 
-    /// <summary>Re-reads every field from the document, as after an undo.</summary>
+    /// <summary>Re-reads every field from the <em>same</em> document instance.</summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>Nothing in the framework calls this, and that is not an oversight.</strong>
+    /// Undo and redo of a per-field edit carry their own refresh in the closures recorded at
+    /// apply time, so the shipped history needs no help. This exists for a history that
+    /// restores state some other way — a whole-document snapshot, for instance — where those
+    /// closures never run and the fields would otherwise keep showing values the document no
+    /// longer holds (finding F-20).
+    /// </para>
+    /// <para>
+    /// <strong>It is not sufficient once the document <em>instance</em> changes.</strong>
+    /// Every field reads and writes through delegates captured over the object that was open
+    /// when the section was built. Reload, and
+    /// <see cref="Workflow.SafeFileWorkflow{TDocument}.RestoreFromBackupAsync"/>, both hand
+    /// back a different instance, and refreshing then re-reads the <em>old</em> one — the
+    /// section looks updated and is quietly editing an object nothing will save. Rebuild the
+    /// sections instead; <see cref="Workflow.DocumentSession{TDocument}.DocumentChanged"/> is
+    /// the signal to do it on.
+    /// </para>
+    /// <para>
+    /// Pending drafts are discarded, because this is a refresh from the document rather than a
+    /// merge with it.
+    /// </para>
+    /// </remarks>
     public virtual void RefreshFromDocument()
     {
         foreach (var field in Fields)

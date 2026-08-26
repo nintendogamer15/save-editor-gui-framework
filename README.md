@@ -305,6 +305,15 @@ every field the codec writes.**
 field view-models. Leave it unset and the exit guard is blind to typed-but-unapplied
 edits, and closing the editor discards them without asking.
 
+**Rebuild sections when the document changes; don't refresh them.** Field descriptors
+capture `Read` and `Write` delegates over the document instance that was open when you
+built the section. Open, Reload and `RestoreFromBackupAsync` all produce a *different*
+instance, so `SectionEditor.RefreshFromDocument()` then re-reads the old object — the
+editor looks updated and is quietly editing something nothing will save. Rebuild from
+`DocumentSession.DocumentChanged`, which is what the generated template does.
+`RefreshFromDocument` is for the other case: a history that restored state into the same
+instance without going through the per-field undo closures.
+
 **Section bodies own their scrolling.** The shell does not wrap them, because wrapping
 starves a virtualizing `FieldList` of the viewport it needs. Wrap non-scrolling content
 yourself.
