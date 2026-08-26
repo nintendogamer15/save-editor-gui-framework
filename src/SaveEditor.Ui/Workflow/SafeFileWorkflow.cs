@@ -301,12 +301,60 @@ public sealed class SafeFileWorkflow<TDocument>
     /// the meantime is refused by the replace rather than clobbered.
     /// </para>
     /// </remarks>
-    public async ValueTask<SaveOutcome> SaveAsAsync(
+    public ValueTask<SaveOutcome> SaveAsAsync(
         TDocument document,
         ISaveCodec<TDocument> codec,
         OpenSaveFile<TDocument>? current = null,
         IProgress<SaveProgress>? progress = null,
+        CancellationToken cancellationToken = default) =>
+        SaveAsCoreAsync(document, codec, destinationPath: null, current, progress, cancellationToken);
+
+    /// <summary>
+    /// Writes the document to a destination the caller already chose, without invoking a
+    /// picker.
+    /// </summary>
+    /// <param name="document">The document to write.</param>
+    /// <param name="codec">The codec that will serialize it.</param>
+    /// <param name="destinationPath">Where to write. Resolved and guarded exactly as a picked path is.</param>
+    /// <param name="current">The currently open file, when there is one.</param>
+    /// <param name="progress">Optional progress sink.</param>
+    /// <param name="cancellationToken">Cancels the write at the workflow boundary.</param>
+    /// <returns>The definitive outcome.</returns>
+    /// <remarks>
+    /// <para>
+    /// Every guard the picker-driven overload applies applies here: path resolution, the
+    /// write-protection check, identity re-assertion, the unsuppressable confirmation, the
+    /// verified backup for an existing target, and the external-change check. The only
+    /// difference is where the path came from.
+    /// </para>
+    /// <para>
+    /// This exists so that an application whose save policy differs from the framework's does
+    /// not have to reimplement <see cref="Shell.IDocumentSession"/> to express it, nor
+    /// intercept picks through a substituted
+    /// <see cref="Interaction.IUserInteraction"/> — which is policy enforcement smuggled
+    /// through a dialog service (finding F-15). The caller is treated as not having confirmed
+    /// an overwrite, because a caller-supplied path carries no evidence that anyone was asked.
+    /// </para>
+    /// </remarks>
+    public ValueTask<SaveOutcome> SaveAsAsync(
+        TDocument document,
+        ISaveCodec<TDocument> codec,
+        string destinationPath,
+        OpenSaveFile<TDocument>? current = null,
+        IProgress<SaveProgress>? progress = null,
         CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(destinationPath);
+        return SaveAsCoreAsync(document, codec, destinationPath, current, progress, cancellationToken);
+    }
+
+    private async ValueTask<SaveOutcome> SaveAsCoreAsync(
+        TDocument document,
+        ISaveCodec<TDocument> codec,
+        string? destinationPath,
+        OpenSaveFile<TDocument>? current,
+        IProgress<SaveProgress>? progress,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(codec);
 
@@ -323,17 +371,30 @@ public sealed class SafeFileWorkflow<TDocument>
                 return blocked;
             }
 
-            var pick = await _options.Interaction.PickSaveFileAsync(
-                new FilePickerRequest(
-                    "Save a copy",
-                    _options.Registry.Formats,
-                    current is null ? null : Path.GetFileName(current.Path),
-                    current is null ? null : Path.GetDirectoryName(current.Path)),
-                cancellationToken).ConfigureAwait(false);
-
-            if (pick is null)
+            SaveFilePickResult pick;
+            if (destinationPath is null)
             {
-                return SaveOutcome.Declined("No destination was chosen.");
+                var picked = await _options.Interaction.PickSaveFileAsync(
+                    new FilePickerRequest(
+                        "Save a copy",
+                        _options.Registry.Formats,
+                        current is null ? null : Path.GetFileName(current.Path),
+                        current is null ? null : Path.GetDirectoryName(current.Path)),
+                    cancellationToken).ConfigureAwait(false);
+
+                if (picked is null)
+                {
+                    return SaveOutcome.Declined("No destination was chosen.");
+                }
+
+                pick = picked;
+            }
+            else
+            {
+                // A caller-supplied path carries no evidence that anyone was asked about an
+                // overwrite, so it is treated as unconfirmed. Since the declaration no longer
+                // suppresses anything, this is belt and braces rather than load-bearing.
+                pick = new SaveFilePickResult(destinationPath, PickerConfirmedOverwrite: false);
             }
 
             var destinationExists = false;
@@ -390,12 +451,29 @@ public sealed class SafeFileWorkflow<TDocument>
                 }
             }
 
-            var destinationPath = destinationExists && destination is not null ? destination.CanonicalPath : pick.Path;
+            var resolvedPath = destinationExists && destination is not null ? destination.CanonicalPath : pick.Path;
 
-            var directory = Path.GetDirectoryName(destinationPath);
+            var directory = Path.GetDirectoryName(resolvedPath);
             if (string.IsNullOrEmpty(directory))
             {
                 return await FailAsync(SaveFailureReason.PathRefused, "The destination has no containing directory.", pick.Path, cancellationToken).ConfigureAwait(false);
+            }
+
+            var policy = await EvaluatePolicyAsync(
+                new PlannedWrite
+                {
+                    Kind = PlannedWriteKind.SaveAs,
+                    DestinationPath = resolvedPath,
+                    DestinationExists = destinationExists,
+                    IsCurrentDocument = isCurrentDocument,
+                    BackupWillBeWritten = destinationExists,
+                    UnknownData = current?.UnknownData ?? UnknownDataVerification.NotClaimed,
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (policy is not null)
+            {
+                return policy;
             }
 
             string? backupPath = null;
@@ -413,7 +491,7 @@ public sealed class SafeFileWorkflow<TDocument>
                     return await FailAsync(
                         SaveFailureReason.IdentityChanged,
                         "The handle held for the destination no longer refers to the file that was resolved. The write was abandoned.",
-                        destinationPath,
+                        resolvedPath,
                         cancellationToken).ConfigureAwait(false);
                 }
 
@@ -440,7 +518,7 @@ public sealed class SafeFileWorkflow<TDocument>
                 var backup = await CreateVerifiedBackupAsync(destination, destinationBaseline, directory, progress, cancellationToken).ConfigureAwait(false);
                 if (backup.Path is null)
                 {
-                    return await FailAsync(SaveFailureReason.BackupFailed, backup.Detail, destinationPath, cancellationToken).ConfigureAwait(false);
+                    return await FailAsync(SaveFailureReason.BackupFailed, backup.Detail, resolvedPath, cancellationToken).ConfigureAwait(false);
                 }
 
                 backupPath = backup.Path;
@@ -450,7 +528,7 @@ public sealed class SafeFileWorkflow<TDocument>
                 document,
                 codec,
                 directory,
-                destinationPath,
+                resolvedPath,
                 destination,
                 destinationBaseline,
                 destinationExists,
@@ -474,9 +552,9 @@ public sealed class SafeFileWorkflow<TDocument>
                 return write.Outcome with { BackupPath = backupPath };
             }
 
-            ApplyBackupRetention(backupPath, Path.GetFileName(destinationPath));
+            ApplyBackupRetention(backupPath, Path.GetFileName(resolvedPath));
 
-            var success = SaveOutcome.Success(destinationPath, backupPath) with
+            var success = SaveOutcome.Success(resolvedPath, backupPath) with
             {
                 RoundTrip = write.Outcome.RoundTrip,
                 RoundTripDetail = write.Outcome.RoundTripDetail,
@@ -676,6 +754,23 @@ public sealed class SafeFileWorkflow<TDocument>
             // eight of the same report, sorted by severity rather than taken in codec
             // order: a codec emitting thousands of trivial warnings must not be able to
             // bury the one that mattered under the accept button.
+            var policy = await EvaluatePolicyAsync(
+                new PlannedWrite
+                {
+                    Kind = PlannedWriteKind.Overwrite,
+                    DestinationPath = open.Path,
+                    DestinationExists = true,
+                    IsCurrentDocument = true,
+                    BackupWillBeWritten = true,
+                    UnknownData = open.UnknownData,
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (policy is not null)
+            {
+                return policy;
+            }
+
             var warnings = await CollectWarningsAsync(open.Codec, document, cancellationToken).ConfigureAwait(false);
 
             var accepted = await ConfirmOverwriteAsync(open.Path, open, warnings, backupWillBeWritten: true, cancellationToken).ConfigureAwait(false);
@@ -877,6 +972,23 @@ public sealed class SafeFileWorkflow<TDocument>
                 return Refuse(await FailAsync(SaveFailureReason.CodecFailed, detail, backupPath, cancellationToken).ConfigureAwait(false));
             }
 
+            var policy = await EvaluatePolicyAsync(
+                new PlannedWrite
+                {
+                    Kind = PlannedWriteKind.Restore,
+                    DestinationPath = open.Path,
+                    DestinationExists = true,
+                    IsCurrentDocument = true,
+                    BackupWillBeWritten = true,
+                    UnknownData = open.UnknownData,
+                },
+                cancellationToken).ConfigureAwait(false);
+
+            if (policy is not null)
+            {
+                return Refuse(policy);
+            }
+
             if (!await ConfirmRestoreAsync(open.Path, backupPath, cancellationToken).ConfigureAwait(false))
             {
                 return Refuse(SaveOutcome.Declined("The restore was declined."));
@@ -947,6 +1059,53 @@ public sealed class SafeFileWorkflow<TDocument>
         }
 
         static RestoreResult<TDocument> Refuse(SaveOutcome outcome) => new(outcome, default);
+    }
+
+    /// <summary>Consults the application's write policy, if it supplied one.</summary>
+    /// <returns>
+    /// <see langword="null"/> to continue, or the outcome the operation should return.
+    /// </returns>
+    /// <remarks>
+    /// A policy that throws refuses the write. Treating a broken policy as permission would
+    /// make the strictest thing in the composition root the easiest thing to defeat.
+    /// </remarks>
+    private async ValueTask<SaveOutcome?> EvaluatePolicyAsync(PlannedWrite plan, CancellationToken cancellationToken)
+    {
+        if (_options.WritePolicy is not { } policy)
+        {
+            return null;
+        }
+
+        WriteDecision decision;
+        try
+        {
+            decision = await policy.EvaluateAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return await FailAsync(
+                SaveFailureReason.Unexpected,
+                $"The application's write policy failed while deciding whether this write was permitted ({ex.GetType().Name}: {ex.Message}). The write was abandoned.",
+                plan.DestinationPath,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        if (decision is null)
+        {
+            return await FailAsync(
+                SaveFailureReason.Unexpected,
+                "The application's write policy returned no decision. The write was abandoned.",
+                plan.DestinationPath,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        return decision.IsAllowed
+            ? null
+            : SaveOutcome.Declined(decision.Message ?? "This editor's own policy does not permit that write.");
     }
 
     private async ValueTask<bool> ConfirmRestoreAsync(string targetPath, string backupPath, CancellationToken cancellationToken)

@@ -47,6 +47,17 @@ public sealed record SafeFileWorkflowOptions<TDocument>
     public ISaveFormatChooser? FormatChooser { get; init; }
 
     /// <summary>
+    /// An application policy consulted before every destructive step, or
+    /// <see langword="null"/> for the framework's own rules alone.
+    /// </summary>
+    /// <remarks>
+    /// The framework's rules are a floor rather than a ceiling. A policy can refuse a write
+    /// the framework would otherwise permit; it cannot permit one the framework refuses, and
+    /// it cannot redirect a write to somewhere else. See <see cref="IWritePolicy"/>.
+    /// </remarks>
+    public IWritePolicy? WritePolicy { get; init; }
+
+    /// <summary>
     /// Compares a decoded document against the one in memory for the pre-replace
     /// round-trip check.
     /// </summary>
