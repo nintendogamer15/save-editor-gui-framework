@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/eng/">
+    <Project Path="eng/SaveEditor.PaletteGen/SaveEditor.PaletteGen.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
   </Folder>

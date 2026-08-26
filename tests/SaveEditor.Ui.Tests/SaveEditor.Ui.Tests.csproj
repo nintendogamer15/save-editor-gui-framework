@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/SaveEditor.Ui/SaveEditor.Ui.csproj" />
+    <ProjectReference Include="../../eng/SaveEditor.PaletteGen/SaveEditor.PaletteGen.csproj" />
   </ItemGroup>
 
 </Project>
