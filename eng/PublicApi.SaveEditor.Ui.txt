@@ -1,0 +1,1219 @@
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Blue.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Flamingo.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Green.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Lavender.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Maroon.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Mauve.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Peach.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Pink.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Red.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Rosewater.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Sapphire.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Sky.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Teal.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Accents/Yellow.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method ResourceDictionary Build:/Themes/Semantic.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Styles Build:/Theming/Controls.axaml(IServiceProvider )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Blue.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Flamingo.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Green.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Lavender.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Maroon.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Mauve.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Peach.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Pink.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Red.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Rosewater.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Sapphire.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Sky.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Teal.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Accents/Yellow.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Themes/Semantic.axaml(IServiceProvider , ResourceDictionary )
+CompiledAvaloniaXaml.!AvaloniaResources :: method Void Populate:/Theming/Controls.axaml(IServiceProvider , Styles )
+CompiledAvaloniaXaml.!XamlLoader :: method Object TryLoad(IServiceProvider , String )
+CompiledAvaloniaXaml.!XamlLoader :: method Object TryLoad(String )
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: ctor (ISaveCodecDetector Detector, ISaveCodec<TDocument> Codec)
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: method Boolean Equals(CodecRegistration<TDocument> other)
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: method String ToString()
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: property ISaveCodec<TDocument> Codec get set
+SaveEditor.Ui.Codecs.CodecRegistration`1 :: property ISaveCodecDetector Detector get set
+SaveEditor.Ui.Codecs.DetectionResult`1 :: ctor (ISaveCodec<TDocument> Codec, IReadOnlyList<ISaveCodec<TDocument>> Candidates, IReadOnlyList<DetectorReport> Reports, String Detail)
+SaveEditor.Ui.Codecs.DetectionResult`1 :: method Boolean Equals(DetectionResult<TDocument> other)
+SaveEditor.Ui.Codecs.DetectionResult`1 :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.DetectionResult`1 :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.DetectionResult`1 :: method String ToString()
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property Boolean IsAmbiguous get
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property Boolean IsResolved get
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property IReadOnlyList<DetectorReport> Reports get set
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property IReadOnlyList<ISaveCodec<TDocument>> Candidates get set
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property ISaveCodec<TDocument> Codec get set
+SaveEditor.Ui.Codecs.DetectionResult`1 :: property String Detail get set
+SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Confident
+SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Declined
+SaveEditor.Ui.Codecs.DetectionVerdict :: field DetectionVerdict Possible
+SaveEditor.Ui.Codecs.DetectionVerdict :: field Int32 value__
+SaveEditor.Ui.Codecs.DetectorReport :: ctor (SaveFormatDescriptor Format, DetectionVerdict Verdict, Int32 HeaderBytesOffered, Boolean Faulted, Boolean TimedOut, String Detail)
+SaveEditor.Ui.Codecs.DetectorReport :: method Boolean Equals(DetectorReport other)
+SaveEditor.Ui.Codecs.DetectorReport :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.DetectorReport :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.DetectorReport :: method String ToString()
+SaveEditor.Ui.Codecs.DetectorReport :: property Boolean Faulted get set
+SaveEditor.Ui.Codecs.DetectorReport :: property Boolean TimedOut get set
+SaveEditor.Ui.Codecs.DetectorReport :: property DetectionVerdict Verdict get set
+SaveEditor.Ui.Codecs.DetectorReport :: property Int32 HeaderBytesOffered get set
+SaveEditor.Ui.Codecs.DetectorReport :: property SaveFormatDescriptor Format get set
+SaveEditor.Ui.Codecs.DetectorReport :: property String Detail get set
+SaveEditor.Ui.Codecs.ISaveCodecDetector :: method DetectionVerdict Detect(ReadOnlySpan<Byte> header)
+SaveEditor.Ui.Codecs.ISaveCodecDetector :: property Int32 HeaderBytesRequired get
+SaveEditor.Ui.Codecs.ISaveCodecDetector :: property SaveFormatDescriptor Format get
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask SerializeAsync(TDocument document, Stream destination, CancellationToken cancellationToken)
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<TDocument> DecodeAsync(Stream source, CancellationToken cancellationToken)
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: method ValueTask<ValidationReport> ValidateAsync(TDocument document, CancellationToken cancellationToken)
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: property Boolean PreservesUnknownData get
+SaveEditor.Ui.Codecs.ISaveCodec`1 :: property SaveFormatDescriptor Format get
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: ctor ()
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: method Boolean Equals(SaveCodecRegistryOptions other)
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: method String ToString()
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: property Int32 MaxHeaderBytes get set
+SaveEditor.Ui.Codecs.SaveCodecRegistryOptions :: property TimeSpan DetectorTimeout get set
+SaveEditor.Ui.Codecs.SaveCodecRegistry`1 :: ctor (IEnumerable<CodecRegistration<TDocument>> registrations, SaveCodecRegistryOptions options)
+SaveEditor.Ui.Codecs.SaveCodecRegistry`1 :: method ValueTask<DetectionResult<TDocument>> DetectAsync(ReadOnlyMemory<Byte> content, CancellationToken cancellationToken)
+SaveEditor.Ui.Codecs.SaveCodecRegistry`1 :: property IReadOnlyList<ISaveCodec<TDocument>> Codecs get
+SaveEditor.Ui.Codecs.SaveCodecRegistry`1 :: property IReadOnlyList<SaveFormatDescriptor> Formats get
+SaveEditor.Ui.Codecs.SaveCodecRegistry`1 :: property Int32 HeaderBytesRequired get
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: ctor (String Id, String DisplayName, IReadOnlyList<String> Extensions)
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: method Boolean Equals(SaveFormatDescriptor other)
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: method String ToString()
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: property IReadOnlyList<String> Extensions get set
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: property String DisplayName get set
+SaveEditor.Ui.Codecs.SaveFormatDescriptor :: property String Id get set
+SaveEditor.Ui.Codecs.ValidationMessage :: ctor (ValidationSeverity Severity, UntrustedText Text, String FieldPath)
+SaveEditor.Ui.Codecs.ValidationMessage :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.ValidationMessage :: method Boolean Equals(ValidationMessage other)
+SaveEditor.Ui.Codecs.ValidationMessage :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.ValidationMessage :: method String ToString()
+SaveEditor.Ui.Codecs.ValidationMessage :: property String FieldPath get set
+SaveEditor.Ui.Codecs.ValidationMessage :: property UntrustedText Text get set
+SaveEditor.Ui.Codecs.ValidationMessage :: property ValidationSeverity Severity get set
+SaveEditor.Ui.Codecs.ValidationReport :: ctor ()
+SaveEditor.Ui.Codecs.ValidationReport :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Codecs.ValidationReport :: method Boolean Equals(ValidationReport other)
+SaveEditor.Ui.Codecs.ValidationReport :: method Int32 GetHashCode()
+SaveEditor.Ui.Codecs.ValidationReport :: method String ToString()
+SaveEditor.Ui.Codecs.ValidationReport :: property Boolean HasErrors get
+SaveEditor.Ui.Codecs.ValidationReport :: property IReadOnlyList<ValidationMessage> Messages get set
+SaveEditor.Ui.Codecs.ValidationReport :: property ValidationReport Empty get
+SaveEditor.Ui.Codecs.ValidationSeverity :: field Int32 value__
+SaveEditor.Ui.Codecs.ValidationSeverity :: field ValidationSeverity Error
+SaveEditor.Ui.Codecs.ValidationSeverity :: field ValidationSeverity Warning
+SaveEditor.Ui.Controls.FieldCard :: ctor ()
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<FieldViewModel> FieldProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> BooleanEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> ChoiceEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> EffectiveEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> NumericEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> ReadOnlyEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: field StyledProperty<IDataTemplate> TextEditorTemplateProperty
+SaveEditor.Ui.Controls.FieldCard :: property FieldViewModel Field get set
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate BooleanEditorTemplate get set
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate ChoiceEditorTemplate get set
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate EffectiveEditorTemplate get
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate NumericEditorTemplate get set
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate ReadOnlyEditorTemplate get set
+SaveEditor.Ui.Controls.FieldCard :: property IDataTemplate TextEditorTemplate get set
+SaveEditor.Ui.Controls.FieldList :: ctor ()
+SaveEditor.Ui.Controls.FieldList :: field StyledProperty<IEnumerable<FieldViewModel>> FieldsProperty
+SaveEditor.Ui.Controls.FieldList :: property IEnumerable<FieldViewModel> Fields get set
+SaveEditor.Ui.Controls.SectionToolbar :: ctor ()
+SaveEditor.Ui.Controls.SectionToolbar :: field StyledProperty<Object> BulkActionsProperty
+SaveEditor.Ui.Controls.SectionToolbar :: field StyledProperty<SectionEditor> EditorProperty
+SaveEditor.Ui.Controls.SectionToolbar :: property Object BulkActions get set
+SaveEditor.Ui.Controls.SectionToolbar :: property SectionEditor Editor get set
+SaveEditor.Ui.Dialogs.AboutDialogContent :: ctor ()
+SaveEditor.Ui.Dialogs.AboutDialogContent :: event EventHandler CloseRequested
+SaveEditor.Ui.Dialogs.AboutDialogContent :: field StyledProperty<Object> AppIdentityProperty
+SaveEditor.Ui.Dialogs.AboutDialogContent :: field StyledProperty<Object> CreditsProperty
+SaveEditor.Ui.Dialogs.AboutDialogContent :: field StyledProperty<Object> LicensesProperty
+SaveEditor.Ui.Dialogs.AboutDialogContent :: property Object AppIdentity get set
+SaveEditor.Ui.Dialogs.AboutDialogContent :: property Object Credits get set
+SaveEditor.Ui.Dialogs.AboutDialogContent :: property Object Licenses get set
+SaveEditor.Ui.Dialogs.AnnouncementKind :: field AnnouncementKind Error
+SaveEditor.Ui.Dialogs.AnnouncementKind :: field AnnouncementKind Info
+SaveEditor.Ui.Dialogs.AnnouncementKind :: field AnnouncementKind Success
+SaveEditor.Ui.Dialogs.AnnouncementKind :: field AnnouncementKind Warning
+SaveEditor.Ui.Dialogs.AnnouncementKind :: field Int32 value__
+SaveEditor.Ui.Dialogs.AnnouncementRegion :: ctor ()
+SaveEditor.Ui.Dialogs.AnnouncementRegion :: field StyledProperty<AnnouncementKind> KindProperty
+SaveEditor.Ui.Dialogs.AnnouncementRegion :: field StyledProperty<String> MessageProperty
+SaveEditor.Ui.Dialogs.AnnouncementRegion :: property AnnouncementKind Kind get set
+SaveEditor.Ui.Dialogs.AnnouncementRegion :: property String Message get set
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: field Int32 MaxShownWarnings
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: field Int32 MaxWarningLength
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: field Int32 MaxWarningLines
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: method IReadOnlyList<UntrustedText> SelectMostSevere(IReadOnlyList<ValidationMessage> messages, Int32 maxCount)
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: method SanitizedWarningList Sanitize(IReadOnlyList<UntrustedText> details, Int32 maxCount, Int32 maxLength, Int32 maxLines)
+SaveEditor.Ui.Dialogs.CodecWarningPresenter :: method SanitizedWarningList SelectMostSevereAndSanitize(IReadOnlyList<ValidationMessage> messages, Int32 maxCount, Int32 maxLength, Int32 maxLines)
+SaveEditor.Ui.Dialogs.CodecWarningsPanel :: method Control TryBuild(IReadOnlyList<UntrustedText> details)
+SaveEditor.Ui.Dialogs.ConfirmationDialogView :: ctor (ConfirmationRequest request, PathLabel targetPath)
+SaveEditor.Ui.Dialogs.ConfirmationDialogView :: property Button AcceptButton get
+SaveEditor.Ui.Dialogs.ConfirmationDialogView :: property Button CancelButton get
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: ctor ()
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: event EventHandler CloseRequested
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: field StyledProperty<String> DocumentTextProperty
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: field StyledProperty<String> TitleProperty
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: property String DocumentText get set
+SaveEditor.Ui.Dialogs.DocumentViewerContent :: property String Title get set
+SaveEditor.Ui.Dialogs.MessageDialogView :: ctor (MessageRequest request)
+SaveEditor.Ui.Dialogs.MessageDialogView :: property Button CloseButton get
+SaveEditor.Ui.Dialogs.SanitizedWarning :: ctor (String Text, Boolean WasTruncated)
+SaveEditor.Ui.Dialogs.SanitizedWarning :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Dialogs.SanitizedWarning :: method Boolean Equals(SanitizedWarning other)
+SaveEditor.Ui.Dialogs.SanitizedWarning :: method Int32 GetHashCode()
+SaveEditor.Ui.Dialogs.SanitizedWarning :: method String ToString()
+SaveEditor.Ui.Dialogs.SanitizedWarning :: property Boolean WasTruncated get set
+SaveEditor.Ui.Dialogs.SanitizedWarning :: property String Text get set
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: ctor (IReadOnlyList<SanitizedWarning> Shown, Int32 TotalCount)
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: method Boolean Equals(SanitizedWarningList other)
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: method Int32 GetHashCode()
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: method String ToString()
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: property IReadOnlyList<SanitizedWarning> Shown get set
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: property Int32 OmittedCount get
+SaveEditor.Ui.Dialogs.SanitizedWarningList :: property Int32 TotalCount get set
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: ctor (Window owner, PathDisplayFormatter pathFormatter)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask ShowAboutAsync(Object appIdentity, Object credits, Object licenses, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask ShowDocumentAsync(DocumentRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask ShowMessageAsync(MessageRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<Boolean> ConfirmAsync(ConfirmationRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<Boolean> ConfirmOverwriteAsync(String path, IReadOnlyList<UntrustedText> details, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<SaveFilePickResult> PickSaveFileAsync(FilePickerRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<String> ChooseAsync(ChoicePrompt prompt, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<String> PickFolderAsync(String title, String suggestedDirectory, CancellationToken cancellationToken)
+SaveEditor.Ui.Dialogs.ThemedUserInteraction :: method ValueTask<String> PickOpenFileAsync(FilePickerRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Display.PathDisplayFormatter :: ctor (PathDisplayOptions options)
+SaveEditor.Ui.Display.PathDisplayFormatter :: field Int32 DefaultMaxLength
+SaveEditor.Ui.Display.PathDisplayFormatter :: method PathLabel Format(String path)
+SaveEditor.Ui.Display.PathDisplayFormatter :: method PathLabel Format(String path, Int32 maxLength)
+SaveEditor.Ui.Display.PathDisplayFormatter :: property PathDisplayFormatter Default get
+SaveEditor.Ui.Display.PathDisplayFormatter :: property PathDisplayOptions Options get
+SaveEditor.Ui.Display.PathDisplayOptions :: ctor ()
+SaveEditor.Ui.Display.PathDisplayOptions :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Display.PathDisplayOptions :: method Boolean Equals(PathDisplayOptions other)
+SaveEditor.Ui.Display.PathDisplayOptions :: method Int32 GetHashCode()
+SaveEditor.Ui.Display.PathDisplayOptions :: method String ToString()
+SaveEditor.Ui.Display.PathDisplayOptions :: property Int32 MaxLength get set
+SaveEditor.Ui.Display.PathDisplayOptions :: property PathSeparatorStyle SeparatorStyle get set
+SaveEditor.Ui.Display.PathLabel :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Display.PathLabel :: method Boolean Equals(PathLabel other)
+SaveEditor.Ui.Display.PathLabel :: method Int32 GetHashCode()
+SaveEditor.Ui.Display.PathLabel :: method String ToString()
+SaveEditor.Ui.Display.PathLabel :: property Boolean ExceedsMaxLength get
+SaveEditor.Ui.Display.PathLabel :: property Boolean HasReplacedCharacters get
+SaveEditor.Ui.Display.PathLabel :: property Boolean IsEmpty get
+SaveEditor.Ui.Display.PathLabel :: property Boolean IsTruncated get
+SaveEditor.Ui.Display.PathLabel :: property PathLabel Empty get
+SaveEditor.Ui.Display.PathLabel :: property String FullLabel get
+SaveEditor.Ui.Display.PathLabel :: property String Label get
+SaveEditor.Ui.Display.PathSeparatorStyle :: field Int32 value__
+SaveEditor.Ui.Display.PathSeparatorStyle :: field PathSeparatorStyle Native
+SaveEditor.Ui.Display.PathSeparatorStyle :: field PathSeparatorStyle Posix
+SaveEditor.Ui.Display.PathSeparatorStyle :: field PathSeparatorStyle Windows
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: ctor ()
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method Boolean Equals(BooleanFieldDescriptor other)
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: property Action<Boolean> Write get set
+SaveEditor.Ui.Editing.BooleanFieldDescriptor :: property Func<Boolean> Read get set
+SaveEditor.Ui.Editing.BooleanFieldViewModel :: ctor (BooleanFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: ctor ()
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Boolean Equals(ChoiceFieldDescriptor other)
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Action<String> Write get set
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Boolean AllowCustomValue get set
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property Func<String> Read get set
+SaveEditor.Ui.Editing.ChoiceFieldDescriptor :: property IChoiceProvider Options get set
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: ctor (ChoiceFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void Dispose()
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: method Void ReportOptionsFailure(Exception error)
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property Boolean AllowCustomValue get
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property Boolean OptionsFailed get set
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property CancellationToken OptionsCancellation get
+SaveEditor.Ui.Editing.ChoiceFieldViewModel :: property IChoiceProvider Options get
+SaveEditor.Ui.Editing.ChoiceOption :: ctor (String Value, String Label)
+SaveEditor.Ui.Editing.ChoiceOption :: method Boolean Equals(ChoiceOption other)
+SaveEditor.Ui.Editing.ChoiceOption :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.ChoiceOption :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.ChoiceOption :: method String ToString()
+SaveEditor.Ui.Editing.ChoiceOption :: property String Label get set
+SaveEditor.Ui.Editing.ChoiceOption :: property String Value get set
+SaveEditor.Ui.Editing.EditHistory :: ctor (Int32 capacity)
+SaveEditor.Ui.Editing.EditHistory :: event EventHandler Changed
+SaveEditor.Ui.Editing.EditHistory :: field Int32 DefaultCapacity
+SaveEditor.Ui.Editing.EditHistory :: method IDisposable BeginTransaction(String label)
+SaveEditor.Ui.Editing.EditHistory :: method Void Clear()
+SaveEditor.Ui.Editing.EditHistory :: method Void MarkSaved()
+SaveEditor.Ui.Editing.EditHistory :: method Void Record(HistoryEntry entry)
+SaveEditor.Ui.Editing.EditHistory :: method Void Redo()
+SaveEditor.Ui.Editing.EditHistory :: method Void Undo()
+SaveEditor.Ui.Editing.EditHistory :: property Boolean CanRedo get
+SaveEditor.Ui.Editing.EditHistory :: property Boolean CanUndo get
+SaveEditor.Ui.Editing.EditHistory :: property Boolean IsDirty get
+SaveEditor.Ui.Editing.EditHistory :: property Int32 Count get
+SaveEditor.Ui.Editing.EditHistory :: property String RedoLabel get
+SaveEditor.Ui.Editing.EditHistory :: property String UndoLabel get
+SaveEditor.Ui.Editing.FieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.FieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.FieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.FieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.FieldDescriptor :: property Boolean IsReadOnly get set
+SaveEditor.Ui.Editing.FieldDescriptor :: property String HelpText get set
+SaveEditor.Ui.Editing.FieldDescriptor :: property String Key get set
+SaveEditor.Ui.Editing.FieldDescriptor :: property String Label get set
+SaveEditor.Ui.Editing.FieldDescriptor :: property String Path get set
+SaveEditor.Ui.Editing.FieldDescriptor :: property String WarningText get set
+SaveEditor.Ui.Editing.FieldViewModel :: method Void Apply()
+SaveEditor.Ui.Editing.FieldViewModel :: method Void RefreshFromDocument()
+SaveEditor.Ui.Editing.FieldViewModel :: method Void Revert()
+SaveEditor.Ui.Editing.FieldViewModel :: property Boolean CanApply get
+SaveEditor.Ui.Editing.FieldViewModel :: property Boolean HasPendingEdit get
+SaveEditor.Ui.Editing.FieldViewModel :: property Boolean IsReadOnly get
+SaveEditor.Ui.Editing.FieldViewModel :: property Boolean IsValid get
+SaveEditor.Ui.Editing.FieldViewModel :: property FieldDescriptor Descriptor get
+SaveEditor.Ui.Editing.FieldViewModel :: property IRelayCommand ApplyCommand get
+SaveEditor.Ui.Editing.FieldViewModel :: property IRelayCommand RevertCommand get
+SaveEditor.Ui.Editing.FieldViewModel :: property String HelpText get
+SaveEditor.Ui.Editing.FieldViewModel :: property String Key get
+SaveEditor.Ui.Editing.FieldViewModel :: property String Label get
+SaveEditor.Ui.Editing.FieldViewModel :: property String Path get
+SaveEditor.Ui.Editing.FieldViewModel :: property String ValidationError get set
+SaveEditor.Ui.Editing.FieldViewModel :: property String WarningText get
+SaveEditor.Ui.Editing.FieldViewModel`1 :: method Void RefreshFromDocument()
+SaveEditor.Ui.Editing.FieldViewModel`1 :: property Boolean HasPendingEdit get
+SaveEditor.Ui.Editing.FieldViewModel`1 :: property T Committed get
+SaveEditor.Ui.Editing.FieldViewModel`1 :: property T Draft get set
+SaveEditor.Ui.Editing.HistoryEntry :: ctor (String Label, Action Undo, Action Redo)
+SaveEditor.Ui.Editing.HistoryEntry :: method Boolean Equals(HistoryEntry other)
+SaveEditor.Ui.Editing.HistoryEntry :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.HistoryEntry :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.HistoryEntry :: method String ToString()
+SaveEditor.Ui.Editing.HistoryEntry :: property Action Redo get set
+SaveEditor.Ui.Editing.HistoryEntry :: property Action Undo get set
+SaveEditor.Ui.Editing.HistoryEntry :: property String Label get set
+SaveEditor.Ui.Editing.IChoiceProvider :: method ValueTask<IReadOnlyList<ChoiceOption>> GetOptionsAsync(String filter, CancellationToken cancellationToken)
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: ctor ()
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(NumericFieldDescriptor other)
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Action<Int64> Write get set
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Boolean ShowSpinner get set
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Func<Int64, String> Validate get set
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Func<Int64> Read get set
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Int64 Maximum get set
+SaveEditor.Ui.Editing.NumericFieldDescriptor :: property Int64 Minimum get set
+SaveEditor.Ui.Editing.NumericFieldViewModel :: ctor (NumericFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void Decrement()
+SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void Increment()
+SaveEditor.Ui.Editing.NumericFieldViewModel :: method Void RefreshFromDocument()
+SaveEditor.Ui.Editing.NumericFieldViewModel :: property Boolean HasPendingEdit get
+SaveEditor.Ui.Editing.NumericFieldViewModel :: property Boolean ShowSpinner get
+SaveEditor.Ui.Editing.NumericFieldViewModel :: property IRelayCommand DecrementCommand get
+SaveEditor.Ui.Editing.NumericFieldViewModel :: property IRelayCommand IncrementCommand get
+SaveEditor.Ui.Editing.NumericFieldViewModel :: property String Text get set
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: ctor ()
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Boolean Equals(ReadOnlyFieldDescriptor other)
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor :: property Func<String> Read get set
+SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: ctor (ReadOnlyFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: method Void RefreshFromDocument()
+SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: property Boolean HasPendingEdit get
+SaveEditor.Ui.Editing.ReadOnlyFieldViewModel :: property String Value get
+SaveEditor.Ui.Editing.SectionEditor :: ctor (String key, String title, IEnumerable<FieldViewModel> fields, EditHistory history)
+SaveEditor.Ui.Editing.SectionEditor :: method Void ApplyAll()
+SaveEditor.Ui.Editing.SectionEditor :: method Void RefreshFromDocument()
+SaveEditor.Ui.Editing.SectionEditor :: method Void RevertAll()
+SaveEditor.Ui.Editing.SectionEditor :: property Boolean CanApplyAll get
+SaveEditor.Ui.Editing.SectionEditor :: property Boolean HasPendingEdits get
+SaveEditor.Ui.Editing.SectionEditor :: property IReadOnlyList<FieldViewModel> Fields get
+SaveEditor.Ui.Editing.SectionEditor :: property IRelayCommand ApplyAllCommand get
+SaveEditor.Ui.Editing.SectionEditor :: property IRelayCommand RevertAllCommand get
+SaveEditor.Ui.Editing.SectionEditor :: property Int32 InvalidCount get
+SaveEditor.Ui.Editing.SectionEditor :: property Int32 PendingCount get
+SaveEditor.Ui.Editing.SectionEditor :: property ObservableCollection<FieldViewModel> VisibleFields get
+SaveEditor.Ui.Editing.SectionEditor :: property String Key get
+SaveEditor.Ui.Editing.SectionEditor :: property String SearchText get set
+SaveEditor.Ui.Editing.SectionEditor :: property String Title get
+SaveEditor.Ui.Editing.TextFieldDescriptor :: ctor ()
+SaveEditor.Ui.Editing.TextFieldDescriptor :: method Boolean Equals(FieldDescriptor other)
+SaveEditor.Ui.Editing.TextFieldDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Editing.TextFieldDescriptor :: method Boolean Equals(TextFieldDescriptor other)
+SaveEditor.Ui.Editing.TextFieldDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Editing.TextFieldDescriptor :: method String ToString()
+SaveEditor.Ui.Editing.TextFieldDescriptor :: property Action<String> Write get set
+SaveEditor.Ui.Editing.TextFieldDescriptor :: property Func<String, String> Validate get set
+SaveEditor.Ui.Editing.TextFieldDescriptor :: property Func<String> Read get set
+SaveEditor.Ui.Editing.TextFieldDescriptor :: property Nullable<Int32> MaxLength get set
+SaveEditor.Ui.Editing.TextFieldViewModel :: ctor (TextFieldDescriptor descriptor, EditHistory history)
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: ctor (Size Size)
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method Boolean Equals(HostSizeChangedEventArgs other)
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method Int32 GetHashCode()
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: method String ToString()
+SaveEditor.Ui.Hosting.HostSizeChangedEventArgs :: property Size Size get set
+SaveEditor.Ui.Hosting.IEditorHost :: event EventHandler<HostSizeChangedEventArgs> SizeChanged
+SaveEditor.Ui.Hosting.IEditorHost :: method ValueTask RequestShutdownAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Hosting.IEditorHost :: method Void ApplySize(Size size)
+SaveEditor.Ui.Hosting.IEditorHost :: method Void SetShutdownGuard(Func<CancellationToken, ValueTask<Boolean>> guard)
+SaveEditor.Ui.Hosting.WindowEditorHost :: ctor (Window window)
+SaveEditor.Ui.Hosting.WindowEditorHost :: event EventHandler<HostSizeChangedEventArgs> SizeChanged
+SaveEditor.Ui.Hosting.WindowEditorHost :: method ValueTask RequestShutdownAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Hosting.WindowEditorHost :: method Void ApplySize(Size size)
+SaveEditor.Ui.Hosting.WindowEditorHost :: method Void Dispose()
+SaveEditor.Ui.Hosting.WindowEditorHost :: method Void SetShutdownGuard(Func<CancellationToken, ValueTask<Boolean>> guard)
+SaveEditor.Ui.Interaction.ChoicePrompt :: ctor (String Title, String Message, IReadOnlyList<ChoicePromptOption> Options)
+SaveEditor.Ui.Interaction.ChoicePrompt :: method Boolean Equals(ChoicePrompt other)
+SaveEditor.Ui.Interaction.ChoicePrompt :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.ChoicePrompt :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.ChoicePrompt :: method String ToString()
+SaveEditor.Ui.Interaction.ChoicePrompt :: property IReadOnlyList<ChoicePromptOption> Options get set
+SaveEditor.Ui.Interaction.ChoicePrompt :: property String Message get set
+SaveEditor.Ui.Interaction.ChoicePrompt :: property String Title get set
+SaveEditor.Ui.Interaction.ChoicePromptOption :: ctor (String Key, String Label, String Description)
+SaveEditor.Ui.Interaction.ChoicePromptOption :: method Boolean Equals(ChoicePromptOption other)
+SaveEditor.Ui.Interaction.ChoicePromptOption :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.ChoicePromptOption :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.ChoicePromptOption :: method String ToString()
+SaveEditor.Ui.Interaction.ChoicePromptOption :: property String Description get set
+SaveEditor.Ui.Interaction.ChoicePromptOption :: property String Key get set
+SaveEditor.Ui.Interaction.ChoicePromptOption :: property String Label get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: ctor ()
+SaveEditor.Ui.Interaction.ConfirmationRequest :: method Boolean Equals(ConfirmationRequest other)
+SaveEditor.Ui.Interaction.ConfirmationRequest :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.ConfirmationRequest :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.ConfirmationRequest :: method String ToString()
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property Boolean IsDestructive get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property IReadOnlyList<UntrustedText> Details get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property PathLabel Target get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property String AcceptLabel get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property String CancelLabel get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property String Message get set
+SaveEditor.Ui.Interaction.ConfirmationRequest :: property String Title get set
+SaveEditor.Ui.Interaction.DocumentRequest :: ctor (String Title, UntrustedText Content)
+SaveEditor.Ui.Interaction.DocumentRequest :: method Boolean Equals(DocumentRequest other)
+SaveEditor.Ui.Interaction.DocumentRequest :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.DocumentRequest :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.DocumentRequest :: method String ToString()
+SaveEditor.Ui.Interaction.DocumentRequest :: property String Title get set
+SaveEditor.Ui.Interaction.DocumentRequest :: property UntrustedText Content get set
+SaveEditor.Ui.Interaction.FilePickerRequest :: ctor (String Title, IReadOnlyList<SaveFormatDescriptor> Formats, String SuggestedFileName, String SuggestedDirectory)
+SaveEditor.Ui.Interaction.FilePickerRequest :: method Boolean Equals(FilePickerRequest other)
+SaveEditor.Ui.Interaction.FilePickerRequest :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.FilePickerRequest :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.FilePickerRequest :: method String ToString()
+SaveEditor.Ui.Interaction.FilePickerRequest :: property IReadOnlyList<SaveFormatDescriptor> Formats get set
+SaveEditor.Ui.Interaction.FilePickerRequest :: property String SuggestedDirectory get set
+SaveEditor.Ui.Interaction.FilePickerRequest :: property String SuggestedFileName get set
+SaveEditor.Ui.Interaction.FilePickerRequest :: property String Title get set
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask ShowDocumentAsync(DocumentRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask ShowMessageAsync(MessageRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask<Boolean> ConfirmAsync(ConfirmationRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask<SaveFilePickResult> PickSaveFileAsync(FilePickerRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask<String> ChooseAsync(ChoicePrompt prompt, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask<String> PickFolderAsync(String title, String suggestedDirectory, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.IUserInteraction :: method ValueTask<String> PickOpenFileAsync(FilePickerRequest request, CancellationToken cancellationToken)
+SaveEditor.Ui.Interaction.MessageRequest :: ctor (String Title, String Message, IReadOnlyList<UntrustedText> Details)
+SaveEditor.Ui.Interaction.MessageRequest :: method Boolean Equals(MessageRequest other)
+SaveEditor.Ui.Interaction.MessageRequest :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.MessageRequest :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.MessageRequest :: method String ToString()
+SaveEditor.Ui.Interaction.MessageRequest :: property IReadOnlyList<UntrustedText> Details get set
+SaveEditor.Ui.Interaction.MessageRequest :: property String Message get set
+SaveEditor.Ui.Interaction.MessageRequest :: property String Title get set
+SaveEditor.Ui.Interaction.SaveFilePickResult :: ctor (String Path, Boolean PickerConfirmedOverwrite)
+SaveEditor.Ui.Interaction.SaveFilePickResult :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.SaveFilePickResult :: method Boolean Equals(SaveFilePickResult other)
+SaveEditor.Ui.Interaction.SaveFilePickResult :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.SaveFilePickResult :: method String ToString()
+SaveEditor.Ui.Interaction.SaveFilePickResult :: property Boolean PickerConfirmedOverwrite get set
+SaveEditor.Ui.Interaction.SaveFilePickResult :: property String Path get set
+SaveEditor.Ui.Interaction.UntrustedText :: ctor (String Value)
+SaveEditor.Ui.Interaction.UntrustedText :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Interaction.UntrustedText :: method Boolean Equals(UntrustedText other)
+SaveEditor.Ui.Interaction.UntrustedText :: method Int32 GetHashCode()
+SaveEditor.Ui.Interaction.UntrustedText :: method String ToString()
+SaveEditor.Ui.Interaction.UntrustedText :: property String Value get set
+SaveEditor.Ui.Io.FileIdentity :: ctor (UInt64 VolumeId, UInt64 FileId)
+SaveEditor.Ui.Io.FileIdentity :: method Boolean Equals(FileIdentity other)
+SaveEditor.Ui.Io.FileIdentity :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.FileIdentity :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.FileIdentity :: method String ToString()
+SaveEditor.Ui.Io.FileIdentity :: property UInt64 FileId get set
+SaveEditor.Ui.Io.FileIdentity :: property UInt64 VolumeId get set
+SaveEditor.Ui.Io.ISafePathResolver :: method ValueTask<PathResolution> CreateNewAsync(String path, PathResolutionOptions options, CancellationToken cancellationToken)
+SaveEditor.Ui.Io.ISafePathResolver :: method ValueTask<PathResolution> ResolveAsync(String path, PathResolutionOptions options, CancellationToken cancellationToken)
+SaveEditor.Ui.Io.PathConfirmationKind :: field Int32 value__
+SaveEditor.Ui.Io.PathConfirmationKind :: field PathConfirmationKind MultipleHardLinks
+SaveEditor.Ui.Io.PathConfirmationKind :: field PathConfirmationKind UnusuallyLarge
+SaveEditor.Ui.Io.PathRefusalReason :: field Int32 value__
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason AlreadyExists
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason InvalidPath
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason LinkInAncestor
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason LinkTarget
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason NonLocalPath
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason NotARegularFile
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason NotFound
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason TooLarge
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason Unreadable
+SaveEditor.Ui.Io.PathRefusalReason :: field PathRefusalReason WriteProtected
+SaveEditor.Ui.Io.PathResolution :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.PathResolution :: method Boolean Equals(PathResolution other)
+SaveEditor.Ui.Io.PathResolution :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.PathResolution :: method String ToString()
+SaveEditor.Ui.Io.PathResolution :: nested NeedsConfirmation
+SaveEditor.Ui.Io.PathResolution :: nested Refused
+SaveEditor.Ui.Io.PathResolution :: nested Resolved
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: ctor (ResolvedFile File, PathConfirmationKind Kind)
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: method Boolean Equals(NeedsConfirmation other)
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: method Boolean Equals(PathResolution other)
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: method String ToString()
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: property PathConfirmationKind Kind get set
+SaveEditor.Ui.Io.PathResolution+NeedsConfirmation :: property ResolvedFile File get set
+SaveEditor.Ui.Io.PathResolution+Refused :: ctor (PathRefusalReason Reason, String Detail)
+SaveEditor.Ui.Io.PathResolution+Refused :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.PathResolution+Refused :: method Boolean Equals(PathResolution other)
+SaveEditor.Ui.Io.PathResolution+Refused :: method Boolean Equals(Refused other)
+SaveEditor.Ui.Io.PathResolution+Refused :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.PathResolution+Refused :: method String ToString()
+SaveEditor.Ui.Io.PathResolution+Refused :: property PathRefusalReason Reason get set
+SaveEditor.Ui.Io.PathResolution+Refused :: property String Detail get set
+SaveEditor.Ui.Io.PathResolution+Resolved :: ctor (ResolvedFile File)
+SaveEditor.Ui.Io.PathResolution+Resolved :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.PathResolution+Resolved :: method Boolean Equals(PathResolution other)
+SaveEditor.Ui.Io.PathResolution+Resolved :: method Boolean Equals(Resolved other)
+SaveEditor.Ui.Io.PathResolution+Resolved :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.PathResolution+Resolved :: method String ToString()
+SaveEditor.Ui.Io.PathResolution+Resolved :: property ResolvedFile File get set
+SaveEditor.Ui.Io.PathResolutionMode :: field Int32 value__
+SaveEditor.Ui.Io.PathResolutionMode :: field PathResolutionMode CreateNew
+SaveEditor.Ui.Io.PathResolutionMode :: field PathResolutionMode OpenExisting
+SaveEditor.Ui.Io.PathResolutionOptions :: ctor ()
+SaveEditor.Ui.Io.PathResolutionOptions :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Io.PathResolutionOptions :: method Boolean Equals(PathResolutionOptions other)
+SaveEditor.Ui.Io.PathResolutionOptions :: method Int32 GetHashCode()
+SaveEditor.Ui.Io.PathResolutionOptions :: method String ToString()
+SaveEditor.Ui.Io.PathResolutionOptions :: property Boolean AllowNonLocalPaths get set
+SaveEditor.Ui.Io.PathResolutionOptions :: property Boolean ForWriting get set
+SaveEditor.Ui.Io.PathResolutionOptions :: property Int64 ConfirmAboveBytes get set
+SaveEditor.Ui.Io.PathResolutionOptions :: property Int64 MaxBytes get set
+SaveEditor.Ui.Io.PathResolutionOptions :: property PathResolutionMode Mode get set
+SaveEditor.Ui.Io.ResolvedFile :: ctor (FileStream stream, String canonicalPath, FileIdentity identity, Int32 hardLinkCount, Func<FileStream, FileIdentity> identityProbe)
+SaveEditor.Ui.Io.ResolvedFile :: method Boolean ReassertIdentity()
+SaveEditor.Ui.Io.ResolvedFile :: method Void Dispose()
+SaveEditor.Ui.Io.ResolvedFile :: property FileIdentity Identity get
+SaveEditor.Ui.Io.ResolvedFile :: property FileStream Stream get
+SaveEditor.Ui.Io.ResolvedFile :: property Int32 HardLinkCount get
+SaveEditor.Ui.Io.ResolvedFile :: property String CanonicalPath get
+SaveEditor.Ui.Io.SafePathResolver :: ctor ()
+SaveEditor.Ui.Io.SafePathResolver :: method ValueTask<PathResolution> CreateNewAsync(String path, PathResolutionOptions options, CancellationToken cancellationToken)
+SaveEditor.Ui.Io.SafePathResolver :: method ValueTask<PathResolution> ResolveAsync(String path, PathResolutionOptions options, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Blue
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Flamingo
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Green
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Lavender
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Maroon
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Mauve
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Peach
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Pink
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Red
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Rosewater
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Sapphire
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Sky
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Teal
+SaveEditor.Ui.Settings.CatppuccinAccent :: field CatppuccinAccent Yellow
+SaveEditor.Ui.Settings.CatppuccinAccent :: field Int32 value__
+SaveEditor.Ui.Settings.EditorApplicationId :: method Boolean Equals(EditorApplicationId other)
+SaveEditor.Ui.Settings.EditorApplicationId :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Settings.EditorApplicationId :: method Boolean TryParse(String value, EditorApplicationId& id)
+SaveEditor.Ui.Settings.EditorApplicationId :: method EditorApplicationId Parse(String value)
+SaveEditor.Ui.Settings.EditorApplicationId :: method Int32 GetHashCode()
+SaveEditor.Ui.Settings.EditorApplicationId :: method String ToString()
+SaveEditor.Ui.Settings.EditorApplicationId :: property String Value get
+SaveEditor.Ui.Settings.EditorSettings :: ctor ()
+SaveEditor.Ui.Settings.EditorSettings :: field Int32 CurrentSchemaVersion
+SaveEditor.Ui.Settings.EditorSettings :: field Int32 MaxRecentFiles
+SaveEditor.Ui.Settings.EditorSettings :: field Int32 MaxRecentFolders
+SaveEditor.Ui.Settings.EditorSettings :: method Boolean Equals(EditorSettings other)
+SaveEditor.Ui.Settings.EditorSettings :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Settings.EditorSettings :: method Int32 GetHashCode()
+SaveEditor.Ui.Settings.EditorSettings :: method String ToString()
+SaveEditor.Ui.Settings.EditorSettings :: property IReadOnlyList<String> RecentFiles get set
+SaveEditor.Ui.Settings.EditorSettings :: property IReadOnlyList<String> RecentFolders get set
+SaveEditor.Ui.Settings.EditorSettings :: property Int32 SchemaVersion get set
+SaveEditor.Ui.Settings.EditorSettings :: property Nullable<CatppuccinAccent> Accent get set
+SaveEditor.Ui.Settings.EditorSettings :: property Nullable<Double> WindowHeight get set
+SaveEditor.Ui.Settings.EditorSettings :: property Nullable<Double> WindowWidth get set
+SaveEditor.Ui.Settings.EditorSettings :: property String LastSectionKey get set
+SaveEditor.Ui.Settings.EditorSettings :: property ThemeMode Theme get set
+SaveEditor.Ui.Settings.EditorSettingsStore :: ctor (EditorApplicationId applicationId, EditorSettingsStoreOptions options)
+SaveEditor.Ui.Settings.EditorSettingsStore :: field String SettingsFileName
+SaveEditor.Ui.Settings.EditorSettingsStore :: method Boolean TryTakeAnnouncement(SettingsAnnouncement& announcement)
+SaveEditor.Ui.Settings.EditorSettingsStore :: method RecentsList CreateFileRecents(EditorSettings settings)
+SaveEditor.Ui.Settings.EditorSettingsStore :: method RecentsList CreateFolderRecents(EditorSettings settings)
+SaveEditor.Ui.Settings.EditorSettingsStore :: method ValueTask SaveAsync(EditorSettings settings, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.EditorSettingsStore :: method ValueTask<EditorSettings> LoadAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.EditorSettingsStore :: property Boolean IsPersistent get set
+SaveEditor.Ui.Settings.EditorSettingsStore :: property EditorApplicationId ApplicationId get
+SaveEditor.Ui.Settings.EditorSettingsStore :: property SettingsAnnouncement Status get set
+SaveEditor.Ui.Settings.EditorSettingsStore :: property String SettingsDirectory get
+SaveEditor.Ui.Settings.EditorSettingsStore :: property String SettingsFilePath get
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: ctor ()
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: method Boolean Equals(EditorSettingsStoreOptions other)
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: method Int32 GetHashCode()
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: method String ToString()
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Double MaxPlausibleWindowExtent get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Double MinWindowHeight get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Double MinWindowWidth get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property IRecentEntryProbe RecentProbe get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property ISafePathResolver PathResolver get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property IScreenBoundsSource ScreenBounds get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int32 BackupRetention get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int32 MaxArrayElements get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int32 MaxDepth get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int32 MaxStringLength get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int64 MaxBackupCopyBytes get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property Int64 MaxFileBytes get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property String BaseDirectory get set
+SaveEditor.Ui.Settings.EditorSettingsStoreOptions :: property TimeSpan RecentProbeTimeout get set
+SaveEditor.Ui.Settings.FileSystemRecentEntryProbe :: ctor ()
+SaveEditor.Ui.Settings.FileSystemRecentEntryProbe :: method ValueTask<RecentEntryState> ProbeAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.FileSystemRecentEntryProbe :: property FileSystemRecentEntryProbe Instance get
+SaveEditor.Ui.Settings.FixedScreenBoundsSource :: ctor (ScreenArea[] areas)
+SaveEditor.Ui.Settings.FixedScreenBoundsSource :: method IReadOnlyList<ScreenArea> GetAvailableAreas()
+SaveEditor.Ui.Settings.IEditorSettingsStore :: method ValueTask SaveAsync(EditorSettings settings, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.IEditorSettingsStore :: method ValueTask<EditorSettings> LoadAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.IEditorSettingsStore :: property Boolean IsPersistent get
+SaveEditor.Ui.Settings.IRecentEntryProbe :: method ValueTask<RecentEntryState> ProbeAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.IScreenBoundsSource :: method IReadOnlyList<ScreenArea> GetAvailableAreas()
+SaveEditor.Ui.Settings.RecentEntryState :: field Int32 value__
+SaveEditor.Ui.Settings.RecentEntryState :: field RecentEntryState ConfirmedMissing
+SaveEditor.Ui.Settings.RecentEntryState :: field RecentEntryState NotLocal
+SaveEditor.Ui.Settings.RecentEntryState :: field RecentEntryState Present
+SaveEditor.Ui.Settings.RecentEntryState :: field RecentEntryState TemporarilyUnavailable
+SaveEditor.Ui.Settings.RecentEntryState :: field RecentEntryState Unverified
+SaveEditor.Ui.Settings.RecentPaths :: field Int32 MaxPathLength
+SaveEditor.Ui.Settings.RecentPaths :: method Boolean IsStorable(String path)
+SaveEditor.Ui.Settings.RecentPaths :: method IReadOnlyList<String> Normalize(IEnumerable<String> paths, Int32 capacity, Int32& rejected)
+SaveEditor.Ui.Settings.RecentPaths :: method IReadOnlyList<String> Promote(IReadOnlyList<String> existing, String path, Int32 capacity)
+SaveEditor.Ui.Settings.RecentPaths :: method String Screen(String path)
+SaveEditor.Ui.Settings.RecentPaths :: property StringComparer Comparer get
+SaveEditor.Ui.Settings.RecentsList :: ctor (IEnumerable<String> paths, Int32 capacity, IRecentEntryProbe probe, TimeSpan probeTimeout)
+SaveEditor.Ui.Settings.RecentsList :: field TimeSpan DefaultProbeTimeout
+SaveEditor.Ui.Settings.RecentsList :: method Boolean Promote(String path)
+SaveEditor.Ui.Settings.RecentsList :: method Boolean Remove(String path)
+SaveEditor.Ui.Settings.RecentsList :: method ValueTask<RecentEntryState> EvaluateAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Settings.RecentsList :: property IReadOnlyList<String> Paths get
+SaveEditor.Ui.Settings.RecentsList :: property Int32 Capacity get
+SaveEditor.Ui.Settings.RecentsList :: property TimeSpan ProbeTimeout get
+SaveEditor.Ui.Settings.ScreenArea :: ctor (Double Width, Double Height)
+SaveEditor.Ui.Settings.ScreenArea :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Settings.ScreenArea :: method Boolean Equals(ScreenArea other)
+SaveEditor.Ui.Settings.ScreenArea :: method Int32 GetHashCode()
+SaveEditor.Ui.Settings.ScreenArea :: method String ToString()
+SaveEditor.Ui.Settings.ScreenArea :: property Double Height get set
+SaveEditor.Ui.Settings.ScreenArea :: property Double Width get set
+SaveEditor.Ui.Settings.SettingsAnnouncement :: ctor (SettingsLoadOutcome Outcome, SettingsRejection Rejection, String Message, String BackupPath)
+SaveEditor.Ui.Settings.SettingsAnnouncement :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Settings.SettingsAnnouncement :: method Boolean Equals(SettingsAnnouncement other)
+SaveEditor.Ui.Settings.SettingsAnnouncement :: method Int32 GetHashCode()
+SaveEditor.Ui.Settings.SettingsAnnouncement :: method String ToString()
+SaveEditor.Ui.Settings.SettingsAnnouncement :: property SettingsLoadOutcome Outcome get set
+SaveEditor.Ui.Settings.SettingsAnnouncement :: property SettingsRejection Rejection get set
+SaveEditor.Ui.Settings.SettingsAnnouncement :: property String BackupPath get set
+SaveEditor.Ui.Settings.SettingsAnnouncement :: property String Message get set
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field Int32 value__
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome Loaded
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome NoStoredSettings
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome NotPersistent
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome Replaced
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome Sanitized
+SaveEditor.Ui.Settings.SettingsLoadOutcome :: field SettingsLoadOutcome Unreadable
+SaveEditor.Ui.Settings.SettingsRejection :: field Int32 value__
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection ArrayTooLong
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection DepthExceeded
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection FileTooLarge
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection MalformedJson
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection None
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection StringTooLong
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection TypeDiscriminator
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection UnknownSchemaVersion
+SaveEditor.Ui.Settings.SettingsRejection :: field SettingsRejection Unreadable
+SaveEditor.Ui.Settings.ThemeMode :: field Int32 value__
+SaveEditor.Ui.Settings.ThemeMode :: field ThemeMode Dark
+SaveEditor.Ui.Settings.ThemeMode :: field ThemeMode Light
+SaveEditor.Ui.Settings.UnknownScreenBoundsSource :: ctor ()
+SaveEditor.Ui.Settings.UnknownScreenBoundsSource :: method IReadOnlyList<ScreenArea> GetAvailableAreas()
+SaveEditor.Ui.Settings.UnknownScreenBoundsSource :: property UnknownScreenBoundsSource Instance get
+SaveEditor.Ui.Shell.DocumentProgress :: ctor (String Description, Nullable<Double> Fraction, Boolean IsFinished)
+SaveEditor.Ui.Shell.DocumentProgress :: method Boolean Equals(DocumentProgress other)
+SaveEditor.Ui.Shell.DocumentProgress :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Shell.DocumentProgress :: method Int32 GetHashCode()
+SaveEditor.Ui.Shell.DocumentProgress :: method String ToString()
+SaveEditor.Ui.Shell.DocumentProgress :: property Boolean IsFinished get set
+SaveEditor.Ui.Shell.DocumentProgress :: property Nullable<Double> Fraction get set
+SaveEditor.Ui.Shell.DocumentProgress :: property String Description get set
+SaveEditor.Ui.Shell.DragDropAdapter :: method IDisposable Attach(Control target, EditorShellViewModel viewModel)
+SaveEditor.Ui.Shell.EditorShell :: ctor ()
+SaveEditor.Ui.Shell.EditorShell :: field StyledProperty<Object> BrandingProperty
+SaveEditor.Ui.Shell.EditorShell :: field StyledProperty<Object> HeaderActionsProperty
+SaveEditor.Ui.Shell.EditorShell :: field StyledProperty<Object> MenuExtensionsProperty
+SaveEditor.Ui.Shell.EditorShell :: field StyledProperty<Object> SidebarExtensionProperty
+SaveEditor.Ui.Shell.EditorShell :: field StyledProperty<Object> StatusBarExtensionProperty
+SaveEditor.Ui.Shell.EditorShell :: method Void InitializeComponent(Boolean loadXaml)
+SaveEditor.Ui.Shell.EditorShell :: property Object Branding get set
+SaveEditor.Ui.Shell.EditorShell :: property Object HeaderActions get set
+SaveEditor.Ui.Shell.EditorShell :: property Object MenuExtensions get set
+SaveEditor.Ui.Shell.EditorShell :: property Object SidebarExtension get set
+SaveEditor.Ui.Shell.EditorShell :: property Object StatusBarExtension get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: ctor (IDocumentSession session, IUserInteraction interaction, IEditorSettingsStore settings, IEditorHost host, ThemeController theme)
+SaveEditor.Ui.Shell.EditorShellViewModel :: method ValueTask InitializeAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.EditorShellViewModel :: method ValueTask OpenPathAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.EditorShellViewModel :: method ValueTask<Boolean> ConfirmDiscardAsync(DiscardReason reason, CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.EditorShellViewModel :: method Void Dispose()
+SaveEditor.Ui.Shell.EditorShellViewModel :: method Void RefreshSections()
+SaveEditor.Ui.Shell.EditorShellViewModel :: method Void RegisterSections(IEnumerable<SectionDescriptor> sections)
+SaveEditor.Ui.Shell.EditorShellViewModel :: nested DiscardReason
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean CanChangeAppearance get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean CanExit get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean HasUnsavedWork get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean IsBusy get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean IsWelcomeVisible get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Func<String, Boolean> PathExists get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand CloseCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ExitCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OpenFolderCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OpenSaveCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OverwriteWithBackupCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ReloadCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ResetAccentCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand SaveAsCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ShowAboutCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ShowSafetyCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand<CatppuccinAccent> SetAccentCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand<RecentEntry> OpenRecentCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand<ThemeMode> SetThemeCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IReadOnlyList<CatppuccinAccent> Accents get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IReadOnlyList<ThemeMode> ThemeModes get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IRelayCommand RedoCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property IRelayCommand UndoCommand get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property Nullable<Double> ProgressFraction get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property ObservableCollection<RecentEntry> Recents get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property ObservableCollection<SectionDescriptor> Sections get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property PathLabel CurrentPathLabel get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property PathLabel LastBackupLabel get
+SaveEditor.Ui.Shell.EditorShellViewModel :: property SectionDescriptor SelectedSection get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property String AboutMessage get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property String ProgressDescription get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property String SafetyMessage get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property String StatusMessage get set
+SaveEditor.Ui.Shell.EditorShellViewModel :: property String Title get
+SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason :: field DiscardReason Close
+SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason :: field DiscardReason Exit
+SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason :: field DiscardReason Open
+SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason :: field DiscardReason Reload
+SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason :: field Int32 value__
+SaveEditor.Ui.Shell.IDocumentSession :: event EventHandler StateChanged
+SaveEditor.Ui.Shell.IDocumentSession :: event EventHandler<DocumentProgress> ProgressChanged
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask CloseAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OpenAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OpenFolderAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask ReloadAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask SaveAsAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Shell.IDocumentSession :: method Void DiscardPendingEdits()
+SaveEditor.Ui.Shell.IDocumentSession :: method Void Redo()
+SaveEditor.Ui.Shell.IDocumentSession :: method Void Undo()
+SaveEditor.Ui.Shell.IDocumentSession :: property Boolean CanRedo get
+SaveEditor.Ui.Shell.IDocumentSession :: property Boolean CanUndo get
+SaveEditor.Ui.Shell.IDocumentSession :: property Boolean HasDocument get
+SaveEditor.Ui.Shell.IDocumentSession :: property Boolean HasPendingEdits get
+SaveEditor.Ui.Shell.IDocumentSession :: property Boolean IsDirty get
+SaveEditor.Ui.Shell.IDocumentSession :: property String CurrentPath get
+SaveEditor.Ui.Shell.IDocumentSession :: property String LastBackupPath get
+SaveEditor.Ui.Shell.IDocumentSession :: property String LastStatusMessage get
+SaveEditor.Ui.Shell.RecentEntry :: ctor (String Path, PathLabel Label)
+SaveEditor.Ui.Shell.RecentEntry :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Shell.RecentEntry :: method Boolean Equals(RecentEntry other)
+SaveEditor.Ui.Shell.RecentEntry :: method Int32 GetHashCode()
+SaveEditor.Ui.Shell.RecentEntry :: method String ToString()
+SaveEditor.Ui.Shell.RecentEntry :: property PathLabel Label get set
+SaveEditor.Ui.Shell.RecentEntry :: property String Path get set
+SaveEditor.Ui.Shell.SectionBodyMode :: field Int32 value__
+SaveEditor.Ui.Shell.SectionBodyMode :: field SectionBodyMode Custom
+SaveEditor.Ui.Shell.SectionBodyMode :: field SectionBodyMode FieldList
+SaveEditor.Ui.Shell.SectionBodyMode :: field SectionBodyMode ReadOnly
+SaveEditor.Ui.Shell.SectionDescriptor :: ctor ()
+SaveEditor.Ui.Shell.SectionDescriptor :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Shell.SectionDescriptor :: method Boolean Equals(SectionDescriptor other)
+SaveEditor.Ui.Shell.SectionDescriptor :: method Boolean EvaluateVisibility()
+SaveEditor.Ui.Shell.SectionDescriptor :: method Int32 GetHashCode()
+SaveEditor.Ui.Shell.SectionDescriptor :: method String ToString()
+SaveEditor.Ui.Shell.SectionDescriptor :: property Func<Boolean> IsVisible get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property IDataTemplate BodyTemplate get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property Object Body get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property Object Icon get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property SectionBodyMode BodyMode get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property String Key get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property String Subtitle get set
+SaveEditor.Ui.Shell.SectionDescriptor :: property String Title get set
+SaveEditor.Ui.Theming.SaveEditorTheme :: ctor ()
+SaveEditor.Ui.Theming.SaveEditorTheme :: method Void ApplyAccent(CatppuccinAccent accent)
+SaveEditor.Ui.Theming.ThemeController :: ctor (SaveEditorTheme theme, IEditorSettingsStore store, Nullable<CatppuccinAccent> editorDefaultAccent)
+SaveEditor.Ui.Theming.ThemeController :: field CatppuccinAccent FrameworkDefaultAccent
+SaveEditor.Ui.Theming.ThemeController :: method ValueTask InitializeAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Theming.ThemeController :: method ValueTask ResetAccentAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Theming.ThemeController :: method ValueTask SetAccentAsync(CatppuccinAccent accent, CancellationToken cancellationToken)
+SaveEditor.Ui.Theming.ThemeController :: method ValueTask SetModeAsync(ThemeMode mode, CancellationToken cancellationToken)
+SaveEditor.Ui.Theming.ThemeController :: property Boolean IsUsingEditorDefault get set
+SaveEditor.Ui.Theming.ThemeController :: property CatppuccinAccent Accent get set
+SaveEditor.Ui.Theming.ThemeController :: property CatppuccinAccent EditorDefaultAccent get
+SaveEditor.Ui.Theming.ThemeController :: property ThemeMode Mode get set
+SaveEditor.Ui.Workflow.BackupRetention :: method IReadOnlyList<String> Apply(String directory, String originalFileName, Int32 retain)
+SaveEditor.Ui.Workflow.ConfirmationSaveFormatChooser :: ctor (IUserInteraction interaction)
+SaveEditor.Ui.Workflow.ConfirmationSaveFormatChooser :: method ValueTask<SaveFormatDescriptor> ChooseAsync(IReadOnlyList<SaveFormatDescriptor> candidates, String fileName, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.ContentBaseline :: ctor (ReadOnlyMemory<Byte> Hash, Int64 Length, Nullable<DateTime> LastWriteUtc)
+SaveEditor.Ui.Workflow.ContentBaseline :: method Boolean Equals(ContentBaseline other)
+SaveEditor.Ui.Workflow.ContentBaseline :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.ContentBaseline :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.ContentBaseline :: method String ToString()
+SaveEditor.Ui.Workflow.ContentBaseline :: property Int64 Length get set
+SaveEditor.Ui.Workflow.ContentBaseline :: property Nullable<DateTime> LastWriteUtc get set
+SaveEditor.Ui.Workflow.ContentBaseline :: property ReadOnlyMemory<Byte> Hash get set
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: ctor (DirectoryFlushStatus Status, String Detail)
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: method Boolean Equals(DirectoryFlushResult other)
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: method String ToString()
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: property DirectoryFlushStatus Status get set
+SaveEditor.Ui.Workflow.DirectoryFlushResult :: property String Detail get set
+SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Failed
+SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Flushed
+SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus NotApplicable
+SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field Int32 value__
+SaveEditor.Ui.Workflow.DocumentSession`1 :: ctor (SafeFileWorkflow<TDocument> workflow, EditHistory history, ISaveCodec<TDocument> defaultCodec, IFolderDocumentOpener<TDocument> folderOpener)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler DocumentChanged
+SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler StateChanged
+SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler<DocumentProgress> ProgressChanged
+SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler<String> Opened
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask CloseAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OpenAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OpenFolderAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask ReloadAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask SaveAsAsync(CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method Void DiscardPendingEdits()
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method Void Dispose()
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method Void Redo()
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method Void ReplaceDocument(TDocument document)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: method Void Undo()
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Boolean CanRedo get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Boolean CanUndo get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Boolean HasDocument get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Boolean HasPendingEdits get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Boolean IsDirty get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property Func<Boolean> PendingEditProbe get set
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property SaveOutcome LastOutcome get set
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property String CurrentPath get set
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property String LastBackupPath get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property String LastStatusMessage get
+SaveEditor.Ui.Workflow.DocumentSession`1 :: property TDocument Document get set
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: ctor (ExternalChangeVerdict Verdict, Boolean HashCompared, Boolean MetadataDiffered, String Detail)
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: method Boolean Equals(ExternalChangeCheck other)
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: method String ToString()
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: property Boolean HashCompared get set
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: property Boolean MetadataDiffered get set
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: property ExternalChangeVerdict Verdict get set
+SaveEditor.Ui.Workflow.ExternalChangeCheck :: property String Detail get set
+SaveEditor.Ui.Workflow.ExternalChangeGuard :: ctor ()
+SaveEditor.Ui.Workflow.ExternalChangeGuard :: method ValueTask<ExternalChangeCheck> VerifyAsync(ResolvedFile file, ContentBaseline baseline, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.ExternalChangeGuard :: method ValueTask<ValueTuple<ContentBaseline, Byte[]>> CaptureAsync(ResolvedFile file, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.ExternalChangeVerdict :: field ExternalChangeVerdict Changed
+SaveEditor.Ui.Workflow.ExternalChangeVerdict :: field ExternalChangeVerdict Indeterminate
+SaveEditor.Ui.Workflow.ExternalChangeVerdict :: field ExternalChangeVerdict Unchanged
+SaveEditor.Ui.Workflow.ExternalChangeVerdict :: field Int32 value__
+SaveEditor.Ui.Workflow.IDurabilityBarrier :: method ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IDurabilityBarrier :: method ValueTask<DirectoryFlushResult> FlushDirectoryAsync(String directoryPath, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IDurabilityBarrier :: method ValueTask<ReplaceResult> ReplaceAsync(String temporaryPath, FileIdentity temporaryIdentity, String destinationPath, Boolean destinationExists, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IExternalChangeGuard :: method ValueTask<ExternalChangeCheck> VerifyAsync(ResolvedFile file, ContentBaseline baseline, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IExternalChangeGuard :: method ValueTask<ValueTuple<ContentBaseline, Byte[]>> CaptureAsync(ResolvedFile file, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method Boolean IsBroaderThan(PermissionSnapshot candidate, PermissionSnapshot original, String& detail)
+SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method PermissionCopyResult CopyOnto(FileStream original, FileStream target, String targetPath, FileIdentity targetIdentity)
+SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method PermissionSnapshot Capture(FileStream stream)
+SaveEditor.Ui.Workflow.IFolderDocumentOpener`1 :: method ValueTask<ValueTuple<TDocument, ISaveCodec<TDocument>>> OpenAsync(String path, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.ISaveFormatChooser :: method ValueTask<SaveFormatDescriptor> ChooseAsync(IReadOnlyList<SaveFormatDescriptor> candidates, String fileName, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextBackupFileName(String originalFileName)
+SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextTemporaryFileName()
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Boolean Equals(OpenOutcome<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: method String ToString()
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: nested Cancelled
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: nested Declined
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: nested Failed
+SaveEditor.Ui.Workflow.OpenOutcome`1 :: nested Opened
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: ctor ()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: method Boolean Equals(Cancelled<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: method Boolean Equals(OpenOutcome<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled :: method String ToString()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: ctor (String Message)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: method Boolean Equals(Declined<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: method Boolean Equals(OpenOutcome<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: method String ToString()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Declined :: property String Message get set
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: ctor (SaveFailureReason Reason, String Message)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: method Boolean Equals(Failed<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: method Boolean Equals(OpenOutcome<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: method String ToString()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: property SaveFailureReason Reason get set
+SaveEditor.Ui.Workflow.OpenOutcome`1+Failed :: property String Message get set
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: ctor (OpenSaveFile<TDocument> File)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: method Boolean Equals(OpenOutcome<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: method Boolean Equals(Opened<TDocument> other)
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: method String ToString()
+SaveEditor.Ui.Workflow.OpenOutcome`1+Opened :: property OpenSaveFile<TDocument> File get set
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: method Void Dispose()
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property Boolean IsStale get set
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property ContentBaseline Baseline get set
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property FileIdentity Identity get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property ISaveCodec<TDocument> Codec get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property Int32 HardLinkCount get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property String Path get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property String UnknownDataDetail get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property TDocument Document get
+SaveEditor.Ui.Workflow.OpenSaveFile`1 :: property UnknownDataVerification UnknownData get
+SaveEditor.Ui.Workflow.PermissionCopyResult :: ctor (PermissionCopyStatus Status, String Detail)
+SaveEditor.Ui.Workflow.PermissionCopyResult :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.PermissionCopyResult :: method Boolean Equals(PermissionCopyResult other)
+SaveEditor.Ui.Workflow.PermissionCopyResult :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.PermissionCopyResult :: method String ToString()
+SaveEditor.Ui.Workflow.PermissionCopyResult :: property PermissionCopyStatus Status get set
+SaveEditor.Ui.Workflow.PermissionCopyResult :: property String Detail get set
+SaveEditor.Ui.Workflow.PermissionCopyStatus :: field Int32 value__
+SaveEditor.Ui.Workflow.PermissionCopyStatus :: field PermissionCopyStatus Copied
+SaveEditor.Ui.Workflow.PermissionCopyStatus :: field PermissionCopyStatus Failed
+SaveEditor.Ui.Workflow.PermissionCopyStatus :: field PermissionCopyStatus PartiallyCopied
+SaveEditor.Ui.Workflow.PermissionCopyStatus :: field PermissionCopyStatus Unsupported
+SaveEditor.Ui.Workflow.PermissionSnapshot :: ctor (Nullable<UnixFileMode> UnixMode, IReadOnlyDictionary<String, Int32> WindowsEffectiveRights, String Summary)
+SaveEditor.Ui.Workflow.PermissionSnapshot :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.PermissionSnapshot :: method Boolean Equals(PermissionSnapshot other)
+SaveEditor.Ui.Workflow.PermissionSnapshot :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.PermissionSnapshot :: method String ToString()
+SaveEditor.Ui.Workflow.PermissionSnapshot :: property IReadOnlyDictionary<String, Int32> WindowsEffectiveRights get set
+SaveEditor.Ui.Workflow.PermissionSnapshot :: property Nullable<UnixFileMode> UnixMode get set
+SaveEditor.Ui.Workflow.PermissionSnapshot :: property String Summary get set
+SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: ctor ()
+SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: method ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: method ValueTask<DirectoryFlushResult> FlushDirectoryAsync(String directoryPath, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: method ValueTask<ReplaceResult> ReplaceAsync(String temporaryPath, FileIdentity temporaryIdentity, String destinationPath, Boolean destinationExists, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy :: ctor ()
+SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy :: method Boolean IsBroaderThan(PermissionSnapshot candidate, PermissionSnapshot original, String& detail)
+SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy :: method PermissionCopyResult CopyOnto(FileStream original, FileStream target, String targetPath, FileIdentity targetIdentity)
+SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy :: method PermissionSnapshot Capture(FileStream stream)
+SaveEditor.Ui.Workflow.ReplaceResult :: ctor (ReplaceStatus Status, String Detail)
+SaveEditor.Ui.Workflow.ReplaceResult :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.ReplaceResult :: method Boolean Equals(ReplaceResult other)
+SaveEditor.Ui.Workflow.ReplaceResult :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.ReplaceResult :: method String ToString()
+SaveEditor.Ui.Workflow.ReplaceResult :: property ReplaceStatus Status get set
+SaveEditor.Ui.Workflow.ReplaceResult :: property String Detail get set
+SaveEditor.Ui.Workflow.ReplaceStatus :: field Int32 value__
+SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Failed
+SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus NotAtomic
+SaveEditor.Ui.Workflow.ReplaceStatus :: field ReplaceStatus Replaced
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: ctor ()
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method Boolean Equals(SafeFileWorkflowOptions<TDocument> other)
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: method String ToString()
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Boolean AllowNonLocalPaths get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Boolean VerifyPreservationClaim get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Boolean VerifyRoundTripBeforeReplace get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IDurabilityBarrier Durability get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IEqualityComparer<TDocument> DocumentComparer get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IExternalChangeGuard ChangeGuard get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IFilePermissionPolicy Permissions get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property ISafePathResolver PathResolver get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property ISaveFormatChooser FormatChooser get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IUserInteraction Interaction get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IWorkflowFileNames FileNames get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int32 BackupRetention get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 ConfirmAboveBytes get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 MaxBytes get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 MaxSerializedBytes get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 RoundTripVerificationMaxBytes get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property SaveCodecRegistry<TDocument> Registry get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property TimeProvider TimeProvider get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property TimeSpan TemporaryResidueMinimumAge get set
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: ctor (SafeFileWorkflowOptions<TDocument> options)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method TempSweepReport SweepTemporaryResidue(IEnumerable<String> additionalDirectories)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<OpenOutcome<TDocument>> OpenAsync(String path, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> OverwriteWithBackupAsync(TDocument document, OpenSaveFile<TDocument> open, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> SaveAsAsync(TDocument document, ISaveCodec<TDocument> codec, OpenSaveFile<TDocument> current, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: property IReadOnlyCollection<String> DirectoriesWrittenTo get
+SaveEditor.Ui.Workflow.SaveFailureReason :: field Int32 value__
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason AtomicReplaceUnsupported
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason BackupFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason CodecFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason DetectionFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason ExternalChange
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason IdentityChanged
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason None
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason PathRefused
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason PermissionCopyFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason PermissionWidening
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason RoundTripMismatch
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason TempCreationFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason TooLarge
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason Unexpected
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason ValidationErrors
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason WriteProtected
+SaveEditor.Ui.Workflow.SaveOutcome :: ctor ()
+SaveEditor.Ui.Workflow.SaveOutcome :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.SaveOutcome :: method Boolean Equals(SaveOutcome other)
+SaveEditor.Ui.Workflow.SaveOutcome :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Cancelled()
+SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Declined(String message)
+SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Failure(SaveFailureReason reason, String message, String path)
+SaveEditor.Ui.Workflow.SaveOutcome :: method SaveOutcome Success(String path, String backupPath)
+SaveEditor.Ui.Workflow.SaveOutcome :: method String ToString()
+SaveEditor.Ui.Workflow.SaveOutcome :: property Boolean IsSuccess get
+SaveEditor.Ui.Workflow.SaveOutcome :: property SaveFailureReason Reason get set
+SaveEditor.Ui.Workflow.SaveOutcome :: property SaveStatus Status get set
+SaveEditor.Ui.Workflow.SaveOutcome :: property String BackupPath get set
+SaveEditor.Ui.Workflow.SaveOutcome :: property String Message get set
+SaveEditor.Ui.Workflow.SaveOutcome :: property String Path get set
+SaveEditor.Ui.Workflow.SavePhase :: field Int32 value__
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase CheckingForExternalChange
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Completed
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Decoding
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Detecting
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase PreservingPermissions
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Reading
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Replacing
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Serializing
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase Validating
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingBackup
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingPreservationClaim
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase VerifyingRoundTrip
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase WritingBackup
+SaveEditor.Ui.Workflow.SavePhase :: field SavePhase WritingTemp
+SaveEditor.Ui.Workflow.SaveProgress :: ctor (SavePhase Phase, Int64 BytesCompleted, Nullable<Int64> BytesTotal)
+SaveEditor.Ui.Workflow.SaveProgress :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.SaveProgress :: method Boolean Equals(SaveProgress other)
+SaveEditor.Ui.Workflow.SaveProgress :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.SaveProgress :: method String ToString()
+SaveEditor.Ui.Workflow.SaveProgress :: property Int64 BytesCompleted get set
+SaveEditor.Ui.Workflow.SaveProgress :: property Nullable<Int64> BytesTotal get set
+SaveEditor.Ui.Workflow.SaveProgress :: property SavePhase Phase get set
+SaveEditor.Ui.Workflow.SaveStatus :: field Int32 value__
+SaveEditor.Ui.Workflow.SaveStatus :: field SaveStatus Cancelled
+SaveEditor.Ui.Workflow.SaveStatus :: field SaveStatus Declined
+SaveEditor.Ui.Workflow.SaveStatus :: field SaveStatus Failed
+SaveEditor.Ui.Workflow.SaveStatus :: field SaveStatus Succeeded
+SaveEditor.Ui.Workflow.TempResidueSweeper :: method TempSweepReport Sweep(IEnumerable<String> directories, Nullable<TimeSpan> minimumAge, TimeProvider timeProvider, Int32 maximumEntriesPerDirectory)
+SaveEditor.Ui.Workflow.TempResidueSweeper :: property TimeSpan DefaultMinimumAge get
+SaveEditor.Ui.Workflow.TempSweepReport :: ctor (IReadOnlyList<String> Removed, Int32 Inspected, Int32 Skipped, Int32 Failures)
+SaveEditor.Ui.Workflow.TempSweepReport :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.TempSweepReport :: method Boolean Equals(TempSweepReport other)
+SaveEditor.Ui.Workflow.TempSweepReport :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.TempSweepReport :: method String ToString()
+SaveEditor.Ui.Workflow.TempSweepReport :: property IReadOnlyList<String> Removed get set
+SaveEditor.Ui.Workflow.TempSweepReport :: property Int32 Failures get set
+SaveEditor.Ui.Workflow.TempSweepReport :: property Int32 Inspected get set
+SaveEditor.Ui.Workflow.TempSweepReport :: property Int32 Skipped get set
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field Int32 value__
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Falsified
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification NotClaimed
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Skipped
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Unavailable
+SaveEditor.Ui.Workflow.UnknownDataVerification :: field UnknownDataVerification Verified
+SaveEditor.Ui.Workflow.WorkflowFileNames :: ctor (TimeProvider timeProvider)
+SaveEditor.Ui.Workflow.WorkflowFileNames :: field String BackupInfix
+SaveEditor.Ui.Workflow.WorkflowFileNames :: field String BackupSuffix
+SaveEditor.Ui.Workflow.WorkflowFileNames :: field String TemporaryPrefix
+SaveEditor.Ui.Workflow.WorkflowFileNames :: field String TemporarySuffix
+SaveEditor.Ui.Workflow.WorkflowFileNames :: method Boolean IsBackupOf(String fileName, String originalFileName)
+SaveEditor.Ui.Workflow.WorkflowFileNames :: method Boolean IsFrameworkBackupName(String fileName)
+SaveEditor.Ui.Workflow.WorkflowFileNames :: method Boolean IsFrameworkTemporaryName(String fileName)
+SaveEditor.Ui.Workflow.WorkflowFileNames :: method String NextBackupFileName(String originalFileName)
+SaveEditor.Ui.Workflow.WorkflowFileNames :: method String NextTemporaryFileName()
+type CompiledAvaloniaXaml.!AvaloniaResources
+type CompiledAvaloniaXaml.!XamlLoader
+type SaveEditor.Ui.Codecs.CodecRegistration`1
+type SaveEditor.Ui.Codecs.DetectionResult`1
+type SaveEditor.Ui.Codecs.DetectionVerdict
+type SaveEditor.Ui.Codecs.DetectorReport
+type SaveEditor.Ui.Codecs.ISaveCodecDetector
+type SaveEditor.Ui.Codecs.ISaveCodec`1
+type SaveEditor.Ui.Codecs.SaveCodecRegistryOptions
+type SaveEditor.Ui.Codecs.SaveCodecRegistry`1
+type SaveEditor.Ui.Codecs.SaveFormatDescriptor
+type SaveEditor.Ui.Codecs.ValidationMessage
+type SaveEditor.Ui.Codecs.ValidationReport
+type SaveEditor.Ui.Codecs.ValidationSeverity
+type SaveEditor.Ui.Controls.FieldCard
+type SaveEditor.Ui.Controls.FieldList
+type SaveEditor.Ui.Controls.SectionToolbar
+type SaveEditor.Ui.Dialogs.AboutDialogContent
+type SaveEditor.Ui.Dialogs.AnnouncementKind
+type SaveEditor.Ui.Dialogs.AnnouncementRegion
+type SaveEditor.Ui.Dialogs.CodecWarningPresenter
+type SaveEditor.Ui.Dialogs.CodecWarningsPanel
+type SaveEditor.Ui.Dialogs.ConfirmationDialogView
+type SaveEditor.Ui.Dialogs.DocumentViewerContent
+type SaveEditor.Ui.Dialogs.MessageDialogView
+type SaveEditor.Ui.Dialogs.SanitizedWarning
+type SaveEditor.Ui.Dialogs.SanitizedWarningList
+type SaveEditor.Ui.Dialogs.ThemedUserInteraction
+type SaveEditor.Ui.Display.PathDisplayFormatter
+type SaveEditor.Ui.Display.PathDisplayOptions
+type SaveEditor.Ui.Display.PathLabel
+type SaveEditor.Ui.Display.PathSeparatorStyle
+type SaveEditor.Ui.Editing.BooleanFieldDescriptor
+type SaveEditor.Ui.Editing.BooleanFieldViewModel
+type SaveEditor.Ui.Editing.ChoiceFieldDescriptor
+type SaveEditor.Ui.Editing.ChoiceFieldViewModel
+type SaveEditor.Ui.Editing.ChoiceOption
+type SaveEditor.Ui.Editing.EditHistory
+type SaveEditor.Ui.Editing.FieldDescriptor
+type SaveEditor.Ui.Editing.FieldViewModel
+type SaveEditor.Ui.Editing.FieldViewModel`1
+type SaveEditor.Ui.Editing.HistoryEntry
+type SaveEditor.Ui.Editing.IChoiceProvider
+type SaveEditor.Ui.Editing.NumericFieldDescriptor
+type SaveEditor.Ui.Editing.NumericFieldViewModel
+type SaveEditor.Ui.Editing.ReadOnlyFieldDescriptor
+type SaveEditor.Ui.Editing.ReadOnlyFieldViewModel
+type SaveEditor.Ui.Editing.SectionEditor
+type SaveEditor.Ui.Editing.TextFieldDescriptor
+type SaveEditor.Ui.Editing.TextFieldViewModel
+type SaveEditor.Ui.Hosting.HostSizeChangedEventArgs
+type SaveEditor.Ui.Hosting.IEditorHost
+type SaveEditor.Ui.Hosting.WindowEditorHost
+type SaveEditor.Ui.Interaction.ChoicePrompt
+type SaveEditor.Ui.Interaction.ChoicePromptOption
+type SaveEditor.Ui.Interaction.ConfirmationRequest
+type SaveEditor.Ui.Interaction.DocumentRequest
+type SaveEditor.Ui.Interaction.FilePickerRequest
+type SaveEditor.Ui.Interaction.IUserInteraction
+type SaveEditor.Ui.Interaction.MessageRequest
+type SaveEditor.Ui.Interaction.SaveFilePickResult
+type SaveEditor.Ui.Interaction.UntrustedText
+type SaveEditor.Ui.Io.FileIdentity
+type SaveEditor.Ui.Io.ISafePathResolver
+type SaveEditor.Ui.Io.PathConfirmationKind
+type SaveEditor.Ui.Io.PathRefusalReason
+type SaveEditor.Ui.Io.PathResolution
+type SaveEditor.Ui.Io.PathResolution+NeedsConfirmation
+type SaveEditor.Ui.Io.PathResolution+Refused
+type SaveEditor.Ui.Io.PathResolution+Resolved
+type SaveEditor.Ui.Io.PathResolutionMode
+type SaveEditor.Ui.Io.PathResolutionOptions
+type SaveEditor.Ui.Io.ResolvedFile
+type SaveEditor.Ui.Io.SafePathResolver
+type SaveEditor.Ui.Settings.CatppuccinAccent
+type SaveEditor.Ui.Settings.EditorApplicationId
+type SaveEditor.Ui.Settings.EditorSettings
+type SaveEditor.Ui.Settings.EditorSettingsStore
+type SaveEditor.Ui.Settings.EditorSettingsStoreOptions
+type SaveEditor.Ui.Settings.FileSystemRecentEntryProbe
+type SaveEditor.Ui.Settings.FixedScreenBoundsSource
+type SaveEditor.Ui.Settings.IEditorSettingsStore
+type SaveEditor.Ui.Settings.IRecentEntryProbe
+type SaveEditor.Ui.Settings.IScreenBoundsSource
+type SaveEditor.Ui.Settings.RecentEntryState
+type SaveEditor.Ui.Settings.RecentPaths
+type SaveEditor.Ui.Settings.RecentsList
+type SaveEditor.Ui.Settings.ScreenArea
+type SaveEditor.Ui.Settings.SettingsAnnouncement
+type SaveEditor.Ui.Settings.SettingsLoadOutcome
+type SaveEditor.Ui.Settings.SettingsRejection
+type SaveEditor.Ui.Settings.ThemeMode
+type SaveEditor.Ui.Settings.UnknownScreenBoundsSource
+type SaveEditor.Ui.Shell.DocumentProgress
+type SaveEditor.Ui.Shell.DragDropAdapter
+type SaveEditor.Ui.Shell.EditorShell
+type SaveEditor.Ui.Shell.EditorShellViewModel
+type SaveEditor.Ui.Shell.EditorShellViewModel+DiscardReason
+type SaveEditor.Ui.Shell.IDocumentSession
+type SaveEditor.Ui.Shell.RecentEntry
+type SaveEditor.Ui.Shell.SectionBodyMode
+type SaveEditor.Ui.Shell.SectionDescriptor
+type SaveEditor.Ui.Theming.SaveEditorTheme
+type SaveEditor.Ui.Theming.ThemeController
+type SaveEditor.Ui.Workflow.BackupRetention
+type SaveEditor.Ui.Workflow.ConfirmationSaveFormatChooser
+type SaveEditor.Ui.Workflow.ContentBaseline
+type SaveEditor.Ui.Workflow.DirectoryFlushResult
+type SaveEditor.Ui.Workflow.DirectoryFlushStatus
+type SaveEditor.Ui.Workflow.DocumentSession`1
+type SaveEditor.Ui.Workflow.ExternalChangeCheck
+type SaveEditor.Ui.Workflow.ExternalChangeGuard
+type SaveEditor.Ui.Workflow.ExternalChangeVerdict
+type SaveEditor.Ui.Workflow.IDurabilityBarrier
+type SaveEditor.Ui.Workflow.IExternalChangeGuard
+type SaveEditor.Ui.Workflow.IFilePermissionPolicy
+type SaveEditor.Ui.Workflow.IFolderDocumentOpener`1
+type SaveEditor.Ui.Workflow.ISaveFormatChooser
+type SaveEditor.Ui.Workflow.IWorkflowFileNames
+type SaveEditor.Ui.Workflow.OpenOutcome`1
+type SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled
+type SaveEditor.Ui.Workflow.OpenOutcome`1+Declined
+type SaveEditor.Ui.Workflow.OpenOutcome`1+Failed
+type SaveEditor.Ui.Workflow.OpenOutcome`1+Opened
+type SaveEditor.Ui.Workflow.OpenSaveFile`1
+type SaveEditor.Ui.Workflow.PermissionCopyResult
+type SaveEditor.Ui.Workflow.PermissionCopyStatus
+type SaveEditor.Ui.Workflow.PermissionSnapshot
+type SaveEditor.Ui.Workflow.PlatformDurabilityBarrier
+type SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy
+type SaveEditor.Ui.Workflow.ReplaceResult
+type SaveEditor.Ui.Workflow.ReplaceStatus
+type SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1
+type SaveEditor.Ui.Workflow.SafeFileWorkflow`1
+type SaveEditor.Ui.Workflow.SaveFailureReason
+type SaveEditor.Ui.Workflow.SaveOutcome
+type SaveEditor.Ui.Workflow.SavePhase
+type SaveEditor.Ui.Workflow.SaveProgress
+type SaveEditor.Ui.Workflow.SaveStatus
+type SaveEditor.Ui.Workflow.TempResidueSweeper
+type SaveEditor.Ui.Workflow.TempSweepReport
+type SaveEditor.Ui.Workflow.UnknownDataVerification
+type SaveEditor.Ui.Workflow.WorkflowFileNames
