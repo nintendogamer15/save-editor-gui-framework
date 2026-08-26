@@ -57,12 +57,50 @@ public sealed record ConfirmationRequest
     public bool IsDestructive { get; init; }
 
     /// <summary>
+    /// The file this action will affect, already neutralised for display.
+    /// </summary>
+    /// <remarks>
+    /// Part of the contract rather than a convention of the shipped implementation.
+    /// The overwrite confirmation is the most destructive prompt in the product, and
+    /// an editor that replaces <see cref="IUserInteraction"/> must not silently end
+    /// up showing one without naming the file it is about to replace.
+    /// </remarks>
+    public Display.PathLabel? Target { get; init; }
+
+    /// <summary>
     /// Supplementary detail supplied by a codec. Rendered as plain text in a
     /// visually distinct, non-chrome region, with control and bidi characters
     /// stripped and length, line count, and total count capped.
     /// </summary>
     public IReadOnlyList<UntrustedText> Details { get; init; } = [];
 }
+
+/// <summary>One option in a choice prompt.</summary>
+/// <param name="Key">Stable identifier returned when this option is chosen.</param>
+/// <param name="Label">How the option is shown.</param>
+/// <param name="Description">Optional supporting detail.</param>
+public sealed record ChoicePromptOption(string Key, string Label, string? Description = null);
+
+/// <summary>A prompt asking the user to pick one of several options.</summary>
+/// <param name="Title">Framework-owned title.</param>
+/// <param name="Message">Framework-owned framing sentence.</param>
+/// <param name="Options">The options, in the order they should be offered.</param>
+/// <remarks>
+/// Exists because ambiguous codec detection has to be resolved by the user rather
+/// than by registration order, and expressing that as a series of yes/no
+/// confirmations makes the ordering itself look like a recommendation.
+/// </remarks>
+public sealed record ChoicePrompt(
+    string Title,
+    string Message,
+    IReadOnlyList<ChoicePromptOption> Options);
+
+/// <summary>A read-only document shown to the user.</summary>
+/// <param name="Title">Framework-owned title.</param>
+/// <param name="Content">
+/// The body. Untrusted: it may be codec-supplied or derived from save-file bytes.
+/// </param>
+public sealed record DocumentRequest(string Title, UntrustedText Content);
 
 /// <summary>A message shown to the user with no choice attached.</summary>
 /// <param name="Title">Framework-owned title.</param>
@@ -123,5 +161,24 @@ public interface IUserInteraction
     /// <param name="cancellationToken">Cancels the dialog.</param>
     ValueTask ShowMessageAsync(
         MessageRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Asks the user to pick one of several options.</summary>
+    /// <param name="prompt">The options and their framing.</param>
+    /// <param name="cancellationToken">Cancels the dialog.</param>
+    /// <returns>
+    /// The chosen option's key, or <see langword="null"/> if dismissed. A dismissal
+    /// is not a selection: the caller must abandon the operation rather than
+    /// defaulting to the first option.
+    /// </returns>
+    ValueTask<string?> ChooseAsync(
+        ChoicePrompt prompt,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Shows a read-only document.</summary>
+    /// <param name="request">Title and body.</param>
+    /// <param name="cancellationToken">Cancels the dialog.</param>
+    ValueTask ShowDocumentAsync(
+        DocumentRequest request,
         CancellationToken cancellationToken = default);
 }

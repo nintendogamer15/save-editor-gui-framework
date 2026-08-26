@@ -39,6 +39,54 @@ dotnet test  -c Release
 
 Tests run on Microsoft.Testing.Platform rather than VSTest — `dotnet test` drives the test executables directly, and neither `Microsoft.NET.Test.Sdk` nor a VSTest adapter is referenced.
 
+### Composing an editor
+
+Plain constructor composition; DI is optional and never required.
+
+```csharp
+// Application.Styles: a base Avalonia theme first, then the framework's.
+Styles.Add(new FluentTheme());
+Styles.Add(new SaveEditorTheme());
+
+// One settings store, shared. Splitting it lets theme and shell state diverge.
+var settings = new EditorSettingsStore(EditorApplicationId.Parse("MyEditor"));
+var theme    = new ThemeController(saveEditorTheme, settings, CatppuccinAccent.Mauve);
+var host     = new WindowEditorHost(window);
+
+var shell = new EditorShellViewModel(session, interaction, settings, host, theme);
+
+shell.RegisterSections(
+[
+    new SectionDescriptor
+    {
+        Key = "player",              // stable and persisted: never a display string
+        Title = "Player",
+        BodyMode = SectionBodyMode.FieldList,
+        Body = new FieldList { Fields = playerSection.VisibleFields },
+    },
+]);
+```
+
+Fields are descriptors over accessors into your own document type:
+
+```csharp
+var health = new NumericFieldViewModel(
+    new NumericFieldDescriptor
+    {
+        Key = "health", Label = "Health", Path = "player.hp",
+        Minimum = 0, Maximum = 9999, ShowSpinner = true,
+        Read  = () => document.Health,
+        Write = value => document.Health = value,
+    },
+    history);
+```
+
+Three things about that are deliberate and worth knowing before you fight them:
+
+- **Typing does not touch your document.** A draft lives on the field until Apply, which is what lets it survive section navigation. `HasPendingEdit` drives the exit guard, so anything typed is protected even when it does not parse.
+- **A section body owns its scrolling.** The shell does not wrap it, because wrapping starves a virtualizing `FieldList` of the viewport it needs.
+- **Out-of-range values are reported, not clamped.** Silently rewriting a number the user typed puts a value in their save file that they never chose.
+
 ## Architecture decisions
 
 - `EditorShell` is an embeddable `UserControl`; applications retain ownership of their `Window`.

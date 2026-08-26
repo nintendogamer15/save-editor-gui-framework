@@ -139,6 +139,28 @@ internal sealed class FakeInteraction : IUserInteraction
 
     public List<MessageRequest> Messages { get; } = [];
 
+    public List<ChoicePrompt> Prompts { get; } = [];
+
+    public List<DocumentRequest> Documents { get; } = [];
+
+    /// <summary>
+    /// Answers a choice prompt. Declines by default: a dismissal must abandon the
+    /// operation rather than silently taking the first option.
+    /// </summary>
+    public Func<ChoicePrompt, string?> Choose { get; set; } = _ => null;
+
+    public ValueTask<string?> ChooseAsync(ChoicePrompt prompt, CancellationToken cancellationToken = default)
+    {
+        Prompts.Add(prompt);
+        return ValueTask.FromResult(Choose(prompt));
+    }
+
+    public ValueTask ShowDocumentAsync(DocumentRequest request, CancellationToken cancellationToken = default)
+    {
+        Documents.Add(request);
+        return ValueTask.CompletedTask;
+    }
+
     public ValueTask<string?> PickOpenFileAsync(FilePickerRequest request, CancellationToken cancellationToken = default) =>
         ValueTask.FromResult<string?>(null);
 

@@ -1,4 +1,8 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using Avalonia;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using SaveEditor.ScreenshotDiff;
 
 namespace SaveEditor.Ui.HeadlessTests.Screenshots;
@@ -65,12 +69,12 @@ public static class ScreenshotBaseline
             "Screenshot references are Ubuntu-golden; the platforms rasterise text " +
             "differently and one golden set cannot serve both. Behavioural tests still run here.");
 
-        var path = Path.Combine(Directory(), $"{name}.bin");
+        var path = Path.Combine(Directory(), $"{name}.png");
 
         if (IsUpdating)
         {
             System.IO.Directory.CreateDirectory(Directory());
-            File.WriteAllBytes(path, pixels);
+            WritePng(path, pixels);
             return;
         }
 
@@ -79,7 +83,7 @@ public static class ScreenshotBaseline
             $"No committed reference for '{name}'. Seed it from a CI run with " +
             $"{UpdateVariable}=1 rather than from a development machine.");
 
-        var expected = File.ReadAllBytes(path);
+        var expected = ReadPng(path);
         var diff = PixelComparator.Compare(expected, pixels);
 
         if (diff.IsIdentical)
@@ -89,14 +93,67 @@ public static class ScreenshotBaseline
 
         // Write the actual capture and a diff mask beside the reference so a failed
         // run leaves something a reviewer can look at rather than only a number.
-        File.WriteAllBytes(Path.Combine(Directory(), $"{name}.actual.bin"), pixels);
-        File.WriteAllBytes(
-            Path.Combine(Directory(), $"{name}.diff.bin"),
+        WritePng(Path.Combine(Directory(), $"{name}.actual.png"), pixels);
+        WritePng(
+            Path.Combine(Directory(), $"{name}.diff.png"),
             PixelComparator.BuildDiffMask(expected, pixels));
 
         Assert.Fail(
             $"'{name}' differs from its reference: {diff.DifferingPixels} of {diff.TotalPixels} " +
             $"pixels, first at index {diff.FirstDifferenceAt}. Review the change deliberately; " +
             $"if it is intended, reseed with {UpdateVariable}=1.");
+    }
+
+    /// <summary>Encodes a BGRA buffer as PNG.</summary>
+    /// <remarks>
+    /// References are stored as PNG rather than raw pixels. A 1600x1000 BGRA frame is
+    /// 6.4 MB, so six references would put 38 MB into the repository and add another
+    /// 38 MB on every reseed. PNG is lossless, so the comparison stays byte-exact.
+    /// </remarks>
+    private static void WritePng(string path, byte[] pixels)
+    {
+        using var bitmap = new WriteableBitmap(
+            new PixelSize(ScreenshotHarness.Width, ScreenshotHarness.Height),
+            new Vector(96, 96),
+            PixelFormat.Bgra8888,
+            AlphaFormat.Unpremul);
+
+        using (var frame = bitmap.Lock())
+        {
+            var rowBytes = ScreenshotHarness.Width * 4;
+            for (var row = 0; row < ScreenshotHarness.Height; row++)
+            {
+                Marshal.Copy(pixels, row * rowBytes, frame.Address + (row * frame.RowBytes), rowBytes);
+            }
+        }
+
+        bitmap.Save(path, new PngBitmapEncoderOptions());
+    }
+
+    /// <summary>Decodes a PNG reference back to a BGRA buffer.</summary>
+    private static byte[] ReadPng(string path)
+    {
+        using var bitmap = new Bitmap(path);
+
+        var width = bitmap.PixelSize.Width;
+        var height = bitmap.PixelSize.Height;
+        var rowBytes = width * 4;
+        var buffer = new byte[rowBytes * height];
+
+        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+        try
+        {
+            bitmap.CopyPixels(
+                new PixelRect(0, 0, width, height),
+                handle.AddrOfPinnedObject(),
+                buffer.Length,
+                rowBytes);
+        }
+        finally
+        {
+            handle.Free();
+        }
+
+        return buffer;
     }
 }

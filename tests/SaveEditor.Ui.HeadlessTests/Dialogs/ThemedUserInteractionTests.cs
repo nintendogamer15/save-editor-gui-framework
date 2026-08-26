@@ -34,6 +34,7 @@ public class ThemedUserInteractionTests
         var owner = new Window();
         var interaction = new ThemedUserInteraction(owner);
 
-        await Assert.ThrowsAsync<ArgumentException>(async () => await interaction.ShowDocumentAsync(string.Empty, "text"));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            async () => await interaction.ShowDocumentAsync(null!));
     }
 }

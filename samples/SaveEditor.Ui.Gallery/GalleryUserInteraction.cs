@@ -99,6 +99,38 @@ internal sealed class GalleryUserInteraction(Window owner) : IUserInteraction
         return result;
     }
 
+    public async ValueTask<string?> ChooseAsync(
+        ChoicePrompt prompt, CancellationToken cancellationToken = default)
+    {
+        // The gallery demonstrates the flow rather than shipping it; the framework's
+        // ThemedUserInteraction is the real one.
+        foreach (var option in prompt.Options)
+        {
+            var accepted = await ConfirmAsync(
+                new ConfirmationRequest
+                {
+                    Title = prompt.Title,
+                    Message = string.Join(
+                        Environment.NewLine + Environment.NewLine,
+                        prompt.Message,
+                        option.Label),
+                    AcceptLabel = $"Use {option.Label}",
+                },
+                cancellationToken).ConfigureAwait(true);
+
+            if (accepted)
+            {
+                return option.Key;
+            }
+        }
+
+        return null;
+    }
+
+    public ValueTask ShowDocumentAsync(
+        DocumentRequest request, CancellationToken cancellationToken = default) =>
+        ShowMessageAsync(new MessageRequest(request.Title, request.Content.Value), cancellationToken);
+
     public async ValueTask ShowMessageAsync(
         MessageRequest request, CancellationToken cancellationToken = default) =>
         await ConfirmAsync(

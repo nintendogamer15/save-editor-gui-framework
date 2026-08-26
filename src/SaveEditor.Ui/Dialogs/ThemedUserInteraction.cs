@@ -1,4 +1,7 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using SaveEditor.Ui.Codecs;
@@ -105,7 +108,7 @@ public sealed class ThemedUserInteraction : IUserInteraction
     public ValueTask<bool> ConfirmAsync(ConfirmationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return new ValueTask<bool>(ShowConfirmationAsync(request, targetPath: null, cancellationToken));
+        return new ValueTask<bool>(ShowConfirmationAsync(request, request.Target, cancellationToken));
     }
 
     /// <summary>
@@ -118,11 +121,10 @@ public sealed class ThemedUserInteraction : IUserInteraction
     /// <param name="cancellationToken">Cancels the dialog.</param>
     /// <returns><see langword="true"/> when the user accepts the overwrite.</returns>
     /// <remarks>
-    /// A convenience beyond <see cref="IUserInteraction"/>: <see cref="ConfirmationRequest"/>
-    /// carries only a plain <see cref="ConfirmationRequest.Message"/> string, with no
-    /// dedicated path field a renderer could attach a tooltip or accessible
-    /// description to. This method exists so a caller with an actual file path gets
-    /// that treatment without hand-formatting the sentence itself.
+    /// A convenience over <see cref="ConfirmAsync"/> that formats the path and fills
+    /// <see cref="ConfirmationRequest.Target"/>. The path itself is part of the
+    /// interface contract, so an editor supplying its own
+    /// <see cref="IUserInteraction"/> still receives it.
     /// </remarks>
     public ValueTask<bool> ConfirmOverwriteAsync(
         string path,
@@ -139,9 +141,10 @@ public sealed class ThemedUserInteraction : IUserInteraction
             AcceptLabel = "Overwrite save file",
             IsDestructive = true,
             Details = details ?? [],
+            Target = label,
         };
 
-        return new ValueTask<bool>(ShowConfirmationAsync(request, label, cancellationToken));
+        return new ValueTask<bool>(ShowConfirmationAsync(request, request.Target, cancellationToken));
     }
 
     /// <inheritdoc />
@@ -152,23 +155,83 @@ public sealed class ThemedUserInteraction : IUserInteraction
     }
 
     /// <summary>Shows a block of read-only text in a themed, scrollable viewer.</summary>
-    /// <param name="title">The dialog title.</param>
-    /// <param name="documentText">
-    /// The text to show. Neutralized before display regardless of origin; see
-    /// <see cref="DocumentViewerContent"/>.
-    /// </param>
+    /// <param name="request">Title and body. The body is neutralized before display.</param>
     /// <param name="cancellationToken">Cancels the dialog.</param>
     public async ValueTask ShowDocumentAsync(
-        string title, string documentText, CancellationToken cancellationToken = default)
+        DocumentRequest request, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(title);
+        ArgumentNullException.ThrowIfNull(request);
 
-        var view = new DocumentViewerContent { Title = title, DocumentText = documentText ?? string.Empty };
-        var window = CreateHostWindow(title, view, width: 560);
+        var view = new DocumentViewerContent
+        {
+            Title = request.Title,
+            DocumentText = request.Content.Value,
+        };
+
+        var window = CreateHostWindow(request.Title, view, width: 560);
         view.CloseRequested += (_, _) => window.Close();
 
         using var registration = cancellationToken.Register(() => Dispatcher.UIThread.Post(window.Close));
         await window.ShowDialog(_owner).ConfigureAwait(true);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Renders every option at once rather than as a series of yes/no questions.
+    /// Asking sequentially makes the order look like a recommendation, and the whole
+    /// point of resolving ambiguous detection by asking is that the framework has no
+    /// basis for recommending one.
+    /// </remarks>
+    public async ValueTask<string?> ChooseAsync(
+        ChoicePrompt prompt, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(prompt);
+
+        string? chosen = null;
+
+        var options = new StackPanel { Spacing = 8 };
+        var window = CreateHostWindow(prompt.Title, options, width: 460);
+
+        foreach (var option in prompt.Options)
+        {
+            var caption = new StackPanel();
+            caption.Children.Add(new TextBlock { Text = option.Label });
+
+            if (option.Description is { } description)
+            {
+                caption.Children.Add(new TextBlock
+                {
+                    Text = description,
+                    FontSize = 11,
+                    [!TextBlock.ForegroundProperty] = new DynamicResourceExtension("SubtleForeground"),
+                });
+            }
+
+            var button = new Button
+            {
+                Content = caption,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+            };
+
+            AutomationProperties.SetName(button, option.Label);
+
+            var key = option.Key;
+            button.Click += (_, _) =>
+            {
+                chosen = key;
+                window.Close();
+            };
+
+            options.Children.Add(button);
+        }
+
+        using var registration = cancellationToken.Register(() => Dispatcher.UIThread.Post(window.Close));
+        await window.ShowDialog(_owner).ConfigureAwait(true);
+
+        // Dismissal is not a selection. Returning the first option here would make
+        // registration order decide the format after all.
+        return chosen;
     }
 
     /// <summary>Shows the framework's themed About/Credits dialog.</summary>
