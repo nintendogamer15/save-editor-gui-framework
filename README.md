@@ -165,11 +165,26 @@ aborts with a message naming the limitation rather than degrading to delete-then
 **Permissions are preserved.** A `0600` save does not silently become `0644` because
 `rename(2)` handed the destination the temp file's mode.
 
-**Your codec's `PreservesUnknownData` claim is checked, not believed.** Immediately
-after decoding, the framework re-serializes the untouched document and compares it
-byte-for-byte against the source. A codec that declares it preserves unknown data and
-quietly drops a checksum region is caught and downgraded to a confirmation prompt
-instead of silently destroying part of the file.
+**Your codec's `PreservesUnknownData` claim is tested, not believed.** Immediately
+after decoding, the framework re-serializes the untouched document and compares the
+result against the source. A codec that declares it preserves unknown data and quietly
+drops a checksum region is caught and downgraded to a confirmation prompt instead of
+silently destroying part of the file.
+
+The comparison is byte equality by default, and that much the framework proves for
+itself. Some formats cannot be byte-identical even when they are perfectly lossless —
+anything embedding a fresh random salt or IV, a timestamp, or normalised whitespace. For
+those, override `ISaveCodec.RoundTripEquivalent` to say what "same document" means for
+your format; an encrypting codec decrypts both sides and compares documents. **Doing so
+changes what is proven, and the framework says which it got:** `Verified` means the
+framework reproduced the bytes, `VerifiedEquivalent` means your codec was taken at its
+word. Both are passes. Only the first is independent of your codec being right.
+
+The reason this seam exists rather than a stricter check: demanding byte-identical
+re-serialization from a codec that derives its key and IV from an embedded random salt
+would force it to pin that salt across saves — reusing one key and IV across differing
+plaintexts. The strict check rewarded a cryptographic regression, and for an AEAD format
+nonce reuse is catastrophic rather than merely a leak.
 
 **On failure, the bytes at the target path are exactly the pre-operation bytes.**
 Explicitly *not* guaranteed: file identity (`rename` unlinks the original inode on

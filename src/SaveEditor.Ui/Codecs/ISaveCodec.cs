@@ -20,7 +20,8 @@ public sealed record SaveFormatDescriptor(
 /// one; see <c>PLAN.md</c> §8. What it does provide is containment of honest
 /// mistakes: bounded inputs, isolated detection, exception containment at the
 /// workflow boundary, and round-trip falsification of
-/// <see cref="PreservesUnknownData"/>.
+/// <see cref="PreservesUnknownData"/> — as far as
+/// <see cref="RoundTripEquivalent"/> allows, which is stated exactly there.
 /// </para>
 /// <para>
 /// A codec never receives a handle or path resolving to the destination.
@@ -37,14 +38,73 @@ public interface ISaveCodec<TDocument>
     /// Whether this codec round-trips data it does not understand.
     /// </summary>
     /// <remarks>
-    /// This is a claim, not a guarantee, and the framework verifies it rather than
-    /// trusting it: immediately after decoding it re-serializes the unmodified
-    /// document and compares against the source bytes. A codec that declares
-    /// <see langword="true"/> and drops a trailing block or checksum region is
-    /// detected and downgraded to the warning-requiring-confirmation path instead
-    /// of silently destroying the save.
+    /// <para>
+    /// This is a claim, not a guarantee, and the framework tests it rather than
+    /// simply trusting it: immediately after decoding it re-serializes the
+    /// unmodified document and compares the result against the source bytes. A
+    /// codec that declares <see langword="true"/> and drops a trailing block or
+    /// checksum region is detected and downgraded to the
+    /// warning-requiring-confirmation path instead of silently destroying the save.
+    /// </para>
+    /// <para>
+    /// <strong>How much of that is proven depends on
+    /// <see cref="RoundTripEquivalent"/>.</strong> Byte-identical re-serialization is
+    /// proven by the framework and reported as
+    /// <see cref="Workflow.UnknownDataVerification.Verified"/>. A codec that
+    /// overrides the comparison is instead taken at its word, and the weaker
+    /// <see cref="Workflow.UnknownDataVerification.VerifiedEquivalent"/> is reported
+    /// to say so.
+    /// </para>
     /// </remarks>
     bool PreservesUnknownData { get; }
+
+    /// <summary>
+    /// How a re-serialized round trip is compared against the original bytes when
+    /// testing <see cref="PreservesUnknownData"/>.
+    /// </summary>
+    /// <param name="original">The bytes read from the file.</param>
+    /// <param name="reserialized">
+    /// The bytes produced by re-serializing the unmodified decoded document.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> when the two represent the same document for this
+    /// format.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The default is byte equality, which the framework can prove for itself.
+    /// Override it only for a format whose serialization cannot be byte-identical
+    /// even when it is perfectly lossless — one that embeds a fresh random salt or
+    /// IV, a timestamp, or a non-deterministic compression dictionary, or one that
+    /// normalises whitespace the original happened to contain. An encrypting codec
+    /// typically decrypts both sides and compares documents; a normalising text
+    /// codec compares parsed trees.
+    /// </para>
+    /// <para>
+    /// <strong>Why this exists rather than a stricter check.</strong> Demanding
+    /// byte-identical re-serialization from a codec that derives its key and IV from
+    /// an embedded random salt would require pinning that salt across saves — which
+    /// means reusing one key and IV across differing plaintexts. The strict check
+    /// would therefore have rewarded a real cryptographic regression, and for an
+    /// AEAD format nonce reuse is catastrophic rather than merely a confidentiality
+    /// leak. The framework would rather report a weaker guarantee honestly than
+    /// incentivise unsound cryptography.
+    /// </para>
+    /// <para>
+    /// <strong>What overriding this costs.</strong> The framework compares bytes
+    /// first and calls this only on divergence, so an implementation that returns
+    /// <see langword="true"/> unconditionally can never manufacture the
+    /// byte-identical verdict — but it can suppress a
+    /// <see cref="Workflow.UnknownDataVerification.Falsified"/> one it deserves. At
+    /// that point the preservation guarantee rests on this method being right, and
+    /// the verdict becomes
+    /// <see cref="Workflow.UnknownDataVerification.VerifiedEquivalent"/> so that
+    /// nothing claims more than was proven. Same posture as the rest of this
+    /// interface: a codec is a correctness boundary, not a sandbox.
+    /// </para>
+    /// </remarks>
+    bool RoundTripEquivalent(ReadOnlySpan<byte> original, ReadOnlySpan<byte> reserialized) =>
+        original.SequenceEqual(reserialized);
 
     /// <summary>Decodes a document from the supplied stream.</summary>
     /// <param name="source">Read-only stream over the save file.</param>

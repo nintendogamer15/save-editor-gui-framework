@@ -36,6 +36,14 @@ internal sealed class TestCodec : ISaveCodec<TestDocument>
 
     public Func<TestDocument, int, CancellationToken, ValueTask<ValidationReport>>? ValidateOverride { get; set; }
 
+    /// <summary>
+    /// Replaces the round-trip equivalence relation. Arrays rather than spans so a test can
+    /// keep a closure over them.
+    /// </summary>
+    public Func<byte[], byte[], bool>? RoundTripEquivalentOverride { get; set; }
+
+    public int RoundTripEquivalentCalls { get; private set; }
+
     public int DecodeCalls { get; private set; }
 
     public int SerializeCalls { get; private set; }
@@ -90,6 +98,15 @@ internal sealed class TestCodec : ISaveCodec<TestDocument>
         return ValidateOverride is null
             ? ValidationReport.Empty
             : await ValidateOverride(document, ValidateCalls, cancellationToken).ConfigureAwait(false);
+    }
+
+    public bool RoundTripEquivalent(ReadOnlySpan<byte> original, ReadOnlySpan<byte> reserialized)
+    {
+        RoundTripEquivalentCalls++;
+
+        return RoundTripEquivalentOverride is null
+            ? original.SequenceEqual(reserialized)
+            : RoundTripEquivalentOverride(original.ToArray(), reserialized.ToArray());
     }
 }
 

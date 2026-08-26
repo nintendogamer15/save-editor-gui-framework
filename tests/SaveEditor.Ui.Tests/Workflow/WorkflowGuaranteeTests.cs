@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using SaveEditor.Ui.Codecs;
 using SaveEditor.Ui.Interaction;
@@ -287,6 +288,183 @@ public sealed class WorkflowGuaranteeTests
 
         var confirmation = Assert.Single(harness.Interaction.Confirmations);
         Assert.DoesNotContain("it is false", confirmation.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The salted-encryption case from the adopter's fix brief: a codec whose serialization is
+    /// non-deterministic by design, wrapping a genuinely lossless document.
+    /// </summary>
+    /// <remarks>
+    /// Byte-identical re-serialization was the wrong bar. A format that derives its key and IV
+    /// from an embedded random salt can only clear it by pinning that salt, which means reusing
+    /// one key and IV across differing plaintexts — so the old check rewarded a cryptographic
+    /// regression and, for anyone who refused, produced a permanent false data-loss warning on
+    /// the one dialog in the product that actually protects the user.
+    /// </remarks>
+    [Fact]
+    public async Task Workflow_AcceptsPreservationClaimFromANonDeterministicCodec()
+    {
+        using var harness = new WorkflowHarness("salted-claim");
+        harness.Codec.PreservesUnknownData = true;
+
+        const int SaltBytes = 16;
+
+        // The salt sits in cleartext at offset 0 and is regenerated on every serialize, so no
+        // two serializations of the same document are ever byte-identical.
+        harness.Codec.SerializeOverride = async (doc, destination, cancellationToken) =>
+        {
+            await destination.WriteAsync(RandomNumberGenerator.GetBytes(SaltBytes), cancellationToken);
+            await destination.WriteAsync(TestCodec.Encode(doc), cancellationToken);
+        };
+
+        harness.Codec.DecodeOverride = (bytes, _) =>
+            ValueTask.FromResult(TestCodec.Parse(bytes[SaltBytes..]));
+
+        harness.Detector.HeaderBytesRequired = SaltBytes + TestCodec.Magic.Length;
+        harness.Detector.DetectOverride = header =>
+            header.Length >= SaltBytes + TestCodec.Magic.Length &&
+            Encoding.UTF8.GetString(header, SaltBytes, TestCodec.Magic.Length) == TestCodec.Magic
+                ? DetectionVerdict.Confident
+                : DetectionVerdict.Declined;
+
+        var document = SampleDocument;
+        var target = harness.Workspace.Path("save.sav");
+        File.WriteAllBytes(target, [.. RandomNumberGenerator.GetBytes(SaltBytes), .. TestCodec.Encode(document)]);
+
+        // --- Without an equivalence relation the codec is judged on bytes, and a fresh salt
+        // makes that permanently unwinnable. This is the behaviour being fixed.
+        using (var strict = await harness.OpenAsync(target, Token))
+        {
+            Assert.Equal(UnknownDataVerification.Falsified, strict.UnknownData);
+        }
+
+        // --- The codec now says what "same document" means for its format: everything past
+        // the salt. Nothing about its crypto changed.
+        harness.Codec.RoundTripEquivalentOverride = (original, reserialized) =>
+            original.Length == reserialized.Length &&
+            original.AsSpan(SaltBytes).SequenceEqual(reserialized.AsSpan(SaltBytes));
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        Assert.Equal(UnknownDataVerification.VerifiedEquivalent, open.UnknownData);
+        Assert.True(harness.Codec.RoundTripEquivalentCalls > 0, "The equivalence relation was never consulted, so this test proved nothing.");
+
+        var outcome = await harness.Create()
+            .OverwriteWithBackupAsync(document with { Level = 9 }, open, cancellationToken: Token);
+
+        WorkflowHarness.AssertSucceeded(outcome);
+
+        // The point of the whole change: the destructive confirmation no longer accuses an
+        // honest codec of losing data.
+        var confirmation = Assert.Single(harness.Interaction.Confirmations);
+        Assert.DoesNotContain("it is false", confirmation.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("will lose", confirmation.Message, StringComparison.Ordinal);
+
+        // And the verdict does not overclaim: it records that the codec's comparison was used,
+        // not that the framework reproduced the bytes.
+        Assert.Contains("codec's own comparison", open.UnknownDataDetail, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A codec that returns true unconditionally cannot reach the byte-identical verdict —
+    /// only the weaker one that says the framework took its word.
+    /// </summary>
+    [Fact]
+    public async Task Workflow_NeverReportsByteIdenticalOnACodecsOwnAssurance()
+    {
+        using var harness = new WorkflowHarness("blind-equivalence");
+        harness.Codec.PreservesUnknownData = true;
+        harness.Codec.RoundTripEquivalentOverride = (_, _) => true;
+
+        // Genuinely lossy: the trailer is dropped on the way out.
+        harness.Codec.SerializeOverride = (doc, destination, cancellationToken) =>
+            destination.WriteAsync(TestCodec.Encode(doc with { Trailer = string.Empty }), cancellationToken);
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        // The blind relation does suppress Falsified — that is the documented cost of letting a
+        // codec supply the relation. What it cannot do is claim the stronger result.
+        Assert.Equal(UnknownDataVerification.VerifiedEquivalent, open.UnknownData);
+        Assert.NotEqual(UnknownDataVerification.Verified, open.UnknownData);
+    }
+
+    /// <summary>
+    /// An honest byte-identical codec is never asked for its opinion, so a codec cannot make
+    /// the common case slower or riskier by implementing the relation badly.
+    /// </summary>
+    [Fact]
+    public async Task Workflow_DoesNotConsultTheCodecWhenBytesAlreadyMatch()
+    {
+        using var harness = new WorkflowHarness("no-consult");
+        harness.Codec.PreservesUnknownData = true;
+        harness.Codec.RoundTripEquivalentOverride = (_, _) => throw new InvalidOperationException("must not be called");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        Assert.Equal(UnknownDataVerification.Verified, open.UnknownData);
+        Assert.Equal(0, harness.Codec.RoundTripEquivalentCalls);
+    }
+
+    [Fact]
+    public async Task Workflow_ContainsAThrowFromTheEquivalenceRelation()
+    {
+        using var harness = new WorkflowHarness("equivalence-throws");
+        harness.Codec.PreservesUnknownData = true;
+        harness.Codec.SerializeOverride = (doc, destination, cancellationToken) =>
+            destination.WriteAsync(TestCodec.Encode(doc with { Trailer = string.Empty }), cancellationToken);
+        harness.Codec.RoundTripEquivalentOverride = (_, _) => throw new InvalidOperationException("the codec threw from RoundTripEquivalent");
+
+        var document = SampleDocument;
+        var target = harness.WriteSave("save.sav", document);
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        // Untested, not "verified" and not "false". A codec fault is never resolved in the
+        // codec's favour.
+        Assert.Equal(UnknownDataVerification.Unavailable, open.UnknownData);
+    }
+
+    /// <summary>
+    /// An equal-length divergence must not render as two identical numbers inside the
+    /// confirmation the user is about to accept.
+    /// </summary>
+    [Fact]
+    public async Task Workflow_FalsifiedMessageNamesWhereTheBytesDiverge()
+    {
+        using var harness = new WorkflowHarness("divergence-offset");
+        harness.Codec.PreservesUnknownData = true;
+
+        var document = SampleDocument;
+
+        // Same length, one differing byte at the very end — the case the old length-only
+        // message rendered as "produced 25 bytes where the file has 25".
+        var mangled = document with { Trailer = document.Trailer[..^1] + "z" };
+        Assert.Equal(TestCodec.Encode(document).Length, TestCodec.Encode(mangled).Length);
+
+        harness.Codec.SerializeOverride = (_, destination, cancellationToken) =>
+            destination.WriteAsync(TestCodec.Encode(mangled), cancellationToken);
+
+        var target = harness.WriteSave("save.sav", document);
+        var expectedOffset = TestCodec.Encode(document).Length - 1;
+
+        using var open = await harness.OpenAsync(target, Token);
+
+        Assert.Equal(UnknownDataVerification.Falsified, open.UnknownData);
+        Assert.Contains($"first differ at byte {expectedOffset}", open.UnknownDataDetail, StringComparison.Ordinal);
+
+        await harness.Create().OverwriteWithBackupAsync(mangled, open, cancellationToken: Token);
+
+        // The dialog is the observable that matters: F-13 is about what the user reads before
+        // accepting, not about a property nobody renders.
+        var confirmation = Assert.Single(harness.Interaction.Confirmations);
+        Assert.Contains($"first differ at byte {expectedOffset}", confirmation.Message, StringComparison.Ordinal);
+        Assert.Contains("SHA-256", confirmation.Message, StringComparison.Ordinal);
     }
 
     [Fact]
