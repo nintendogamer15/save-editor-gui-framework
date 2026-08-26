@@ -16,10 +16,19 @@ namespace SaveEditor.Ui.Editing;
 /// </para>
 /// <para>
 /// Apply All is one transaction, so twenty applied fields undo as one step. A user
-/// who pressed one button expects one undo to reverse it.
+/// who pressed one button expects one undo to reverse it — and, for the same reason,
+/// a batch that cannot be completed is rolled back rather than partly kept.
+/// </para>
+/// <para>
+/// <strong>Derivable.</strong> <see cref="ApplyAll"/>, <see cref="RevertAll"/> and
+/// <see cref="RefreshFromDocument"/> are <see langword="virtual"/> so an editor with its
+/// own batch semantics can specialise them instead of leaving the command unbound and
+/// reimplementing the control's behaviour. Round 1 unsealed
+/// <see cref="Workflow.DocumentSession{TDocument}"/> for the same reason; this was the
+/// remaining sealed type an adopter is likely to need (finding F-18).
 /// </para>
 /// </remarks>
-public sealed partial class SectionEditor : ObservableObject
+public partial class SectionEditor : ObservableObject
 {
     private readonly IEditHistory _history;
 
@@ -87,21 +96,64 @@ public sealed partial class SectionEditor : ObservableObject
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
 
-    /// <summary>Commits every valid pending field as a single history entry.</summary>
+    /// <summary>Commits every valid pending field as a single history entry, or none.</summary>
+    /// <remarks>
+    /// <para>
+    /// <strong>All or nothing.</strong> If any field's write is rejected, everything already
+    /// applied in this batch is rolled back and no history entry is recorded. Previously the
+    /// scope committed on disposal, so a rejection partway through left the earlier fields
+    /// written to the document — the user asked for one operation and got a fraction of one
+    /// (finding F-18).
+    /// </para>
+    /// <para>
+    /// The rejected field keeps its draft and shows why it was rejected. Fields that were
+    /// rolled back are reset to the document, because the undo actions that revert them also
+    /// re-read them; their drafts are lost, which is a known cost of rolling back through the
+    /// recorded entries rather than through a snapshot.
+    /// </para>
+    /// </remarks>
     [RelayCommand]
-    public void ApplyAll()
+    public virtual void ApplyAll()
     {
         if (!CanApplyAll)
         {
             return;
         }
 
-        using (_history.BeginTransaction($"Apply all in {Title}"))
+        using var transaction = _history.BeginTransaction($"Apply all in {Title}");
+
+        try
         {
             foreach (var field in Fields.Where(f => f.CanApply).ToList())
             {
-                field.Apply();
+                // Re-checked rather than trusted. CanApply is live over the document, so an
+                // earlier field's write can legitimately leave a later one with nothing to do
+                // — exactly what happens in a model with cross-field constraints, which is the
+                // case this whole path exists for. Treating that as a failure would roll the
+                // batch back silently, because "nothing to do" sets no validation error and
+                // there would be no message anywhere. Abort is for a rejected write only.
+                if (!field.CanApply)
+                {
+                    continue;
+                }
+
+                if (!field.TryApply())
+                {
+                    transaction.Abort();
+                    NotifyState();
+                    return;
+                }
             }
+
+            transaction.Commit();
+        }
+        catch (Exception)
+        {
+            // Backstop for anything the boolean cannot carry: a custom CommitDraft, a throwing
+            // Changed handler. The batch is still not allowed to half-commit.
+            transaction.Abort();
+            NotifyState();
+            throw;
         }
 
         NotifyState();
@@ -109,7 +161,7 @@ public sealed partial class SectionEditor : ObservableObject
 
     /// <summary>Discards every pending draft in the section.</summary>
     [RelayCommand]
-    public void RevertAll()
+    public virtual void RevertAll()
     {
         foreach (var field in Fields)
         {
@@ -120,7 +172,7 @@ public sealed partial class SectionEditor : ObservableObject
     }
 
     /// <summary>Re-reads every field from the document, as after an undo.</summary>
-    public void RefreshFromDocument()
+    public virtual void RefreshFromDocument()
     {
         foreach (var field in Fields)
         {

@@ -1,6 +1,50 @@
 namespace SaveEditor.Ui.Editing;
 
 /// <summary>
+/// A batch of committed edits that becomes one history entry, or none at all.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <strong>Disposing without committing aborts.</strong> The scope returned by
+/// <see cref="IEditHistory.BeginTransaction"/> used to be a bare
+/// <see cref="IDisposable"/> that committed on disposal, so an exception escaping the
+/// <c>using</c> committed whatever had been recorded before it — an Apply All over twenty
+/// fields that failed on the third left two of them written to the document. The user
+/// asked for one operation and got a fraction of one (finding F-18).
+/// </para>
+/// <para>
+/// The default is therefore the safe one: work nobody confirmed is rolled back. Committing
+/// is the deliberate act, and it has to be reached.
+/// </para>
+/// </remarks>
+public interface IEditTransaction : IDisposable
+{
+    /// <summary>Folds everything recorded in this scope into a single history entry.</summary>
+    /// <remarks>
+    /// Committing nothing records nothing, so an Apply All that changed no fields does not
+    /// leave an undo step that undoes nothing. Committing after
+    /// <see cref="Abort"/> does nothing: an aborted batch cannot be resurrected.
+    /// </remarks>
+    void Commit();
+
+    /// <summary>Undoes everything recorded in this scope and records nothing.</summary>
+    /// <remarks>
+    /// <para>
+    /// Implemented by replaying the recorded entries' undo actions in reverse, so it needs no
+    /// snapshot support and is equally correct for a history backed by whole-document
+    /// snapshots.
+    /// </para>
+    /// <para>
+    /// <strong>Best-effort when an undo action itself throws.</strong> A failing undo is a
+    /// fault in the application's own model, and stopping at the first one would restore less
+    /// of the document than continuing, so the remaining entries are still replayed. An
+    /// implementation should not let one bad entry abandon the rest.
+    /// </para>
+    /// </remarks>
+    void Abort();
+}
+
+/// <summary>
 /// Undo/redo and dirty tracking over committed edits, as the framework's editing surface
 /// consumes it.
 /// </summary>
@@ -66,15 +110,27 @@ public interface IEditHistory
     /// single history entry.
     /// </summary>
     /// <param name="label">Label for the combined entry.</param>
-    /// <returns>A scope that commits the transaction when disposed.</returns>
+    /// <returns>The scope. Disposing it without committing aborts.</returns>
     /// <remarks>
-    /// Disposing with nothing recorded must record nothing, so an Apply All that changed no
+    /// <para>
+    /// Committing with nothing recorded records nothing, so an Apply All that changed no
     /// fields does not leave an undo step that undoes nothing.
+    /// </para>
+    /// <para>
+    /// An implementation must reset its own open-transaction state on <em>both</em> exits.
+    /// Clearing it only on commit means the first aborted batch leaves the history believing
+    /// a transaction is still open, and every later one fails to start.
+    /// </para>
     /// </remarks>
-    IDisposable BeginTransaction(string label);
+    IEditTransaction BeginTransaction(string label);
 
     /// <summary>Reverts the most recent operation.</summary>
-    /// <remarks>Does nothing when <see cref="CanUndo"/> is <see langword="false"/>.</remarks>
+    /// <remarks>
+    /// Does nothing when <see cref="CanUndo"/> is <see langword="false"/>. An undo action that
+    /// throws propagates — there is no field to report it on, and an undo that cannot be
+    /// performed is a fault rather than a validation result — but it must leave the history
+    /// exactly as it was, so that a failed undo is not silently counted as a successful one.
+    /// </remarks>
     void Undo();
 
     /// <summary>Reapplies the most recently undone operation.</summary>
