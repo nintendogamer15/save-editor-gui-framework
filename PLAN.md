@@ -497,6 +497,19 @@ Determinism is itself gated: two runs of the same commit on Ubuntu must produce 
 
 Behavioral and headless tests run on both Ubuntu and Windows. Screenshot baselines are Ubuntu-only.
 
+**What a baseline cannot do.** A golden image pins whatever was on screen when it
+was taken, defects included. The numeric spinner shipped its glyphs clipped to 2px
+by a padding-versus-width conflict, and the baselines were seeded while that was
+already true — so the gate compared broken against broken and stayed green across
+every run. Screenshot comparison catches *change*; it does not establish
+*correctness*, and it silently blesses any defect present at seeding time.
+
+Two rules follow. A seeded baseline is reviewed by looking at the image before it
+is committed, not merely diffed against its predecessor. And any property worth
+guaranteeing — a control being visible, a glyph being legible — is asserted
+directly by a test that fails when the property is violated, rather than left to a
+reference image to encode.
+
 ### Template and platform smoke
 
 Build and run the generated template in a smoke test, exercise its sample fields and theme settings, and validate both NuGet packages install and restore from a local feed.
