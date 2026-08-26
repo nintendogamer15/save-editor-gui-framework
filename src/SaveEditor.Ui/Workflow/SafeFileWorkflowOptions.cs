@@ -62,10 +62,29 @@ public sealed record SafeFileWorkflowOptions<TDocument>
     /// round-trip check.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The default is <see cref="EqualityComparer{T}.Default"/>, which is exactly right for
     /// a document modelled as a record and useless for one modelled as a mutable class
     /// without an equality contract. An editor whose document type is the latter supplies a
     /// comparer, or opts the check out explicitly and says so.
+    /// </para>
+    /// <para>
+    /// <strong>A comparer supplied here is trusted, on the same footing as the codec, and it
+    /// is the single most dangerous thing in this options object to get wrong.</strong> One
+    /// that omits a field silently disables the pre-replace round-trip check for exactly the
+    /// data it omits: a codec that drops that field then writes successfully, and the outcome
+    /// reports <see cref="RoundTripVerification.Verified"/> — a true statement about the check
+    /// that was configured, and a weaker one than it looks.
+    /// </para>
+    /// <para>
+    /// The framework cannot detect this and does not pretend to. It holds one document pair at
+    /// the moment it asks and has no oracle for what equality should mean for a type it knows
+    /// nothing about, so a comparer wrongly reporting equality is indistinguishable from one
+    /// correctly reporting that a lossless round trip round-tripped. The one fault that
+    /// <em>is</em> decidable — the default comparer falling back to reference equality for a
+    /// type with no equality contract — is detected, and its failure message names the cause.
+    /// Compare every field the codec writes.
+    /// </para>
     /// </remarks>
     public IEqualityComparer<TDocument> DocumentComparer { get; init; } = EqualityComparer<TDocument>.Default;
 
