@@ -116,6 +116,46 @@ public class ThemeControllerTests
     }
 
     [AvaloniaFact]
+    public async Task Selection_Survives_A_Restart_Through_The_Real_Settings_File()
+    {
+        // The FakeStore tests above leave one seam open: they never touch a real
+        // settings file. This closes the whole chain — controller, store, JSON on
+        // disk, and a second controller reading it back.
+        var directory = Path.Combine(Path.GetTempPath(), $"se-theme-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var options = new EditorSettingsStoreOptions { BaseDirectory = directory };
+            var applicationId = EditorApplicationId.Parse("ThemeRestartTest");
+
+            var before = new ThemeController(
+                Theme(), new EditorSettingsStore(applicationId, options), CatppuccinAccent.Mauve);
+
+            await before.InitializeAsync(TestContext.Current.CancellationToken);
+            await before.SetModeAsync(ThemeMode.Light, TestContext.Current.CancellationToken);
+            await before.SetAccentAsync(CatppuccinAccent.Sapphire, TestContext.Current.CancellationToken);
+
+            // A fresh store over the same directory is what a relaunch actually is.
+            var after = new ThemeController(
+                Theme(), new EditorSettingsStore(applicationId, options), CatppuccinAccent.Mauve);
+
+            await after.InitializeAsync(TestContext.Current.CancellationToken);
+
+            Assert.Equal(ThemeMode.Light, after.Mode);
+            Assert.Equal(CatppuccinAccent.Sapphire, after.Accent);
+            Assert.False(after.IsUsingEditorDefault);
+
+            // And the accent that came off disk is the one now resolving.
+            Assert.Equal(Color.Parse("#74c7ec"), Resolve("Primary", ThemeVariant.Dark));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [AvaloniaFact]
     public async Task Both_Variants_Resolve_Every_Text_Role()
     {
         var controller = new ThemeController(Theme(), new FakeStore());

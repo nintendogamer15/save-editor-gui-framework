@@ -530,6 +530,12 @@ The screenshot clause is satisfied by a determinism assertion rather than a stor
 
 **Acceptance:** a test enumerates 14 accents × 2 modes and asserts every ratio in §5's table against the enumerated text-bearing surfaces; the resource-resolution test proves no view references a raw palette key; the generator reproduces committed resources with no drift; theme and accent survive a simulated restart; the gallery token page produces stable baselines in both modes; and the P1-owned rows of §12's security table pass — A3, A9, A10, B7, and B9.
 
+**Status: complete except the baseline clause.** Verification confirmed every other criterion, including that the contrast assertions read the committed XAML rather than recomputing (proved by mutating a shipped accent file), that the drift test catches a hand-edit, and that the accent swap changes what `Primary` actually resolves to at runtime rather than only a field on the controller.
+
+"Produces stable baselines" is currently met by reproducibility and cross-theme divergence, not by comparison against a committed reference — the same deferral as P0, and for the load-bearing half of that reasoning rather than the incidental half: §12 makes Ubuntu the golden baseline, so a Windows-rasterised reference committed from a development machine would fail CI on its first run and destroy trust in the gate at the moment it was introduced. What the present assertions prove is *reproducibility*; what a baseline proves is *correctness against a reviewed reference*. A page that renders wrongly but stably passes today. The colour half of that residual is independently covered by the contrast test against committed XAML; the uncovered part is layout, spacing, and typography — precisely what this slice's control themes and embedded font introduce.
+
+**Bound to the first Ubuntu CI run, together:** seeding the baselines, and wiring animation suppression in the screenshot harness. Suppression is currently unimplemented because nothing rendered so far animates, but this slice ships real control themes; if baselines land before suppression the gate will flap from its first commit.
+
 ### P2 — Shell
 
 **Prerequisites:** P0, P1.
