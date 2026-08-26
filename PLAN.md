@@ -300,6 +300,10 @@ Provide a registry/detector for one or more codecs. Ambiguous detection produces
 
 A hardlink count greater than 1 is a distinct condition requiring its own confirmation, since replacing content changes every alias. Bind mounts carry no link attribute, are undetectable, and are stated as out of scope rather than implied to be covered.
 
+**Reparse refusal is scoped to name-surrogate tags** (`tag & 0x20000000`), which is the flag marking namespace redirection — symbolic links and mount points or junctions. Non-surrogate reparse points such as cloud placeholders, deduplication, and WOF compression resolve to the same file and redirect nothing, so they pass through to the ordinary regular-file and identity checks. Refusing every tag would reject saves in a OneDrive-synced Documents folder, which is the default on many Windows 11 installs; that is a false positive rather than a safety gain, and the pressure it creates is for consumers to route around the resolver entirely. A non-surrogate placeholder may hydrate on first read, which is the OS acting on a file the user chose and not framework network activity.
+
+**Mapped network drive letters count as non-local.** Gating UNC syntax alone leaves `Z:\saves` pointing at an SMB share fully exposed, and the concern behind the gate was never the backslashes — it was the automatic SMB connection and NTLM authentication. The Windows resolver checks the drive type and treats a remote drive exactly as it treats UNC.
+
 ### Workflow steps
 
 `SafeFileWorkflow` owns:
@@ -465,6 +469,8 @@ Every §9 row dispositioned `FIX` maps to a named test below. Rows dispositioned
 | B11 | `Validation_ErrorsBlockSaveAsToNewPathAndOverwriteAlike` | P4 |
 
 Platform-specific rows run on the platform they describe; cross-volume, removable-media, and destination-held-open replace cases (B2) run on both.
+
+**Fixtures that need a privilege.** Creating a symbolic link on Windows requires elevation or Developer Mode, which GitHub's `windows-latest` runners do not grant a default non-elevated agent. Those tests skip with a stated reason rather than passing vacuously, and junction and hard-link fixtures — neither of which needs a privilege — carry the Windows link coverage instead. A test that silently passes because its fixture could not be built is worse than one that is honestly skipped, so no skip is permitted without a reason string naming the missing capability. If P6 wants the symlink cases to run in CI, the workflow needs an explicit Developer Mode step.
 
 ### Headless UI tests
 
