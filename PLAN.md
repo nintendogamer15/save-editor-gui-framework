@@ -428,23 +428,23 @@ F-16 and F-17 were raised during this round rather than by the brief.
 
 | ID | Finding | Pri | Disposition | Closed by |
 | --- | --- | --- | --- | --- |
-| F-1 | Preservation verified by byte-identical re-serialization, which a salted-encryption codec can satisfy only by reusing its key and IV | P1 | FIX | §7 step 12; `ISaveCodec.RoundTripEquivalent`, `VerifiedEquivalent` |
-| F-2 | `Save As` onto an existing file was an unbacked destructive overwrite, and a picker could suppress the prompt | P1 | FIX | §7 steps 3 and 7; supersedes A7 |
-| F-3 | Post-replace cancellation reported "nothing was written" and stranded the handle on the unlinked inode | P2 | FIX | §7 step 9; `WriteAttempt.Replaced` |
-| F-4 | `BackupRetention = 0` deleted the backup it had just verified | P2 | FIX | §7 step 7; rejected at construction, applied after the write |
-| F-5 | The bytes that landed in the temp file were never read back | P2 | FIX | §7 step 9; `TempVerificationFailed` |
-| F-6 | Round-trip check silently skipped above its size limit, reported as a plain success | P2 | FIX | §7 step 12; `RoundTripVerification` |
-| F-7 | Linux `rename(2)` did not re-assert the temp file's identity, where Windows did | P2 | FIX (narrow) | §7 step 10; window narrowed, residual documented |
-| F-8 | `ISaveCodecDetector` could not express payload-based detection | P2 | FIX | §7 step 1; `RequiresDecode`, `ConfirmDecoded` |
+| F-1 | Preservation verified by byte-identical re-serialization, which a salted-encryption codec can satisfy only by reusing its key and IV | P1 | FIX | §7 step 11; `ISaveCodec.RoundTripEquivalent`, `VerifiedEquivalent` |
+| F-2 | `Save As` onto an existing file was an unbacked destructive overwrite, and a picker could suppress the prompt | P1 | FIX | §7 steps 3 and 6; supersedes A7 |
+| F-3 | Post-replace cancellation reported "nothing was written" and stranded the handle on the unlinked inode | P2 | FIX | §7 steps 8 and 13; `WriteAttempt.Replaced` |
+| F-4 | `BackupRetention = 0` deleted the backup it had just verified | P2 | FIX | §7 step 6; rejected at construction, applied after the write |
+| F-5 | The bytes that landed in the temp file were never read back | P2 | FIX | §7 step 8; `TempVerificationFailed` |
+| F-6 | Round-trip check silently skipped above its size limit, reported as a plain success | P2 | FIX | §7 step 11; `RoundTripVerification` |
+| F-7 | Linux `rename(2)` did not re-assert the temp file's identity, where Windows did | P2 | FIX (narrow) | §7 step 9; window narrowed, residual documented |
+| F-8 | `ISaveCodecDetector` could not express payload-based detection | P2 | FIX | §7 codec-boundary preamble; `RequiresDecode`, `ConfirmDecoded` |
 | F-9 | `EditHistory` sealed with no seam, forcing an adopter to abandon its own undo model | P2 | FIX | §6; `IEditHistory` |
 | F-10 | No backup restore existed | P3 | FIX | §7 step 15; `RestoreFromBackupAsync` |
 | F-11 | The documented adoption path could not work in CI | P3 | FIX (wording) | README; submodule + `ProjectReference` with a CI example |
-| F-12 | README claimed a Linux locking mechanism that does not exist | P3 | FIX (wording) | §7 step 10; README, plus the undocumented Windows consequence |
-| F-13 | `Falsified` message compared lengths only, printing two identical numbers | P3 | FIX | §7 step 12; first differing offset and hash pair, in the dialog |
-| F-14 | `PosixRename` hardcoded x64 `FILE_RENAME_INFO` offsets | P3 | FIX | §7 step 9; offsets computed from pointer size |
+| F-12 | README claimed a Linux locking mechanism that does not exist | P3 | FIX (wording) | §7 step 9; README, plus the undocumented Windows consequence |
+| F-13 | `Falsified` message compared lengths only, printing two identical numbers | P3 | FIX | §7 step 11; first differing offset and hash pair, in the dialog |
+| F-14 | `PosixRename` hardcoded x64 `FILE_RENAME_INFO` offsets | P3 | FIX | §7 step 8; offsets computed from pointer size |
 | F-15 | Adopters could not impose their own save policy without reimplementing `IDocumentSession` | P2 | FIX | §7 step 16; `IWritePolicy`, path-taking `SaveAsAsync`, derivable session |
-| F-16 | Windows DACL copy was a silent no-op that reported success, making the identity guard beneath it dead code | P2 | FIX | §7 step 11 |
-| F-17 | Retention could delete the backup it had just reported, because name ordering cannot separate two backups taken in the same second | P2 | FIX | §7 step 7; `BackupRetention.Apply(protect:)` |
+| F-16 | Windows DACL copy was a silent no-op that reported success, making the identity guard beneath it dead code | P2 | FIX | §7 step 10 |
+| F-17 | Retention could delete the backup it had just reported, because name ordering cannot separate two backups taken in the same second | P2 | FIX | §7 step 6; `BackupRetention.Apply(protect:)` |
 
 **F-1 is a deliberate reduction in what the framework proves, and it is the only one.**
 Byte-identical re-serialization is still framework-verified and still reported as
