@@ -514,6 +514,20 @@ reference image to encode.
 
 Build and run the generated template in a smoke test, exercise its sample fields and theme settings, and validate both NuGet packages install and restore from a local feed.
 
+**The suite has to run on both platforms, and packaging is why.** It was added to
+CI late, and its first Linux run failed: the template package shipped with no
+content at all. MSBuild translates a forward slash to the platform separator but
+does not reliably translate a backslash on Unix, where it is an ordinary filename
+character, so the packaging target's staging copy and `Content` glob matched
+nothing there while packing correctly on Windows.
+
+Nothing about the symptom pointed at packaging. `dotnet new install` accepted the
+empty package, `dotnet new save-editor` resolved the short name and exited 0, and
+the first visible evidence was an empty output directory two steps later. The test
+now inspects the archive immediately after packing, so an empty package fails at
+the step that produced it. A packaging bug that reproduces on one platform is only
+found by packing on both.
+
 Provide a manually invoked Wayland-session job that runs the gallery and checks file drop, folder drop, menus, dialogs, resizing, theme switching, and keyboard behavior.
 
 **This is XWayland, not the Wayland protocol, and the distinction is load-bearing.** Avalonia 12.1.1 ships no Wayland backend — no Wayland assembly, no `UseWayland`, and `UsePlatformDetect` resolves to X11 on Linux. The first run of the job proved it by aborting with `XOpenDisplay failed` against a pure Wayland socket. That is not a gap to close but the real deployment shape: on a GNOME or KDE Wayland desktop this application is an X11 client under XWayland, so testing it any other way would test something users never run. It matters for diagnosis — fractional scaling, clipboard, and drag-and-drop all behave differently under XWayland than under a native client, and a tester who assumes otherwise will misattribute what they see.
