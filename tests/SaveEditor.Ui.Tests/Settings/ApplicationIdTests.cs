@@ -1,10 +1,9 @@
 using SaveEditor.Ui.Settings;
-using ApplicationId = SaveEditor.Ui.Settings.ApplicationId;
 
 namespace SaveEditor.Ui.Tests.Settings;
 
 /// <summary>
-/// Finding A9. <c>ApplicationId</c> becomes a path component under
+/// Finding A9. <c>EditorApplicationId</c> becomes a path component under
 /// <c>LocalApplicationData</c>, and consuming editors are free to compute it rather
 /// than write it as a literal.
 /// </summary>
@@ -67,10 +66,10 @@ public sealed class ApplicationIdTests
         foreach (var candidate in traversal.Concat(separators).Concat(reserved).Concat(trailing).Concat(shapes))
         {
             Assert.False(
-                ApplicationId.TryParse(candidate, out _),
+                EditorApplicationId.TryParse(candidate, out _),
                 $"'{candidate}' must not be accepted as an application id.");
 
-            Assert.Throws<ArgumentException>(() => ApplicationId.Parse(candidate));
+            Assert.Throws<ArgumentException>(() => EditorApplicationId.Parse(candidate));
         }
 
         string[] acceptable =
@@ -90,7 +89,7 @@ public sealed class ApplicationIdTests
         foreach (var candidate in acceptable)
         {
             Assert.True(
-                ApplicationId.TryParse(candidate, out var id),
+                EditorApplicationId.TryParse(candidate, out var id),
                 $"'{candidate}' is a legitimate application id.");
 
             Assert.Equal(candidate, id.Value);
@@ -102,7 +101,7 @@ public sealed class ApplicationIdTests
     {
         // A readonly record struct is constructible with `default`, which bypasses
         // Parse entirely. That instance must not be usable as a path component.
-        var uninitialized = default(ApplicationId);
+        var uninitialized = default(EditorApplicationId);
 
         Assert.Throws<ArgumentException>(() => new EditorSettingsStore(uninitialized));
     }
@@ -112,7 +111,7 @@ public sealed class ApplicationIdTests
     {
         using var workspace = new SettingsWorkspace("appid-path");
 
-        var subject = new EditorSettingsStore(ApplicationId.Parse("My.Editor-1"), workspace.Options());
+        var subject = new EditorSettingsStore(EditorApplicationId.Parse("My.Editor-1"), workspace.Options());
 
         Assert.Equal(Path.Combine(workspace.Root, "My.Editor-1"), subject.SettingsDirectory);
         Assert.Equal(

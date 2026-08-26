@@ -8,7 +8,7 @@ namespace SaveEditor.Ui.Settings;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Settings live at <c>LocalApplicationData/&lt;ApplicationId&gt;/settings.json</c>,
+/// Settings live at <c>LocalApplicationData/&lt;EditorApplicationId&gt;/settings.json</c>,
 /// so this value becomes a path component. It is a public API surface consumed by
 /// third-party editors, and nothing guarantees it is a literal — an editor may
 /// compute it from a config file, an assembly attribute, or a command-line switch.
@@ -22,7 +22,7 @@ namespace SaveEditor.Ui.Settings;
 /// aspirational.
 /// </para>
 /// </remarks>
-public readonly record struct ApplicationId
+public readonly record struct EditorApplicationId
 {
     private const int MaxLength = 64;
 
@@ -37,7 +37,7 @@ public readonly record struct ApplicationId
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
     };
 
-    private ApplicationId(string value) => Value = value;
+    private EditorApplicationId(string value) => Value = value;
 
     /// <summary>The validated identifier.</summary>
     public string Value { get; }
@@ -46,7 +46,7 @@ public readonly record struct ApplicationId
     /// <param name="value">The candidate identifier.</param>
     /// <returns>The validated identifier.</returns>
     /// <exception cref="ArgumentException">The value is not a valid identifier.</exception>
-    public static ApplicationId Parse(string value) =>
+    public static EditorApplicationId Parse(string value) =>
         TryParse(value, out var id)
             ? id
             : throw new ArgumentException(
@@ -59,7 +59,7 @@ public readonly record struct ApplicationId
     /// <param name="value">The candidate identifier.</param>
     /// <param name="id">The validated identifier when this returns <see langword="true"/>.</param>
     /// <returns><see langword="true"/> when the value is a valid identifier.</returns>
-    public static bool TryParse([NotNullWhen(true)] string? value, out ApplicationId id)
+    public static bool TryParse([NotNullWhen(true)] string? value, out EditorApplicationId id)
     {
         id = default;
 
@@ -97,7 +97,7 @@ public readonly record struct ApplicationId
             return false;
         }
 
-        id = new ApplicationId(value);
+        id = new EditorApplicationId(value);
         return true;
     }
 

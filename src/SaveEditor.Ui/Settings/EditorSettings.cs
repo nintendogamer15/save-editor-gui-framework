@@ -90,4 +90,53 @@ public sealed record EditorSettings
 
     /// <summary>Persisted window height, or <see langword="null"/> if never recorded.</summary>
     public double? WindowHeight { get; init; }
+
+    /// <summary>Compares by value, including the contents of the recents lists.</summary>
+    /// <param name="other">The instance to compare with.</param>
+    /// <returns><see langword="true"/> when every field and every recent entry matches.</returns>
+    /// <remarks>
+    /// The compiler-generated equality would compare the recents lists by reference,
+    /// because <see cref="IReadOnlyList{T}"/> has no value equality. Two settings
+    /// objects holding equal-but-distinct lists would then compare unequal, and any
+    /// consumer using this record for dirty tracking would see a change on every
+    /// load. Recents are compared ordinally here regardless of platform: this is
+    /// asking whether two in-memory objects are the same, not whether two paths name
+    /// the same file, which is the platform-sensitive question handled where recents
+    /// are deduplicated.
+    /// </remarks>
+    public bool Equals(EditorSettings? other) =>
+        other is not null
+        && SchemaVersion == other.SchemaVersion
+        && Theme == other.Theme
+        && Accent == other.Accent
+        && string.Equals(LastSectionKey, other.LastSectionKey, StringComparison.Ordinal)
+        && Nullable.Equals(WindowWidth, other.WindowWidth)
+        && Nullable.Equals(WindowHeight, other.WindowHeight)
+        && RecentFiles.SequenceEqual(other.RecentFiles, StringComparer.Ordinal)
+        && RecentFolders.SequenceEqual(other.RecentFolders, StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hash = default(HashCode);
+
+        hash.Add(SchemaVersion);
+        hash.Add(Theme);
+        hash.Add(Accent);
+        hash.Add(LastSectionKey, StringComparer.Ordinal);
+        hash.Add(WindowWidth);
+        hash.Add(WindowHeight);
+
+        foreach (var path in RecentFiles)
+        {
+            hash.Add(path, StringComparer.Ordinal);
+        }
+
+        foreach (var path in RecentFolders)
+        {
+            hash.Add(path, StringComparer.Ordinal);
+        }
+
+        return hash.ToHashCode();
+    }
 }

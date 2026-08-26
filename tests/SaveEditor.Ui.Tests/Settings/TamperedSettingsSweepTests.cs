@@ -46,7 +46,7 @@ public sealed class TamperedSettingsSweepTests
         var screens = new FixedScreenBoundsSource(new ScreenArea(1920, 1080));
         var options = workspace.Options(screens);
 
-        var store = new EditorSettingsStore(workspace.ApplicationId, options);
+        var store = new EditorSettingsStore(workspace.EditorApplicationId, options);
 
         Assert.True(store.IsPersistent, $"{variant.Why} A tampered file must not cost the user persistence.");
 

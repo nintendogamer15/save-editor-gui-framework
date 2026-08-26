@@ -13,7 +13,7 @@ namespace SaveEditor.Ui.Settings;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The file lives at <c>LocalApplicationData/&lt;ApplicationId&gt;/settings.json</c>. It
+/// The file lives at <c>LocalApplicationData/&lt;EditorApplicationId&gt;/settings.json</c>. It
 /// is user-writable, it may arrive from a roaming profile or a restored backup, and its
 /// contents feed paths into the recents menu and the open workflow. Everything in it is
 /// hostile input. Concretely:
@@ -94,12 +94,12 @@ public sealed class EditorSettingsStore : IEditorSettingsStore
     /// failed would let the editor accumulate an afternoon of preference changes and
     /// discard all of them at exit without ever having said so.
     /// </remarks>
-    public EditorSettingsStore(ApplicationId applicationId, EditorSettingsStoreOptions? options = null)
+    public EditorSettingsStore(EditorApplicationId applicationId, EditorSettingsStoreOptions? options = null)
     {
         if (string.IsNullOrEmpty(applicationId.Value))
         {
             throw new ArgumentException(
-                "The application id is uninitialized. Use ApplicationId.Parse or ApplicationId.TryParse; " +
+                "The application id is uninitialized. Use EditorApplicationId.Parse or EditorApplicationId.TryParse; " +
                 "a default instance has bypassed validation and must not become a path component.",
                 nameof(applicationId));
         }
@@ -146,7 +146,7 @@ public sealed class EditorSettingsStore : IEditorSettingsStore
     }
 
     /// <summary>The identifier naming the settings directory.</summary>
-    public ApplicationId ApplicationId { get; }
+    public EditorApplicationId ApplicationId { get; }
 
     /// <summary>The per-application settings directory.</summary>
     public string SettingsDirectory { get; }

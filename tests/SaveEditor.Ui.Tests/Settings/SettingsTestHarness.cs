@@ -1,6 +1,5 @@
 using System.Text;
 using SaveEditor.Ui.Settings;
-using ApplicationId = SaveEditor.Ui.Settings.ApplicationId;
 
 namespace SaveEditor.Ui.Tests.Settings;
 
@@ -22,19 +21,19 @@ internal sealed class SettingsWorkspace : IDisposable
             $"{label}-{Guid.NewGuid():N}");
 
         Directory.CreateDirectory(Root);
-        ApplicationId = ApplicationId.Parse("SaveEditorTests");
+        EditorApplicationId = EditorApplicationId.Parse("SaveEditorTests");
         Probe = new CountingRecentEntryProbe();
     }
 
     /// <summary>The stand-in for <c>LocalApplicationData</c>.</summary>
     public string Root { get; }
 
-    public ApplicationId ApplicationId { get; }
+    public EditorApplicationId EditorApplicationId { get; }
 
     public CountingRecentEntryProbe Probe { get; }
 
     /// <summary>The directory the store will use.</summary>
-    public string SettingsDirectory => Path.Combine(Root, ApplicationId.Value);
+    public string SettingsDirectory => Path.Combine(Root, EditorApplicationId.Value);
 
     /// <summary>The file the store will read and write.</summary>
     public string SettingsFilePath => Path.Combine(SettingsDirectory, EditorSettingsStore.SettingsFileName);
@@ -48,7 +47,7 @@ internal sealed class SettingsWorkspace : IDisposable
         };
 
     public EditorSettingsStore CreateStore(EditorSettingsStoreOptions? options = null) =>
-        new(ApplicationId, options ?? Options());
+        new(EditorApplicationId, options ?? Options());
 
     /// <summary>Plants raw bytes at the settings path, bypassing the store entirely.</summary>
     public void PlantSettings(string json)
