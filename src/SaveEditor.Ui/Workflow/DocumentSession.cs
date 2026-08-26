@@ -40,8 +40,20 @@ public interface IFolderDocumentOpener<TDocument>
 /// store: a save that silently did not happen is the worst outcome in the product,
 /// so every outcome lands in <see cref="LastOutcome"/> and is reported.
 /// </para>
+/// <para>
+/// <strong>Derivable, because an application's save policy is its own.</strong> The save
+/// entry points are <see langword="virtual"/> and <see cref="Workflow"/>,
+/// <see cref="OpenFile"/>, <see cref="DefaultCodec"/>, <see cref="CreateProgress"/> and
+/// <see cref="RecordOutcome"/> are <see langword="protected"/>, so an editor that wants to
+/// refuse a write the framework permits, or route one operation to another, overrides the
+/// entry point and calls what it actually wants. This type was sealed and never exposed its
+/// <see cref="OpenSaveFile{TDocument}"/>, which left reimplementing
+/// <see cref="IDocumentSession"/> wholesale — reproducing the session, history and state
+/// plumbing this type exists to provide — as the only supported route (finding F-15). For
+/// refusals alone, <see cref="IWritePolicy"/> is the smaller tool and needs no subclass.
+/// </para>
 /// </remarks>
-public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
+public class DocumentSession<TDocument> : IDocumentSession, IDisposable
 {
     private readonly SafeFileWorkflow<TDocument> _workflow;
     private readonly IEditHistory _history;
@@ -71,6 +83,55 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
         _folderOpener = folderOpener;
 
         _history.Changed += OnHistoryChanged;
+    }
+
+    /// <summary>The workflow this session drives. For an override that needs a different operation.</summary>
+    protected SafeFileWorkflow<TDocument> Workflow => _workflow;
+
+    /// <summary>
+    /// The open file, or <see langword="null"/> when nothing is open or the document came
+    /// from a folder.
+    /// </summary>
+    /// <remarks>
+    /// Required by any override that wants to call
+    /// <see cref="SafeFileWorkflow{TDocument}.OverwriteWithBackupAsync"/> or
+    /// <see cref="SafeFileWorkflow{TDocument}.RestoreFromBackupAsync"/> directly. Do not
+    /// dispose it: the session owns its lifetime.
+    /// </remarks>
+    protected OpenSaveFile<TDocument>? OpenFile => _open;
+
+    /// <summary>Codec used when writing a document that was not opened from a file.</summary>
+    /// <remarks>Prefer <c>OpenFile?.Codec</c> when there is an open file: it is the codec that read it.</remarks>
+    protected ISaveCodec<TDocument> DefaultCodec => _defaultCodec;
+
+    /// <summary>Builds the progress sink that translates workflow phases for the status bar.</summary>
+    protected IProgress<SaveProgress> CreateProgress() => Progress();
+
+    /// <summary>Records an outcome the way the built-in entry points do.</summary>
+    /// <param name="outcome">What happened.</param>
+    /// <param name="markSaved">
+    /// Whether to mark the history clean. True only when the document that is in memory is
+    /// now what is on disk.
+    /// </param>
+    /// <remarks>
+    /// Exists so an override does not have to duplicate the bookkeeping — and so that
+    /// forgetting a piece of it is not the default outcome of overriding. Without it, an
+    /// override that skips <see cref="IEditHistory.MarkSaved"/> leaves the editor believing
+    /// there is unsaved work forever, and one that skips the notification leaves the menus and
+    /// status bar describing the previous state.
+    /// </remarks>
+    protected void RecordOutcome(SaveOutcome outcome, bool markSaved)
+    {
+        ArgumentNullException.ThrowIfNull(outcome);
+
+        LastOutcome = outcome;
+
+        if (markSaved)
+        {
+            _history.MarkSaved();
+        }
+
+        Notify();
     }
 
     /// <inheritdoc />
@@ -185,7 +246,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     public bool CanRedo => _history.CanRedo;
 
     /// <inheritdoc />
-    public async ValueTask OpenAsync(string path, CancellationToken cancellationToken = default)
+    public virtual async ValueTask OpenAsync(string path, CancellationToken cancellationToken = default)
     {
         var outcome = await _workflow.OpenAsync(path, Progress(), cancellationToken).ConfigureAwait(true);
 
@@ -214,7 +275,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default)
+    public virtual async ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default)
     {
         if (_folderOpener is null)
         {
@@ -241,7 +302,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask SaveAsAsync(CancellationToken cancellationToken = default)
+    public virtual async ValueTask SaveAsAsync(CancellationToken cancellationToken = default)
     {
         if (Document is not { } document)
         {
@@ -271,7 +332,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken = default)
+    public virtual async ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken = default)
     {
         if (Document is not { } document || _open is null)
         {
@@ -296,7 +357,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask ReloadAsync(CancellationToken cancellationToken = default)
+    public virtual async ValueTask ReloadAsync(CancellationToken cancellationToken = default)
     {
         if (CurrentPath is not { } path)
         {
@@ -309,7 +370,7 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     }
 
     /// <inheritdoc />
-    public ValueTask CloseAsync(CancellationToken cancellationToken = default)
+    public virtual ValueTask CloseAsync(CancellationToken cancellationToken = default)
     {
         ReleaseOpenFile();
         Document = default;
@@ -348,14 +409,32 @@ public sealed class DocumentSession<TDocument> : IDocumentSession, IDisposable
     /// <inheritdoc />
     public void Dispose()
     {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Releases the retained handle and unsubscribes from the history.</summary>
+    /// <param name="disposing">Whether managed state should be released.</param>
+    /// <remarks>
+    /// The disposable pattern rather than a plain <c>Dispose</c>, because this type is now
+    /// derivable and a subclass with its own resources needs somewhere to put them. There is
+    /// no finalizer: the only unmanaged thing here is the file handle, which
+    /// <see cref="OpenSaveFile{TDocument}"/> owns through a <c>SafeHandle</c> that has its own.
+    /// </remarks>
+    protected virtual void Dispose(bool disposing)
+    {
         if (_disposed)
         {
             return;
         }
 
         _disposed = true;
-        _history.Changed -= OnHistoryChanged;
-        ReleaseOpenFile();
+
+        if (disposing)
+        {
+            _history.Changed -= OnHistoryChanged;
+            ReleaseOpenFile();
+        }
     }
 
     private async ValueTask ReopenAsync(string path, CancellationToken cancellationToken)

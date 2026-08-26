@@ -888,6 +888,7 @@ SaveEditor.Ui.Workflow.IFolderDocumentOpener`1 :: method ValueTask<ValueTuple<TD
 SaveEditor.Ui.Workflow.ISaveFormatChooser :: method ValueTask<SaveFormatDescriptor> ChooseAsync(IReadOnlyList<SaveFormatDescriptor> candidates, String fileName, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextBackupFileName(String originalFileName)
 SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextTemporaryFileName()
+SaveEditor.Ui.Workflow.IWritePolicy :: method ValueTask<WriteDecision> EvaluateAsync(PlannedWrite plan, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Boolean Equals(Object obj)
 SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Boolean Equals(OpenOutcome<TDocument> other)
 SaveEditor.Ui.Workflow.OpenOutcome`1 :: method Int32 GetHashCode()
@@ -954,6 +955,21 @@ SaveEditor.Ui.Workflow.PermissionSnapshot :: method String ToString()
 SaveEditor.Ui.Workflow.PermissionSnapshot :: property IReadOnlyDictionary<String, Int32> WindowsEffectiveRights get set
 SaveEditor.Ui.Workflow.PermissionSnapshot :: property Nullable<UnixFileMode> UnixMode get set
 SaveEditor.Ui.Workflow.PermissionSnapshot :: property String Summary get set
+SaveEditor.Ui.Workflow.PlannedWrite :: ctor ()
+SaveEditor.Ui.Workflow.PlannedWrite :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.PlannedWrite :: method Boolean Equals(PlannedWrite other)
+SaveEditor.Ui.Workflow.PlannedWrite :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.PlannedWrite :: method String ToString()
+SaveEditor.Ui.Workflow.PlannedWrite :: property Boolean BackupWillBeWritten get set
+SaveEditor.Ui.Workflow.PlannedWrite :: property Boolean DestinationExists get set
+SaveEditor.Ui.Workflow.PlannedWrite :: property Boolean IsCurrentDocument get set
+SaveEditor.Ui.Workflow.PlannedWrite :: property PlannedWriteKind Kind get set
+SaveEditor.Ui.Workflow.PlannedWrite :: property String DestinationPath get set
+SaveEditor.Ui.Workflow.PlannedWrite :: property UnknownDataVerification UnknownData get set
+SaveEditor.Ui.Workflow.PlannedWriteKind :: field Int32 value__
+SaveEditor.Ui.Workflow.PlannedWriteKind :: field PlannedWriteKind Overwrite
+SaveEditor.Ui.Workflow.PlannedWriteKind :: field PlannedWriteKind Restore
+SaveEditor.Ui.Workflow.PlannedWriteKind :: field PlannedWriteKind SaveAs
 SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: ctor ()
 SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: method ValueTask FlushFileAsync(FileStream stream, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.PlatformDurabilityBarrier :: method ValueTask<DirectoryFlushResult> FlushDirectoryAsync(String directoryPath, CancellationToken cancellationToken)
@@ -1001,6 +1017,7 @@ SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property ISafePathResolver P
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property ISaveFormatChooser FormatChooser get set
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IUserInteraction Interaction get set
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IWorkflowFileNames FileNames get set
+SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property IWritePolicy WritePolicy get set
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int32 BackupRetention get set
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 ConfirmAboveBytes get set
 SaveEditor.Ui.Workflow.SafeFileWorkflowOptions`1 :: property Int64 MaxBytes get set
@@ -1015,6 +1032,7 @@ SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<OpenOutcome<TDocum
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<RestoreResult<TDocument>> RestoreFromBackupAsync(String backupPath, OpenSaveFile<TDocument> open, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> OverwriteWithBackupAsync(TDocument document, OpenSaveFile<TDocument> open, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> SaveAsAsync(TDocument document, ISaveCodec<TDocument> codec, OpenSaveFile<TDocument> current, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
+SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: method ValueTask<SaveOutcome> SaveAsAsync(TDocument document, ISaveCodec<TDocument> codec, String destinationPath, OpenSaveFile<TDocument> current, IProgress<SaveProgress> progress, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: property IReadOnlyCollection<String> DirectoriesWrittenTo get
 SaveEditor.Ui.Workflow.SaveFailureReason :: field Int32 value__
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason AtomicReplaceUnsupported
@@ -1108,6 +1126,15 @@ SaveEditor.Ui.Workflow.WorkflowFileNames :: method Boolean IsFrameworkBackupName
 SaveEditor.Ui.Workflow.WorkflowFileNames :: method Boolean IsFrameworkTemporaryName(String fileName)
 SaveEditor.Ui.Workflow.WorkflowFileNames :: method String NextBackupFileName(String originalFileName)
 SaveEditor.Ui.Workflow.WorkflowFileNames :: method String NextTemporaryFileName()
+SaveEditor.Ui.Workflow.WriteDecision :: ctor ()
+SaveEditor.Ui.Workflow.WriteDecision :: method Boolean Equals(Object obj)
+SaveEditor.Ui.Workflow.WriteDecision :: method Boolean Equals(WriteDecision other)
+SaveEditor.Ui.Workflow.WriteDecision :: method Int32 GetHashCode()
+SaveEditor.Ui.Workflow.WriteDecision :: method String ToString()
+SaveEditor.Ui.Workflow.WriteDecision :: method WriteDecision Refuse(String message)
+SaveEditor.Ui.Workflow.WriteDecision :: property Boolean IsAllowed get set
+SaveEditor.Ui.Workflow.WriteDecision :: property String Message get set
+SaveEditor.Ui.Workflow.WriteDecision :: property WriteDecision Proceed get
 type CompiledAvaloniaXaml.!AvaloniaResources
 type CompiledAvaloniaXaml.!XamlLoader
 type SaveEditor.Ui.Codecs.CodecRegistration`1
@@ -1228,6 +1255,7 @@ type SaveEditor.Ui.Workflow.IFilePermissionPolicy
 type SaveEditor.Ui.Workflow.IFolderDocumentOpener`1
 type SaveEditor.Ui.Workflow.ISaveFormatChooser
 type SaveEditor.Ui.Workflow.IWorkflowFileNames
+type SaveEditor.Ui.Workflow.IWritePolicy
 type SaveEditor.Ui.Workflow.OpenOutcome`1
 type SaveEditor.Ui.Workflow.OpenOutcome`1+Cancelled
 type SaveEditor.Ui.Workflow.OpenOutcome`1+Declined
@@ -1237,6 +1265,8 @@ type SaveEditor.Ui.Workflow.OpenSaveFile`1
 type SaveEditor.Ui.Workflow.PermissionCopyResult
 type SaveEditor.Ui.Workflow.PermissionCopyStatus
 type SaveEditor.Ui.Workflow.PermissionSnapshot
+type SaveEditor.Ui.Workflow.PlannedWrite
+type SaveEditor.Ui.Workflow.PlannedWriteKind
 type SaveEditor.Ui.Workflow.PlatformDurabilityBarrier
 type SaveEditor.Ui.Workflow.PlatformFilePermissionPolicy
 type SaveEditor.Ui.Workflow.ReplaceResult
@@ -1254,3 +1284,4 @@ type SaveEditor.Ui.Workflow.TempResidueSweeper
 type SaveEditor.Ui.Workflow.TempSweepReport
 type SaveEditor.Ui.Workflow.UnknownDataVerification
 type SaveEditor.Ui.Workflow.WorkflowFileNames
+type SaveEditor.Ui.Workflow.WriteDecision
