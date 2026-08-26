@@ -1037,6 +1037,7 @@ SaveEditor.Ui.Workflow.SafeFileWorkflow`1 :: property IReadOnlyCollection<String
 SaveEditor.Ui.Workflow.SaveFailureReason :: field Int32 value__
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason AtomicReplaceUnsupported
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason BackupFailed
+SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason Busy
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason CodecFailed
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason DetectionFailed
 SaveEditor.Ui.Workflow.SaveFailureReason :: field SaveFailureReason ExternalChange

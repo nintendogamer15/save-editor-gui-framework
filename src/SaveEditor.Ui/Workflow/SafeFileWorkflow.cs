@@ -358,6 +358,14 @@ public sealed class SafeFileWorkflow<TDocument>
     {
         ArgumentNullException.ThrowIfNull(codec);
 
+        // Held for the whole operation, picker included: two concurrent saves of one document
+        // is precisely what this prevents, and a modal picker means the user is already
+        // mid-operation.
+        if (current is not null && !current.TryEnter())
+        {
+            return await FailAsync(SaveFailureReason.Busy, "Another operation is already writing this document. The two would race the same file handle, so this one was refused rather than interleaved with it.", current.Path, cancellationToken).ConfigureAwait(false);
+        }
+
         ResolvedFile? destination = null;
         var ownsDestination = false;
 
@@ -580,6 +588,8 @@ public sealed class SafeFileWorkflow<TDocument>
             {
                 destination?.Dispose();
             }
+
+            current?.Exit();
         }
     }
 
@@ -710,6 +720,11 @@ public sealed class SafeFileWorkflow<TDocument>
     {
         ArgumentNullException.ThrowIfNull(open);
 
+        if (!open.TryEnter())
+        {
+            return await FailAsync(SaveFailureReason.Busy, "Another operation is already writing this document. The two would race the same file handle, so this one was refused rather than interleaved with it.", open.Path, cancellationToken).ConfigureAwait(false);
+        }
+
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -839,6 +854,10 @@ public sealed class SafeFileWorkflow<TDocument>
                 open.Path,
                 CancellationToken.None).ConfigureAwait(false);
         }
+        finally
+        {
+            open.Exit();
+        }
     }
 
     /// <summary>
@@ -879,6 +898,13 @@ public sealed class SafeFileWorkflow<TDocument>
     {
         ArgumentException.ThrowIfNullOrEmpty(backupPath);
         ArgumentNullException.ThrowIfNull(open);
+
+        if (!open.TryEnter())
+        {
+            return new RestoreResult<TDocument>(
+                await FailAsync(SaveFailureReason.Busy, "Another operation is already writing this document. The two would race the same file handle, so this one was refused rather than interleaved with it.", open.Path, cancellationToken).ConfigureAwait(false),
+                default);
+        }
 
         ResolvedFile? source = null;
 
@@ -1056,6 +1082,7 @@ public sealed class SafeFileWorkflow<TDocument>
         finally
         {
             source?.Dispose();
+            open.Exit();
         }
 
         static RestoreResult<TDocument> Refuse(SaveOutcome outcome) => new(outcome, default);
