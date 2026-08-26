@@ -746,6 +746,229 @@ public sealed class SafeFileWorkflow<TDocument>
         }
     }
 
+    /// <summary>
+    /// Puts a backup's bytes back at the open document's path, backing up the current state
+    /// first.
+    /// </summary>
+    /// <param name="backupPath">The backup to restore. Any readable file, not only one the framework named.</param>
+    /// <param name="open">The open document, whose path is the destination.</param>
+    /// <param name="progress">Optional progress sink.</param>
+    /// <param name="cancellationToken">Cancels the restore at the workflow boundary.</param>
+    /// <returns>The definitive outcome, and the restored document when it succeeded.</returns>
+    /// <remarks>
+    /// <para>
+    /// The framework created backups, verified them, and reported their paths, then left
+    /// recovery entirely to the adopter — so every adopter was going to write this routine,
+    /// and the framework already held everything needed to write it correctly: the resolver,
+    /// the change guard, the permission policy, and the atomic replace (finding F-10).
+    /// </para>
+    /// <para>
+    /// <strong>A restore is a destructive overwrite and is treated as one.</strong> The
+    /// backup is resolved through the same hardened path primitive as any other read, its
+    /// bytes are decoded with the open document's codec before anything is written — a
+    /// restore that lands bytes the format cannot read is worse than no restore — the current
+    /// state is itself backed up so the restore can be undone, the external-change guard runs,
+    /// and the replacement is atomic with the landed bytes verified.
+    /// </para>
+    /// <para>
+    /// On success the document in memory is the one decoded from the backup and is returned;
+    /// the caller adopts it. Nothing else can, because the framework does not own the
+    /// application's document reference.
+    /// </para>
+    /// </remarks>
+    public async ValueTask<RestoreResult<TDocument>> RestoreFromBackupAsync(
+        string backupPath,
+        OpenSaveFile<TDocument> open,
+        IProgress<SaveProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(backupPath);
+        ArgumentNullException.ThrowIfNull(open);
+
+        ResolvedFile? source = null;
+
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (open.IsStale)
+            {
+                return Refuse(await FailAsync(
+                    SaveFailureReason.IdentityChanged,
+                    "This document is no longer bound to a handle that can prove what it points at. Reopen it before restoring over it.",
+                    open.Path,
+                    cancellationToken).ConfigureAwait(false));
+            }
+
+            var directory = Path.GetDirectoryName(open.Path);
+            if (string.IsNullOrEmpty(directory))
+            {
+                return Refuse(await FailAsync(SaveFailureReason.PathRefused, "The target has no containing directory.", open.Path, cancellationToken).ConfigureAwait(false));
+            }
+
+            if (!open.File.ReassertIdentity())
+            {
+                return Refuse(await FailAsync(
+                    SaveFailureReason.IdentityChanged,
+                    "The retained handle no longer refers to the file that was opened. The restore was abandoned.",
+                    open.Path,
+                    cancellationToken).ConfigureAwait(false));
+            }
+
+            var protection = WriteProtection.Describe(open.File.Stream);
+            if (protection is not null)
+            {
+                return Refuse(await FailAsync(SaveFailureReason.WriteProtected, protection, open.Path, cancellationToken).ConfigureAwait(false));
+            }
+
+            // The backup goes through the same resolver as any other read: link following
+            // disabled, every ancestor checked, identity recorded.
+            var resolution = await _options.PathResolver
+                .ResolveAsync(backupPath, _options.ReadResolution, cancellationToken)
+                .ConfigureAwait(false);
+
+            source = resolution switch
+            {
+                PathResolution.Resolved resolved => resolved.File,
+                PathResolution.NeedsConfirmation needs => needs.File,
+                _ => null,
+            };
+
+            if (source is null)
+            {
+                var detail = resolution is PathResolution.Refused refused
+                    ? $"The backup could not be read: {refused.Detail}"
+                    : "The backup could not be read.";
+
+                return Refuse(await FailAsync(SaveFailureReason.PathRefused, detail, backupPath, cancellationToken).ConfigureAwait(false));
+            }
+
+            if (source.Identity == open.File.Identity)
+            {
+                return Refuse(await FailAsync(
+                    SaveFailureReason.PathRefused,
+                    "The chosen backup is the file being restored over. There is nothing to restore.",
+                    backupPath,
+                    cancellationToken).ConfigureAwait(false));
+            }
+
+            progress?.Report(new SaveProgress(SavePhase.Reading));
+            var (_, bytes) = await _options.ChangeGuard.CaptureAsync(source, cancellationToken).ConfigureAwait(false);
+
+            // Decoded before anything is written. A restore that lands bytes this codec
+            // cannot read leaves the user with neither their edit nor a readable save.
+            progress?.Report(new SaveProgress(SavePhase.Decoding, bytes.LongLength, bytes.LongLength));
+
+            TDocument restored;
+            try
+            {
+                restored = await RunCodecAsync(
+                    () => open.Codec.DecodeAsync(new MemoryStream(bytes, writable: false), cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                var detail = $"The {open.Codec.Format.DisplayName} codec could not read the chosen backup ({ex.GetType().Name}: {ex.Message}). " +
+                             "The restore was abandoned rather than writing bytes this editor cannot open.";
+                return Refuse(await FailAsync(SaveFailureReason.CodecFailed, detail, backupPath, cancellationToken).ConfigureAwait(false));
+            }
+
+            if (!await ConfirmRestoreAsync(open.Path, backupPath, cancellationToken).ConfigureAwait(false))
+            {
+                return Refuse(SaveOutcome.Declined("The restore was declined."));
+            }
+
+            var before = await _options.ChangeGuard.VerifyAsync(open.File, open.Baseline, cancellationToken).ConfigureAwait(false);
+            if (before.Verdict != ExternalChangeVerdict.Unchanged)
+            {
+                return Refuse(await FailAsync(SaveFailureReason.ExternalChange, before.Detail, open.Path, cancellationToken).ConfigureAwait(false));
+            }
+
+            // The state being replaced is itself backed up, so a restore is recoverable.
+            var backup = await CreateVerifiedBackupAsync(open.File, open.Baseline, directory, progress, cancellationToken).ConfigureAwait(false);
+            if (backup.Path is null)
+            {
+                return Refuse(await FailAsync(SaveFailureReason.BackupFailed, backup.Detail, open.Path, cancellationToken).ConfigureAwait(false));
+            }
+
+            var write = await CommitPayloadAsync(
+                bytes,
+                (RoundTripVerification.Verified, $"The backup was decoded by the {open.Codec.Format.DisplayName} codec before it was written.", null),
+                directory,
+                open.Path,
+                open.File,
+                open.Baseline,
+                destinationExists: true,
+                progress,
+                cancellationToken).ConfigureAwait(false);
+
+            if (write.Replaced)
+            {
+                await RebindAsync(open, write.Baseline!, CancellationToken.None).ConfigureAwait(false);
+            }
+
+            if (write.Outcome.Status != SaveStatus.Succeeded)
+            {
+                return new RestoreResult<TDocument>(write.Outcome with { BackupPath = backup.Path }, default);
+            }
+
+            ApplyBackupRetention(backup.Path, Path.GetFileName(open.Path));
+
+            var success = SaveOutcome.Success(open.Path, backup.Path) with
+            {
+                Message = "Restored. The state that was replaced was backed up and verified first.",
+                RoundTrip = write.Outcome.RoundTrip,
+                RoundTripDetail = write.Outcome.RoundTripDetail,
+            };
+
+            return new RestoreResult<TDocument>(
+                string.IsNullOrEmpty(write.Detail) ? success : success with { Message = success.Message + " " + write.Detail },
+                restored);
+        }
+        catch (OperationCanceledException)
+        {
+            return Refuse(SaveOutcome.Cancelled());
+        }
+        catch (Exception ex)
+        {
+            return Refuse(await FailAsync(
+                SaveFailureReason.Unexpected,
+                $"The restore failed unexpectedly ({ex.GetType().Name}: {ex.Message}).",
+                open.Path,
+                CancellationToken.None).ConfigureAwait(false));
+        }
+        finally
+        {
+            source?.Dispose();
+        }
+
+        static RestoreResult<TDocument> Refuse(SaveOutcome outcome) => new(outcome, default);
+    }
+
+    private async ValueTask<bool> ConfirmRestoreAsync(string targetPath, string backupPath, CancellationToken cancellationToken)
+    {
+        var target = PathDisplayFormatter.Default.Format(targetPath).Label;
+        var backup = PathDisplayFormatter.Default.Format(backupPath).Label;
+
+        return await _options.Interaction.ConfirmAsync(
+            new ConfirmationRequest
+            {
+                Title = "Restore this backup?",
+                Message =
+                    $"Replace the file at {target} with the backup at {backup}? " +
+                    "Everything saved since that backup was taken will be gone from the file. " +
+                    "The state being replaced is backed up and verified first, so this can itself be undone.",
+                AcceptLabel = "Restore the backup",
+                CancelLabel = "Keep the current file",
+                IsDestructive = true,
+            },
+            cancellationToken).ConfigureAwait(false);
+    }
+
     private async ValueTask RebindAsync(OpenSaveFile<TDocument> open, ContentBaseline baseline, CancellationToken cancellationToken)
     {
         try
@@ -846,6 +1069,39 @@ public sealed class SafeFileWorkflow<TDocument>
             });
         }
 
+        return await CommitPayloadAsync(
+            payload,
+            roundTrip,
+            directory,
+            destinationPath,
+            destination,
+            baseline,
+            destinationExists,
+            progress,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Puts a finished byte payload at the destination: exclusive temp, permissions,
+    /// external-change check, flush, read-back verification, atomic replace.
+    /// </summary>
+    /// <remarks>
+    /// Split out of <see cref="WriteAsync"/> so that restoring a backup goes through exactly
+    /// the same machinery as writing a serialized document (finding F-10). Everything above
+    /// this point is about producing bytes and is codec business; everything below is about
+    /// landing them and is identical whatever produced them.
+    /// </remarks>
+    private async ValueTask<WriteAttempt> CommitPayloadAsync(
+        byte[] payload,
+        (RoundTripVerification Verdict, string Detail, string? Mismatch) roundTrip,
+        string directory,
+        string destinationPath,
+        ResolvedFile? destination,
+        ContentBaseline? baseline,
+        bool destinationExists,
+        IProgress<SaveProgress>? progress,
+        CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         progress?.Report(new SaveProgress(SavePhase.WritingTemp, 0, payload.LongLength));
