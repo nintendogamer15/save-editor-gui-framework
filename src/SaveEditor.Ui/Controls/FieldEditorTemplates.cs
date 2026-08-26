@@ -35,6 +35,9 @@ internal static class FieldEditorTemplates
     public static readonly IDataTemplate ReadOnly =
         new FuncDataTemplate<ReadOnlyFieldViewModel>((vm, _) => BuildReadOnly(vm));
 
+    /// <summary>Edge length of a numeric spinner button.</summary>
+    internal const double SpinnerButtonSize = 32;
+
     private static Control BuildText(TextFieldViewModel vm)
     {
         var box = new TextBox();
@@ -56,11 +59,17 @@ internal static class FieldEditorTemplates
 
         // The descriptor advertises this affordance, so it has to exist. A property
         // that silently does nothing is worse than no property.
+        // Padding is overridden, not inherited. The Button theme pads 14px a side
+        // and draws a 1px border, which is 30px of chrome; a 32px-wide button
+        // inheriting that leaves a 2px content area and clips the glyph to a
+        // speck. The spinner rendered as two identical specks on both platforms
+        // until someone measured the pixels.
         var down = new Button
         {
             Content = "−",
             Command = vm.DecrementCommand,
-            Width = 32,
+            Width = SpinnerButtonSize,
+            Padding = new Avalonia.Thickness(0),
         };
         Avalonia.Automation.AutomationProperties.SetName(down, $"Decrease {vm.Label}");
 
@@ -68,7 +77,8 @@ internal static class FieldEditorTemplates
         {
             Content = "+",
             Command = vm.IncrementCommand,
-            Width = 32,
+            Width = SpinnerButtonSize,
+            Padding = new Avalonia.Thickness(0),
         };
         Avalonia.Automation.AutomationProperties.SetName(up, $"Increase {vm.Label}");
 
