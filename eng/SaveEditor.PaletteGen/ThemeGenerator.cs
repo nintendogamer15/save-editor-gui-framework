@@ -106,6 +106,12 @@ public static class ThemeGenerator
                 var legible = Legible(raw, [.. surfaces, wash]);
 
                 Brush(xaml, role, raw);
+                if (role == "Danger")
+                {
+                    Brush(xaml, "DangerHover", Srgb.Mix(raw, new Srgb(0xFF, 0xFF, 0xFF), 0.10));
+                    Brush(xaml, "DangerPressed", raw.Darken(0.90));
+                }
+
                 Brush(xaml, $"{role}Text", legible);
                 Brush(xaml, $"{role}Background", wash);
             }

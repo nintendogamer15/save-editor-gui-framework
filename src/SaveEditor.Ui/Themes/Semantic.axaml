@@ -31,6 +31,8 @@
 
       <!-- status -->
       <SolidColorBrush x:Key="Danger">#d20f39</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerHover">#d7274d</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerPressed">#bd0e33</SolidColorBrush>
       <SolidColorBrush x:Key="DangerText">#ab0c2f</SolidColorBrush>
       <SolidColorBrush x:Key="DangerBackground">#e9bfcc</SolidColorBrush>
       <SolidColorBrush x:Key="Warning">#df8e1d</SolidColorBrush>
@@ -63,6 +65,8 @@
 
       <!-- status -->
       <SolidColorBrush x:Key="Danger">#f38ba8</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerHover">#f497b1</SolidColorBrush>
+      <SolidColorBrush x:Key="DangerPressed">#db7d97</SolidColorBrush>
       <SolidColorBrush x:Key="DangerText">#f38ba8</SolidColorBrush>
       <SolidColorBrush x:Key="DangerBackground">#4d3649</SolidColorBrush>
       <SolidColorBrush x:Key="Warning">#f9e2af</SolidColorBrush>
