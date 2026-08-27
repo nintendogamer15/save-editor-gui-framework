@@ -129,12 +129,12 @@ When no `IEditorHost` is supplied, window size is not persisted and `File > Exit
 
 Core menus are always available in-window:
 
-- `File`: Open Save, Open Folder, Recent, optional Folder slots, Save As, Overwrite + Backup, Reload, Close, Exit
+- `File`: Open Save, Recent, Save As, Overwrite + Backup, Reload, Close, Exit
 - `Edit`: Undo, Redo
 - `View`: Appearance > Themes, Appearance > Accent, search focus, section shortcuts
 - `Help`: About/Credits and safety/manual-testing documentation
 
-Header actions are limited to Open Save, Save As, Undo, and Redo. The sidebar contains detected-save status and section navigation; recent files and folder slots are menu-only, with recent files also shown in the welcome state.
+Header actions are limited to Open Save, Save As, Undo, and Redo. The sidebar contains detected-save status and section navigation; recent files are menu-only, and are also shown in the welcome state.
 
 ### Sections and content
 

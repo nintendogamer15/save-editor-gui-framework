@@ -199,18 +199,4 @@ public class DeferredShellChecksTests
         File.Delete(path);
         Assert.False(File.Exists(path));
     }
-
-    [Fact]
-    public async Task Folder_Open_Without_Support_Is_Declined_Rather_Than_Surprising()
-    {
-        var (harness, session, _) = Build();
-        using var _h = harness;
-        using var _s = session;
-
-        await session.OpenFolderAsync(harness.Workspace.Path("somewhere"), TestContext.Current.CancellationToken);
-
-        Assert.False(session.LastOutcome!.IsSuccess);
-        Assert.Contains("folder", session.LastOutcome.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.False(session.HasDocument);
-    }
 }

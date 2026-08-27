@@ -200,7 +200,6 @@
     <nav class="menu-bar" aria-label="Application menu">
       <div class="menu"><button aria-haspopup="true">File</button><div class="menu-panel">
         <button class="menu-item" data-action="open">Open Save <kbd>Ctrl+O</kbd></button>
-        <button class="menu-item" data-action="open-folder">Open Folder <kbd>Ctrl+Shift+O</kbd></button>
         <div class="submenu"><button>Recent</button><div class="submenu-panel">
           <button class="menu-item" data-action="open">Data3 · Chronicle Save</button>
           <button class="menu-item" data-action="open">Data1 · Chronicle Save</button>
@@ -263,7 +262,7 @@
         </div>
       </main>
 
-      <main class="content empty-state" id="welcome-view"><div class="empty-card"><div class="brand-mark">SE</div><h1>Ready to edit a save</h1><p>Open a save file or folder to begin. Changes are kept in memory, unknown data is preserved, and direct replacement is always backup-protected.</p><div class="empty-actions"><button class="button primary" data-action="open">Open Save</button><button class="button" data-action="open-folder">Open Folder</button></div><div class="eyebrow" style="text-align:left">Recent files</div><div class="recent-links"><div class="recent-link" data-action="open">Data3 · Chronicle Save <small>Today, 14:30</small></div><div class="recent-link" data-action="open">Data1 · Chronicle Save <small>Yesterday</small></div></div></div></main>
+      <main class="content empty-state" id="welcome-view"><div class="empty-card"><div class="brand-mark">SE</div><h1>Ready to edit a save</h1><p>Open a save file to begin. Changes are kept in memory, unknown data is preserved, and direct replacement is always backup-protected.</p><div class="empty-actions"><button class="button primary" data-action="open">Open Save</button></div><div class="eyebrow" style="text-align:left">Recent files</div><div class="recent-links"><div class="recent-link" data-action="open">Data3 · Chronicle Save <small>Today, 14:30</small></div><div class="recent-link" data-action="open">Data1 · Chronicle Save <small>Yesterday</small></div></div></div></main>
     </div>
 
     <footer class="status-bar"><div class="status-copy"><div class="status-message" id="status-message">Opened Data3 as Chronicle Save. 0 warning(s); unknown data is preserved.</div><div class="status-detail"><span id="current-path">Current path: /saves/chronicle/Data3.save</span><span id="last-backup">Last backup: 2026-08-26 14:29 UTC</span></div></div><button class="button primary status-action" data-action="apply-all">Apply All</button></footer>
@@ -304,7 +303,6 @@
     function openDocument() { state.open = true; document.getElementById('document-view').style.display = ''; document.getElementById('welcome-view').style.display = 'none'; setDirty(false); setStatus('Opened Data3 as Chronicle Save. 0 warning(s); unknown data is preserved.'); renderFields(); closeMenus(); }
     function performAction(action) {
       if (action === 'open') { if (state.dirty) showModal('Discard unsaved changes?', 'The current document has unsaved changes. Opening another save will discard them.', true, 'Discard and open'); else openDocument(); }
-      if (action === 'open-folder') { showModal('Open save folder', 'Folder discovery found two compatible slots. The selected slot will open after confirmation.', false, 'Open folder'); }
       if (action === 'save-as') { showModal('Save As', 'The OS save picker would open here. Ctrl+S never silently replaces the source file.', false, 'Choose destination'); }
       if (action === 'overwrite') { showModal('Overwrite + Backup', 'A timestamped backup will be created before atomic replacement. Validation errors block this action.', true, 'Overwrite + backup'); }
       if (action === 'reload') { if (state.dirty) showModal('Discard unsaved changes?', 'Reloading will discard the current in-memory changes.', true, 'Discard and reload'); else setStatus('Reloaded Data3. 0 warning(s); unknown data is preserved.'); }

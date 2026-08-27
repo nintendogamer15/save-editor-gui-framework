@@ -95,21 +95,10 @@ public interface IDocumentSession
     /// <summary>Raised whenever any of the state above changes.</summary>
     event EventHandler? StateChanged;
 
-    /// <summary>Opens a document from a path.</summary>
+    /// <summary>Opens a document from a regular file.</summary>
     /// <param name="path">Path supplied by a picker, a recent entry, or a drop.</param>
     /// <param name="cancellationToken">Cancels the open.</param>
     ValueTask OpenAsync(string path, CancellationToken cancellationToken = default);
-
-    /// <summary>Opens a document stored as a directory rather than a single file.</summary>
-    /// <param name="path">The directory to open.</param>
-    /// <param name="cancellationToken">Cancels the open.</param>
-    /// <remarks>
-    /// Distinct from <see cref="OpenAsync"/> because many games store a save as a
-    /// directory of related files. Folders cannot share the file entry point: the
-    /// path resolver refuses anything that is not a regular file, so routing a
-    /// directory through it would be refused by design.
-    /// </remarks>
-    ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default);
 
     /// <summary>Writes the document to a newly chosen path. The default write path.</summary>
     /// <param name="cancellationToken">Cancels the write.</param>

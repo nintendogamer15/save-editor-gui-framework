@@ -306,28 +306,6 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private async Task OpenFolderAsync(CancellationToken cancellationToken)
-    {
-        var chosen = await _interaction
-            .PickFolderAsync("Open save folder", null, cancellationToken)
-            .ConfigureAwait(true);
-
-        if (chosen is null)
-        {
-            return;
-        }
-
-        if (!await ConfirmDiscardAsync(DiscardReason.Open, cancellationToken).ConfigureAwait(true))
-        {
-            StatusMessage = "Open cancelled. The current save is unchanged.";
-            return;
-        }
-
-        await _session.OpenFolderAsync(chosen, cancellationToken).ConfigureAwait(true);
-        NotifyDocumentState();
-    }
-
-    [RelayCommand]
     private Task ShowAboutAsync(CancellationToken cancellationToken) =>
         _interaction.ShowMessageAsync(
             new MessageRequest("About", AboutMessage), cancellationToken).AsTask();

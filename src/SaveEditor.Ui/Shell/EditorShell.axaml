@@ -26,7 +26,6 @@
 
       <MenuItem Header="_File">
         <MenuItem Header="_Open Save…" Command="{Binding OpenSaveCommand}" InputGesture="Ctrl+O" />
-        <MenuItem Header="Open _Folder…" Command="{Binding OpenFolderCommand}" />
         <MenuItem Header="_Recent" ItemsSource="{Binding Recents}">
           <MenuItem.ItemContainerTheme>
             <ControlTheme TargetType="MenuItem" x:DataType="shell:RecentEntry">
