@@ -81,11 +81,20 @@
     </Style>
 
     <!-- Destructive button: verb-specific labels are the caller's job; the colour
-         is ours. -->
+         is ours. Hover and press paint PART_Surface, matching .accent, so the
+         base button's pointerover fill cannot replace the danger colour. -->
     <Style Selector="^.danger">
       <Setter Property="Background" Value="{DynamicResource Danger}" />
       <Setter Property="Foreground" Value="{DynamicResource OnPrimaryForeground}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Danger}" />
+    </Style>
+    <Style Selector="^.danger:pointerover /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource DangerHover}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerHover}" />
+    </Style>
+    <Style Selector="^.danger:pressed /template/ Border#PART_Surface">
+      <Setter Property="Background" Value="{DynamicResource DangerPressed}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource DangerPressed}" />
     </Style>
   </ControlTheme>
 

@@ -55,9 +55,15 @@ public static class SemanticTokens
     ];
 
     /// <summary>Status roles, as fill, as text, and as background wash.</summary>
+    /// <remarks>
+    /// Destructive buttons use <c>Danger</c> as a fill, so they need the same
+    /// hover/pressed ramp <see cref="Accent"/> gives <c>Primary</c>. Warning and
+    /// Success are not button fills.
+    /// </remarks>
     public static readonly IReadOnlyList<string> Status =
     [
-        "Danger", "Warning", "Success",
+        "Danger", "DangerHover", "DangerPressed",
+        "Warning", "Success",
         "DangerText", "WarningText", "SuccessText",
         "DangerBackground", "WarningBackground", "SuccessBackground",
     ];
