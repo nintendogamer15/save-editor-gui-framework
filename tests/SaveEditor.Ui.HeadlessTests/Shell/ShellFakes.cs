@@ -46,16 +46,6 @@ internal sealed class FakeDocumentSession : IDocumentSession
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default)
-    {
-        Calls.Add(nameof(OpenFolderAsync));
-        OpenedPath = path;
-        HasDocument = true;
-        CurrentPath = path;
-        StateChanged?.Invoke(this, EventArgs.Empty);
-        return ValueTask.CompletedTask;
-    }
-
     public ValueTask SaveAsAsync(CancellationToken cancellationToken = default)
     {
         Calls.Add(nameof(SaveAsAsync));

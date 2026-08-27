@@ -57,8 +57,8 @@ public sealed record PathResolutionOptions
 /// </summary>
 /// <remarks>
 /// This is the single entry point through which every path reaches the filesystem:
-/// the open workflow, recents, folder slots, drag and drop, backups, and temporary
-/// files. Bypassing it reintroduces the class of defects it exists to prevent.
+/// the open workflow, recents, drag and drop, backups, and temporary files.
+/// Bypassing it reintroduces the class of defects it exists to prevent.
 /// </remarks>
 public interface ISafePathResolver
 {

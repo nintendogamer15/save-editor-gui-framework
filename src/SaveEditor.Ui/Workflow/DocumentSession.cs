@@ -4,25 +4,6 @@ using SaveEditor.Ui.Shell;
 
 namespace SaveEditor.Ui.Workflow;
 
-/// <summary>Opens a document stored as a directory rather than a single file.</summary>
-/// <typeparam name="TDocument">The editor's document type.</typeparam>
-/// <remarks>
-/// Folder-backed saves are format-specific, so the framework has no default. An
-/// editor whose saves are directories supplies one; an editor whose saves are files
-/// supplies nothing and the menu item reports that folders are not supported rather
-/// than doing something surprising.
-/// </remarks>
-public interface IFolderDocumentOpener<TDocument>
-{
-    /// <summary>Opens a document from a directory.</summary>
-    /// <param name="path">The directory.</param>
-    /// <param name="cancellationToken">Cancels the open.</param>
-    /// <returns>The document and the codec that should write it back.</returns>
-    ValueTask<(TDocument Document, ISaveCodec<TDocument> Codec)> OpenAsync(
-        string path,
-        CancellationToken cancellationToken = default);
-}
-
 /// <summary>
 /// Connects the shell to <see cref="SafeFileWorkflow{TDocument}"/>, replacing the
 /// stub the shell was built against.
@@ -58,20 +39,17 @@ public class DocumentSession<TDocument> : IDocumentSession, IDisposable
     private readonly SafeFileWorkflow<TDocument> _workflow;
     private readonly IEditHistory _history;
     private readonly ISaveCodec<TDocument> _defaultCodec;
-    private readonly IFolderDocumentOpener<TDocument>? _folderOpener;
     private OpenSaveFile<TDocument>? _open;
     private bool _disposed;
 
     /// <summary>Creates a session over a workflow.</summary>
     /// <param name="workflow">The safe file workflow.</param>
     /// <param name="history">Where committed edits are recorded.</param>
-    /// <param name="defaultCodec">Codec used when writing a document opened from a folder.</param>
-    /// <param name="folderOpener">Optional folder support.</param>
+    /// <param name="defaultCodec">Codec used when writing a document that has no retained file handle.</param>
     public DocumentSession(
         SafeFileWorkflow<TDocument> workflow,
         IEditHistory history,
-        ISaveCodec<TDocument> defaultCodec,
-        IFolderDocumentOpener<TDocument>? folderOpener = null)
+        ISaveCodec<TDocument> defaultCodec)
     {
         ArgumentNullException.ThrowIfNull(workflow);
         ArgumentNullException.ThrowIfNull(history);
@@ -80,7 +58,6 @@ public class DocumentSession<TDocument> : IDocumentSession, IDisposable
         _workflow = workflow;
         _history = history;
         _defaultCodec = defaultCodec;
-        _folderOpener = folderOpener;
 
         _history.Changed += OnHistoryChanged;
     }
@@ -89,8 +66,8 @@ public class DocumentSession<TDocument> : IDocumentSession, IDisposable
     protected SafeFileWorkflow<TDocument> Workflow => _workflow;
 
     /// <summary>
-    /// The open file, or <see langword="null"/> when nothing is open or the document came
-    /// from a folder.
+    /// The open file, or <see langword="null"/> when nothing is open or the document has
+    /// no retained handle.
     /// </summary>
     /// <remarks>
     /// Required by any override that wants to call
@@ -287,33 +264,6 @@ public class DocumentSession<TDocument> : IDocumentSession, IDisposable
                 break;
         }
 
-        Notify();
-    }
-
-    /// <inheritdoc />
-    public virtual async ValueTask OpenFolderAsync(string path, CancellationToken cancellationToken = default)
-    {
-        if (_folderOpener is null)
-        {
-            LastOutcome = SaveOutcome.Declined(
-                "This editor does not support folder-based saves.");
-            Notify();
-            return;
-        }
-
-        var (document, _) = await _folderOpener.OpenAsync(path, cancellationToken).ConfigureAwait(true);
-
-        // A folder-backed document has no single retained handle, so it has no
-        // external-change baseline either. Overwrite is unavailable until it has been
-        // written to a file; Save As remains, which is the default path anyway.
-        ReleaseOpenFile();
-        Document = document;
-        CurrentPath = path;
-        _history.Clear();
-
-        LastOutcome = SaveOutcome.Success(path);
-        Opened?.Invoke(this, path);
-        DocumentChanged?.Invoke(this, EventArgs.Empty);
         Notify();
     }
 

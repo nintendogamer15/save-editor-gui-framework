@@ -29,7 +29,7 @@ public class ShellCommandRoutingTests
     /// </remarks>
     private static readonly string[] KnownCommands =
     [
-        "OpenSaveCommand", "OpenFolderCommand", "OpenRecentCommand",
+        "OpenSaveCommand", "OpenRecentCommand",
         "SaveAsCommand", "OverwriteWithBackupCommand",
         "ReloadCommand", "CloseCommand", "ExitCommand",
         "UndoCommand", "RedoCommand",
@@ -60,22 +60,6 @@ public class ShellCommandRoutingTests
     }
 
     [AvaloniaFact]
-    public async Task Open_Folder_Uses_The_Folder_Picker_And_The_Folder_Entry_Point()
-    {
-        var (vm, session, interaction) = Build();
-        interaction.FolderPickerResult = "/saves/profile-dir";
-        interaction.OpenPickerResult = "/saves/WRONG.dat";
-
-        await vm.OpenFolderCommand.ExecuteAsync(null);
-
-        // The regression this guards: Open Folder was bound to the file-open handler,
-        // so it opened a file picker and never touched the folder entry point.
-        Assert.Contains(nameof(FakeDocumentSession.OpenFolderAsync), session.Calls);
-        Assert.DoesNotContain(nameof(FakeDocumentSession.OpenAsync), session.Calls);
-        Assert.Equal("/saves/profile-dir", session.OpenedPath);
-    }
-
-    [AvaloniaFact]
     public void Every_Menu_Item_Is_Bound_To_Its_Own_Command()
     {
         // Testing the command directly is not enough: the defect that motivated this
@@ -91,7 +75,6 @@ public class ShellCommandRoutingTests
         var expected = new Dictionary<string, ICommand?>(StringComparer.Ordinal)
         {
             ["_Open Save…"] = vm.OpenSaveCommand,
-            ["Open _Folder…"] = vm.OpenFolderCommand,
             ["Save _As…"] = vm.SaveAsCommand,
             ["Over_write + Backup…"] = vm.OverwriteWithBackupCommand,
             ["Re_load"] = vm.ReloadCommand,
@@ -214,19 +197,6 @@ public class ShellCommandRoutingTests
                 yield return child;
             }
         }
-    }
-
-    [AvaloniaFact]
-    public async Task Open_Folder_Is_Guarded_Like_Every_Other_Destructive_Open()
-    {
-        var (vm, session, interaction) = Build(confirm: false);
-        session.HasPendingEdits = true;
-        interaction.FolderPickerResult = "/saves/profile-dir";
-
-        await vm.OpenFolderCommand.ExecuteAsync(null);
-
-        Assert.Single(interaction.Confirmations);
-        Assert.Empty(session.Calls);
     }
 
     [AvaloniaFact]

@@ -64,7 +64,8 @@ This is the section that exists because nothing else covers it.
       a screen edge
 - [ ] A confirmation dialog centres on its owner and is modal
 - [ ] The file picker is the portal picker, and returns a usable path
-- [ ] The folder picker likewise
+- [ ] The folder picker is the portal picker, used to choose a backup location
+      when the sibling directory cannot take a backup
 
 ### Theme and accent
 

@@ -727,7 +727,6 @@ SaveEditor.Ui.Shell.EditorShellViewModel :: property Boolean IsWelcomeVisible ge
 SaveEditor.Ui.Shell.EditorShellViewModel :: property Func<String, Boolean> PathExists get set
 SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand CloseCommand get
 SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ExitCommand get
-SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OpenFolderCommand get
 SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OpenSaveCommand get
 SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand OverwriteWithBackupCommand get
 SaveEditor.Ui.Shell.EditorShellViewModel :: property IAsyncRelayCommand ReloadCommand get
@@ -762,7 +761,6 @@ SaveEditor.Ui.Shell.IDocumentSession :: event EventHandler StateChanged
 SaveEditor.Ui.Shell.IDocumentSession :: event EventHandler<DocumentProgress> ProgressChanged
 SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask CloseAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OpenAsync(String path, CancellationToken cancellationToken)
-SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OpenFolderAsync(String path, CancellationToken cancellationToken)
 SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask ReloadAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Shell.IDocumentSession :: method ValueTask SaveAsAsync(CancellationToken cancellationToken)
@@ -836,14 +834,13 @@ SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Failed
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus Flushed
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field DirectoryFlushStatus NotApplicable
 SaveEditor.Ui.Workflow.DirectoryFlushStatus :: field Int32 value__
-SaveEditor.Ui.Workflow.DocumentSession`1 :: ctor (SafeFileWorkflow<TDocument> workflow, IEditHistory history, ISaveCodec<TDocument> defaultCodec, IFolderDocumentOpener<TDocument> folderOpener)
+SaveEditor.Ui.Workflow.DocumentSession`1 :: ctor (SafeFileWorkflow<TDocument> workflow, IEditHistory history, ISaveCodec<TDocument> defaultCodec)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler DocumentChanged
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler StateChanged
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler<DocumentProgress> ProgressChanged
 SaveEditor.Ui.Workflow.DocumentSession`1 :: event EventHandler<String> Opened
 SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask CloseAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OpenAsync(String path, CancellationToken cancellationToken)
-SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OpenFolderAsync(String path, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask OverwriteWithBackupAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask ReloadAsync(CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.DocumentSession`1 :: method ValueTask SaveAsAsync(CancellationToken cancellationToken)
@@ -887,7 +884,6 @@ SaveEditor.Ui.Workflow.IExternalChangeGuard :: method ValueTask<ValueTuple<Conte
 SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method Boolean IsBroaderThan(PermissionSnapshot candidate, PermissionSnapshot original, String& detail)
 SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method PermissionCopyResult CopyOnto(FileStream original, FileStream target, String targetPath, FileIdentity targetIdentity)
 SaveEditor.Ui.Workflow.IFilePermissionPolicy :: method PermissionSnapshot Capture(FileStream stream)
-SaveEditor.Ui.Workflow.IFolderDocumentOpener`1 :: method ValueTask<ValueTuple<TDocument, ISaveCodec<TDocument>>> OpenAsync(String path, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.ISaveFormatChooser :: method ValueTask<SaveFormatDescriptor> ChooseAsync(IReadOnlyList<SaveFormatDescriptor> candidates, String fileName, CancellationToken cancellationToken)
 SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextBackupFileName(String originalFileName)
 SaveEditor.Ui.Workflow.IWorkflowFileNames :: method String NextTemporaryFileName()
@@ -1257,7 +1253,6 @@ type SaveEditor.Ui.Workflow.ExternalChangeVerdict
 type SaveEditor.Ui.Workflow.IDurabilityBarrier
 type SaveEditor.Ui.Workflow.IExternalChangeGuard
 type SaveEditor.Ui.Workflow.IFilePermissionPolicy
-type SaveEditor.Ui.Workflow.IFolderDocumentOpener`1
 type SaveEditor.Ui.Workflow.ISaveFormatChooser
 type SaveEditor.Ui.Workflow.IWorkflowFileNames
 type SaveEditor.Ui.Workflow.IWritePolicy
