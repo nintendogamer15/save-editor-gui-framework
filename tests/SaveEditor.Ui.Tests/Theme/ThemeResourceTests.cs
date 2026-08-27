@@ -198,6 +198,15 @@ public class ThemeResourceTests
 
                 foreach (var reference in ResourceReferences(File.ReadAllText(file)))
                 {
+                    // `{x:Type MenuItem}` is a control-theme lookup used as
+                    // ItemContainerTheme BasedOn, not a colour. Palette names
+                    // never look like this, so skipping it does not weaken the
+                    // gate this test exists for.
+                    if (reference.StartsWith("{x:Type ", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
                     if (!known.Contains(reference))
                     {
                         offenders.Add($"{Path.GetFileName(file)} references '{reference}'");

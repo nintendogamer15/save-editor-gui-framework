@@ -1,4 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SaveEditor.Ui.Display;
@@ -66,6 +68,10 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         _session.StateChanged += OnSessionStateChanged;
         _session.ProgressChanged += OnSessionProgress;
         _host?.SetShutdownGuard(ct => ConfirmDiscardAsync(DiscardReason.Exit, ct));
+
+        ThemeMenuOptions = CreateOptions(ThemeModes, SetThemeCommand);
+        AccentMenuOptions = CreateOptions(Accents, SetAccentCommand);
+        Recents.CollectionChanged += OnRecentsChanged;
     }
 
     /// <summary>What the user is about to do that could lose uncommitted work.</summary>
@@ -132,6 +138,15 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
 
     /// <summary>All fourteen accents, for the Appearance menu.</summary>
     public IReadOnlyList<CatppuccinAccent> Accents { get; } = Enum.GetValues<CatppuccinAccent>();
+
+    /// <summary>Recent rows the File menu binds to, each carrying its own command.</summary>
+    internal ObservableCollection<ShellMenuOption> RecentMenuOptions { get; } = [];
+
+    /// <summary>Theme rows the Appearance menu binds to, each carrying its own command.</summary>
+    internal IReadOnlyList<ShellMenuOption> ThemeMenuOptions { get; }
+
+    /// <summary>Accent rows the Appearance menu binds to, each carrying its own command.</summary>
+    internal IReadOnlyList<ShellMenuOption> AccentMenuOptions { get; }
 
     /// <summary>Whether the welcome state is showing instead of a document.</summary>
     public bool IsWelcomeVisible => !_session.HasDocument;
@@ -456,9 +471,34 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
+        Recents.CollectionChanged -= OnRecentsChanged;
         _session.StateChanged -= OnSessionStateChanged;
         _session.ProgressChanged -= OnSessionProgress;
     }
+
+    private void OnRecentsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        RecentMenuOptions.Clear();
+        foreach (var recent in Recents)
+        {
+            RecentMenuOptions.Add(new ShellMenuOption
+            {
+                Header = recent.Label.Label,
+                Tip = recent.Label.FullLabel,
+                Command = OpenRecentCommand,
+                Parameter = recent,
+            });
+        }
+    }
+
+    private static IReadOnlyList<ShellMenuOption> CreateOptions<T>(IEnumerable<T> values, ICommand command)
+        where T : notnull
+        => [.. values.Select(value => new ShellMenuOption
+        {
+            Header = value.ToString()!,
+            Command = command,
+            Parameter = value,
+        })];
 
     private void OnSessionStateChanged(object? sender, EventArgs e) => NotifyDocumentState();
 

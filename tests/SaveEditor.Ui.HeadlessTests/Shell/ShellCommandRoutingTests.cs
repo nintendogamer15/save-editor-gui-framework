@@ -129,19 +129,22 @@ public class ShellCommandRoutingTests
         var recent = Realize(window, file).Single(m => (string?)m.Header == "_Recent");
         Assert.All(Realize(window, recent), item =>
         {
-            Assert.Same(vm.OpenRecentCommand, item.Command);
-            Assert.IsType<RecentEntry>(item.CommandParameter);
+            AssertRealizedCommand(item, vm.OpenRecentCommand, typeof(RecentEntry));
         });
 
         var appearance = Realize(window, view).Single(m => (string?)m.Header == "_Appearance");
         var appearanceChildren = Realize(window, appearance);
 
         var themes = appearanceChildren.Single(m => (string?)m.Header == "_Themes");
-        Assert.All(Realize(window, themes), item =>
+        var themeItems = Realize(window, themes);
+        Assert.All(themeItems, item =>
         {
-            Assert.Same(vm.SetThemeCommand, item.Command);
-            Assert.IsType<ThemeMode>(item.CommandParameter);
+            AssertRealizedCommand(item, vm.SetThemeCommand, typeof(ThemeMode));
         });
+
+        var light = themeItems.Single(item => Equals(item.CommandParameter, ThemeMode.Light));
+        light.Command!.Execute(light.CommandParameter);
+        Assert.Equal(ThemeMode.Light, theme.Mode);
 
         var accents = appearanceChildren.Single(m => (string?)m.Header == "A_ccent");
         var accentItems = Realize(window, accents);
@@ -149,9 +152,23 @@ public class ShellCommandRoutingTests
         Assert.Equal(14, accentItems.Count);
         Assert.All(accentItems, item =>
         {
-            Assert.Same(vm.SetAccentCommand, item.Command);
-            Assert.IsType<CatppuccinAccent>(item.CommandParameter);
+            AssertRealizedCommand(item, vm.SetAccentCommand, typeof(CatppuccinAccent));
         });
+    }
+
+    /// <summary>
+    /// A realized ItemsSource row must show a header, keep the default template,
+    /// and carry an executable command. Command-property-only checks stay green
+    /// when the container has no template and cannot be clicked.
+    /// </summary>
+    private static void AssertRealizedCommand(MenuItem item, ICommand expected, Type parameterType)
+    {
+        Assert.False(string.IsNullOrWhiteSpace(item.Header?.ToString()));
+        Assert.NotNull(item.Template);
+        Assert.Same(expected, item.Command);
+        Assert.NotNull(item.Command);
+        Assert.True(item.Command.CanExecute(item.CommandParameter));
+        Assert.IsType(parameterType, item.CommandParameter);
     }
 
     /// <summary>Opens a submenu and returns its realized containers.</summary>

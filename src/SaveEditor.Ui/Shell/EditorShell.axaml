@@ -26,15 +26,22 @@
 
       <MenuItem Header="_File">
         <MenuItem Header="_Open Save…" Command="{Binding OpenSaveCommand}" InputGesture="Ctrl+O" />
-        <MenuItem Header="_Recent" ItemsSource="{Binding Recents}">
+        <!--
+          Command lives on the row. Submenu items are realized into a popup,
+          which is a separate visual tree, so $parent cannot reach EditorShell.
+          BasedOn keeps the default MenuItem template; without it the containers
+          render empty.
+        -->
+        <MenuItem Header="_Recent" ItemsSource="{Binding RecentMenuOptions}">
           <MenuItem.ItemContainerTheme>
-            <ControlTheme TargetType="MenuItem" x:DataType="shell:RecentEntry">
-              <Setter Property="Header" Value="{Binding Label.Label}" />
-              <Setter Property="ToolTip.Tip" Value="{Binding Label.FullLabel}" />
-              <Setter Property="AutomationProperties.HelpText" Value="{Binding Label.FullLabel}" />
-              <Setter Property="Command"
-                      Value="{Binding $parent[shell:EditorShell].DataContext.OpenRecentCommand}" />
-              <Setter Property="CommandParameter" Value="{Binding}" />
+            <ControlTheme TargetType="MenuItem"
+                          BasedOn="{StaticResource {x:Type MenuItem}}"
+                          x:DataType="shell:ShellMenuOption">
+              <Setter Property="Header" Value="{Binding Header}" />
+              <Setter Property="ToolTip.Tip" Value="{Binding Tip}" />
+              <Setter Property="AutomationProperties.HelpText" Value="{Binding Tip}" />
+              <Setter Property="Command" Value="{Binding Command}" />
+              <Setter Property="CommandParameter" Value="{Binding Parameter}" />
             </ControlTheme>
           </MenuItem.ItemContainerTheme>
         </MenuItem>
@@ -57,23 +64,25 @@
 
       <MenuItem Header="_View">
         <MenuItem Header="_Appearance" IsVisible="{Binding CanChangeAppearance}">
-          <MenuItem Header="_Themes" ItemsSource="{Binding ThemeModes}">
+          <MenuItem Header="_Themes" ItemsSource="{Binding ThemeMenuOptions}">
             <MenuItem.ItemContainerTheme>
-              <ControlTheme TargetType="MenuItem">
-                <Setter Property="Header" Value="{Binding}" />
-                <Setter Property="Command"
-                        Value="{Binding $parent[shell:EditorShell].DataContext.SetThemeCommand}" />
-                <Setter Property="CommandParameter" Value="{Binding}" />
+              <ControlTheme TargetType="MenuItem"
+                            BasedOn="{StaticResource {x:Type MenuItem}}"
+                            x:DataType="shell:ShellMenuOption">
+                <Setter Property="Header" Value="{Binding Header}" />
+                <Setter Property="Command" Value="{Binding Command}" />
+                <Setter Property="CommandParameter" Value="{Binding Parameter}" />
               </ControlTheme>
             </MenuItem.ItemContainerTheme>
           </MenuItem>
-          <MenuItem Header="A_ccent" ItemsSource="{Binding Accents}">
+          <MenuItem Header="A_ccent" ItemsSource="{Binding AccentMenuOptions}">
             <MenuItem.ItemContainerTheme>
-              <ControlTheme TargetType="MenuItem">
-                <Setter Property="Header" Value="{Binding}" />
-                <Setter Property="Command"
-                        Value="{Binding $parent[shell:EditorShell].DataContext.SetAccentCommand}" />
-                <Setter Property="CommandParameter" Value="{Binding}" />
+              <ControlTheme TargetType="MenuItem"
+                            BasedOn="{StaticResource {x:Type MenuItem}}"
+                            x:DataType="shell:ShellMenuOption">
+                <Setter Property="Header" Value="{Binding Header}" />
+                <Setter Property="Command" Value="{Binding Command}" />
+                <Setter Property="CommandParameter" Value="{Binding Parameter}" />
               </ControlTheme>
             </MenuItem.ItemContainerTheme>
           </MenuItem>
