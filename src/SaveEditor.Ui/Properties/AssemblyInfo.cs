@@ -8,3 +8,5 @@ using System.Runtime.CompilerServices;
 // major-version discipline, and a reparse-tag bit test is an implementation detail no consumer
 // should ever bind to — widening the contract to reach a test is the wrong trade.
 [assembly: InternalsVisibleTo("SaveEditor.Ui.Tests")]
+[assembly: InternalsVisibleTo("SaveEditor.Ui.HeadlessTests")]
+

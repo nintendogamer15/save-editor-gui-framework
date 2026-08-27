@@ -1,5 +1,7 @@
+using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Platform.Storage;
@@ -20,7 +22,9 @@ namespace SaveEditor.Ui.Dialogs;
 /// window, which already integrates the running platform's native picker.
 /// Confirmations, messages, and the extra document and About dialogs this type
 /// exposes beyond the interface are all framework-themed content hosted in a plain
-/// <see cref="Window"/>.
+/// <see cref="Window"/>. Hosts size to their content up to 90% of the owner's
+/// working area (with a fallback cap when screens cannot be enumerated) so a long
+/// About or document body cannot grow past the display.
 /// </para>
 /// <para>
 /// <see cref="PickSaveFileAsync"/> always reports
@@ -190,7 +194,13 @@ public sealed class ThemedUserInteraction : IUserInteraction
         string? chosen = null;
 
         var options = new StackPanel { Spacing = 8 };
-        var window = CreateHostWindow(prompt.Title, options, width: 460);
+        var scroller = new ScrollViewer
+        {
+            Content = options,
+            MaxHeight = DialogHostBounds.DefaultBodyMaxHeight,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        };
+        var window = CreateHostWindow(prompt.Title, scroller, width: 460);
 
         foreach (var option in prompt.Options)
         {
@@ -282,16 +292,53 @@ public sealed class ThemedUserInteraction : IUserInteraction
         await window.ShowDialog(_owner).ConfigureAwait(true);
     }
 
-    private static Window CreateHostWindow(string title, Control content, double width) =>
-        new()
+    private Window CreateHostWindow(string title, Control content, double width)
+    {
+        var area = TryGetWorkingArea(_owner);
+        var limits = DialogHostBounds.Resolve(width, area?.Width, area?.Height);
+
+        return new Window
         {
             Title = title,
-            Width = width,
+            Width = limits.Width,
+            MaxWidth = limits.MaxWidth,
+            MaxHeight = limits.MaxHeight,
             SizeToContent = SizeToContent.Height,
             CanResize = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
             Content = content,
         };
+    }
+
+    private static Size? TryGetWorkingArea(Window owner)
+    {
+        try
+        {
+            var screens = owner.Screens;
+            var screen = screens?.ScreenFromWindow(owner) ?? screens?.Primary;
+            if (screen is null)
+            {
+                return null;
+            }
+
+            var scaling = screen.Scaling > 0 ? screen.Scaling : 1.0;
+            var area = screen.WorkingArea;
+            var width = area.Width / scaling;
+            var height = area.Height / scaling;
+            if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 0 || height <= 0)
+            {
+                return null;
+            }
+
+            return new Size(width, height);
+        }
+        catch (Exception)
+        {
+            // A missing or throwing screen source must not prevent the dialog
+            // from opening; Resolve falls back to its absolute plausibility cap.
+            return null;
+        }
+    }
 
     private static List<FilePickerFileType> BuildFileTypes(IReadOnlyList<SaveFormatDescriptor> formats)
     {

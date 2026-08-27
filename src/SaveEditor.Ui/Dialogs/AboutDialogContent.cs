@@ -29,6 +29,10 @@ namespace SaveEditor.Ui.Dialogs;
 /// <see cref="UntrustedText"/> is. An editor that wants to show
 /// codec-supplied text should use <see cref="DocumentViewerContent"/> instead.
 /// </para>
+/// <para>
+/// Identity, credits, and licenses scroll inside a bounded height. Close stays
+/// outside the scroller so a long licence list cannot hide the dismiss button.
+/// </para>
 /// </remarks>
 public sealed class AboutDialogContent : TemplatedControl
 {
@@ -106,15 +110,21 @@ public sealed class AboutDialogContent : TemplatedControl
         body.Children.Add(creditsPresenter);
         body.Children.Add(licensesHeading);
         body.Children.Add(licensesPresenter);
-        body.Children.Add(closeButton);
 
         var scroller = new ScrollViewer
         {
+            Name = "PART_BodyScroller",
             Content = body,
-            MaxHeight = 480,
+            MaxHeight = DialogHostBounds.DefaultBodyMaxHeight,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
         };
 
-        var surface = new Border { Padding = new Thickness(20), Child = scroller };
+        var dock = new DockPanel();
+        DockPanel.SetDock(closeButton, Dock.Bottom);
+        dock.Children.Add(closeButton);
+        dock.Children.Add(scroller);
+
+        var surface = new Border { Padding = new Thickness(20), Child = dock };
         surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("WindowBackground"));
 
         return surface;
