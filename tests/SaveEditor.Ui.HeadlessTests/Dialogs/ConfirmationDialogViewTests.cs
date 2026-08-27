@@ -169,4 +169,33 @@ public class ConfirmationDialogViewTests
 
         Assert.DoesNotContain(view.GetVisualDescendants().OfType<Border>(), b => b.Name == "PART_CodecWarnings");
     }
+
+    [AvaloniaFact]
+    public async Task Long_Body_Scroll_And_Leave_The_Buttons_Outside_The_Scroller()
+    {
+        var request = new ConfirmationRequest
+        {
+            Title = "Overwrite save file",
+            Message = string.Join('\n', Enumerable.Repeat("This replaces the file's current contents.", 80)),
+            AcceptLabel = "Overwrite save file",
+            IsDestructive = true,
+            Details = [new UntrustedText("codec note")],
+        };
+
+        var window = new Window { Width = 600, Height = 800, Content = new ConfirmationDialogView(request) };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+        Dispatcher.UIThread.RunJobs();
+
+        var view = (ConfirmationDialogView)window.Content!;
+        var scroller = view.GetVisualDescendants().OfType<ScrollViewer>().Single(s => s.Name == "PART_BodyScroller");
+
+        Assert.Equal(DialogHostBounds.DefaultBodyMaxHeight, scroller.MaxHeight);
+        Assert.True(
+            scroller.Extent.Height > scroller.Viewport.Height,
+            $"Expected the confirmation body to overflow the scroller (extent {scroller.Extent.Height}, viewport {scroller.Viewport.Height}).");
+        Assert.DoesNotContain(view.AcceptButton, scroller.GetVisualDescendants().OfType<Button>());
+        Assert.DoesNotContain(view.CancelButton, scroller.GetVisualDescendants().OfType<Button>());
+    }
 }

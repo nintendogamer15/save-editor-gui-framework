@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using SaveEditor.Ui.Display;
@@ -25,6 +26,11 @@ namespace SaveEditor.Ui.Dialogs;
 /// plain strings and render as ordinary chrome text. <see cref="ConfirmationRequest.Details"/>
 /// is codec-supplied and renders through <see cref="CodecWarningsPanel"/> in a
 /// visually distinct region instead.
+/// </para>
+/// <para>
+/// Message, path, and warnings scroll inside a bounded height so a long codec
+/// report cannot push Accept and Cancel off the screen. The buttons stay outside
+/// the scroller.
 /// </para>
 /// </remarks>
 public sealed class ConfirmationDialogView : ContentControl
@@ -75,20 +81,27 @@ public sealed class ConfirmationDialogView : ContentControl
         };
         message.Bind(TextBlock.ForegroundProperty, message.GetResourceObservable("Foreground"));
 
-        var body = new StackPanel { Spacing = 12 };
-        body.Children.Add(title);
-        body.Children.Add(message);
+        var scrollBody = new StackPanel { Spacing = 12 };
+        scrollBody.Children.Add(message);
 
         if (targetPath is { IsEmpty: false })
         {
-            body.Children.Add(BuildTargetPathRow(targetPath));
+            scrollBody.Children.Add(BuildTargetPathRow(targetPath));
         }
 
         var warnings = CodecWarningsPanel.TryBuild(request.Details);
         if (warnings is not null)
         {
-            body.Children.Add(warnings);
+            scrollBody.Children.Add(warnings);
         }
+
+        var scroller = new ScrollViewer
+        {
+            Name = "PART_BodyScroller",
+            Content = scrollBody,
+            MaxHeight = DialogHostBounds.DefaultBodyMaxHeight,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        };
 
         var buttons = new StackPanel
         {
@@ -98,9 +111,18 @@ public sealed class ConfirmationDialogView : ContentControl
         };
         buttons.Children.Add(CancelButton);
         buttons.Children.Add(AcceptButton);
-        body.Children.Add(buttons);
 
-        var surface = new Border { Padding = new Thickness(20), Child = body };
+        title.Margin = new Thickness(0, 0, 0, 12);
+        buttons.Margin = new Thickness(0, 12, 0, 0);
+
+        var dock = new DockPanel();
+        DockPanel.SetDock(title, Dock.Top);
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        dock.Children.Add(title);
+        dock.Children.Add(buttons);
+        dock.Children.Add(scroller);
+
+        var surface = new Border { Padding = new Thickness(20), Child = dock };
         surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("WindowBackground"));
 
         Content = surface;

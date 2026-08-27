@@ -99,8 +99,10 @@ public sealed class DocumentViewerContent : TemplatedControl
 
         var scroller = new ScrollViewer
         {
+            Name = "PART_BodyScroller",
             Content = bodyBlock,
-            MaxHeight = 480,
+            MaxHeight = DialogHostBounds.DefaultBodyMaxHeight,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
         };
 
         var background = new Border
@@ -124,12 +126,16 @@ public sealed class DocumentViewerContent : TemplatedControl
         AutomationProperties.SetName(closeButton, "Close");
         closeButton.Click += (_, _) => control.CloseRequested?.Invoke(control, EventArgs.Empty);
 
-        var body = new StackPanel { Spacing = 8 };
-        body.Children.Add(titleBlock);
-        body.Children.Add(background);
-        body.Children.Add(closeButton);
+        titleBlock.Margin = new Thickness(0, 0, 0, 8);
 
-        var surface = new Border { Padding = new Thickness(20), Child = body };
+        var dock = new DockPanel();
+        DockPanel.SetDock(titleBlock, Dock.Top);
+        DockPanel.SetDock(closeButton, Dock.Bottom);
+        dock.Children.Add(titleBlock);
+        dock.Children.Add(closeButton);
+        dock.Children.Add(background);
+
+        var surface = new Border { Padding = new Thickness(20), Child = dock };
         surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("WindowBackground"));
 
         control._bodyBlock = bodyBlock;

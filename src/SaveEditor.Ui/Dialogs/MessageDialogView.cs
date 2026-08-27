@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using SaveEditor.Ui.Interaction;
@@ -12,10 +13,18 @@ namespace SaveEditor.Ui.Dialogs;
 /// that hosts it so it can be exercised headlessly.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <see cref="MessageRequest.Title"/> and <see cref="MessageRequest.Message"/> are
 /// framework- or editor-owned plain strings. <see cref="MessageRequest.Details"/> is
 /// codec-supplied and renders through <see cref="CodecWarningsPanel"/> in a visually
 /// distinct region instead.
+/// </para>
+/// <para>
+/// The body scrolls inside a bounded height. Help → About and Help → Safety both
+/// send adopter-authored text through this view, and that text is routinely longer
+/// than a display. Title and Close are docked outside the scroller so the close
+/// affordance stays in the window when the host is capped to a short working area.
+/// </para>
 /// </remarks>
 public sealed class MessageDialogView : ContentControl
 {
@@ -52,19 +61,34 @@ public sealed class MessageDialogView : ContentControl
         };
         message.Bind(TextBlock.ForegroundProperty, message.GetResourceObservable("Foreground"));
 
-        var body = new StackPanel { Spacing = 12 };
-        body.Children.Add(title);
-        body.Children.Add(message);
+        var scrollBody = new StackPanel { Spacing = 12 };
+        scrollBody.Children.Add(message);
 
         var warnings = CodecWarningsPanel.TryBuild(request.Details ?? []);
         if (warnings is not null)
         {
-            body.Children.Add(warnings);
+            scrollBody.Children.Add(warnings);
         }
 
-        body.Children.Add(CloseButton);
+        var scroller = new ScrollViewer
+        {
+            Name = "PART_BodyScroller",
+            Content = scrollBody,
+            MaxHeight = DialogHostBounds.DefaultBodyMaxHeight,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+        };
 
-        var surface = new Border { Padding = new Thickness(20), Child = body };
+        title.Margin = new Thickness(0, 0, 0, 12);
+        CloseButton.Margin = new Thickness(0, 12, 0, 0);
+
+        var dock = new DockPanel();
+        DockPanel.SetDock(title, Dock.Top);
+        DockPanel.SetDock(CloseButton, Dock.Bottom);
+        dock.Children.Add(title);
+        dock.Children.Add(CloseButton);
+        dock.Children.Add(scroller);
+
+        var surface = new Border { Padding = new Thickness(20), Child = dock };
         surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("WindowBackground"));
 
         Content = surface;
