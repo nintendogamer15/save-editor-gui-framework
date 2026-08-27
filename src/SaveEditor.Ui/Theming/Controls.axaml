@@ -108,7 +108,12 @@
                 BorderBrush="{TemplateBinding BorderBrush}"
                 BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="{TemplateBinding CornerRadius}">
-          <Panel>
+          <!--
+            Stretch the presenter so the blank run to the right of the glyphs is
+            still the presenter. Transparent fills make that run hittable: without
+            a background, the click lands on PART_Surface and never becomes a caret.
+          -->
+          <Panel Background="Transparent">
             <TextBlock Name="PART_Placeholder"
                        Text="{TemplateBinding PlaceholderText}"
                        Foreground="{DynamicResource SubtleForeground}"
@@ -123,6 +128,8 @@
                            SelectionStart="{TemplateBinding SelectionStart}"
                            SelectionEnd="{TemplateBinding SelectionEnd}"
                            Margin="{TemplateBinding Padding}"
+                           Background="Transparent"
+                           HorizontalAlignment="Stretch"
                            VerticalAlignment="Center" />
           </Panel>
         </Border>
