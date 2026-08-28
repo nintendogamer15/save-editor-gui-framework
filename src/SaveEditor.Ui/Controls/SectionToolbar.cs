@@ -98,15 +98,22 @@ public sealed class SectionToolbar : TemplatedControl
         content.Children.Add(revertAll);
         content.Children.Add(bulkActions);
 
+        // The same dangling-card treatment FieldCard.PART_Card uses, and for the same
+        // reason: the toolbar sits directly above the cards it drives, so a different
+        // surface and square corners read as a separate strip bolted onto the section
+        // rather than as the top of one card-based surface. CardBackground and RadiusMd
+        // are the semantic tokens the cards resolve, so the two cannot drift apart when
+        // a theme changes what those tokens mean.
         var surface = new Border
         {
             Name = "PART_ToolbarSurface",
             Padding = new Thickness(12),
-            BorderThickness = new Thickness(0, 0, 0, 1),
+            BorderThickness = new Thickness(1),
             Child = content,
         };
-        surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("PanelBackground"));
+        surface.Bind(Border.BackgroundProperty, surface.GetResourceObservable("CardBackground"));
         surface.Bind(Border.BorderBrushProperty, surface.GetResourceObservable("Border"));
+        surface.Bind(Border.CornerRadiusProperty, surface.GetResourceObservable("RadiusMd"));
 
         return surface;
     }

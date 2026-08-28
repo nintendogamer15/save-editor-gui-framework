@@ -13,6 +13,63 @@ using SaveEditor.Ui.Interaction;
 namespace SaveEditor.Ui.Dialogs;
 
 /// <summary>
+/// The platform storage calls <see cref="ThemedUserInteraction"/> makes.
+/// </summary>
+/// <remarks>
+/// Avalonia's <see cref="IStorageProvider"/> is deliberately not implementable outside
+/// Avalonia, <see cref="TopLevel.StorageProvider"/> is read-only, and the headless
+/// platform supplies one that answers nothing. Without a seam of the framework's own
+/// there is no way to assert that a picker is reached at all, or with what — which is
+/// exactly the defect this exists for. The shipped implementation forwards to
+/// <see cref="TopLevel.StorageProvider"/> and decides nothing; every option is built by
+/// <see cref="ThemedUserInteraction"/>, so a test that substitutes this still sees the
+/// real request.
+/// </remarks>
+internal interface IStoragePickers
+{
+    /// <summary>Runs the open picker and returns the chosen local path.</summary>
+    Task<string?> PickOpenFileAsync(FilePickerOpenOptions options);
+
+    /// <summary>Runs the save picker and returns the chosen local path.</summary>
+    Task<string?> PickSaveFileAsync(FilePickerSaveOptions options);
+
+    /// <summary>Runs the folder picker and returns the chosen local path.</summary>
+    Task<string?> PickFolderAsync(FolderPickerOpenOptions options);
+
+    /// <summary>Resolves a local directory into a folder a picker can start in.</summary>
+    Task<IStorageFolder?> ResolveFolderAsync(Uri path);
+}
+
+/// <summary>The shipped <see cref="IStoragePickers"/>: the host window's own provider.</summary>
+internal sealed class TopLevelStoragePickers : IStoragePickers
+{
+    private readonly TopLevel _owner;
+
+    public TopLevelStoragePickers(TopLevel owner) => _owner = owner;
+
+    public async Task<string?> PickOpenFileAsync(FilePickerOpenOptions options)
+    {
+        var files = await _owner.StorageProvider.OpenFilePickerAsync(options).ConfigureAwait(true);
+        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+    }
+
+    public async Task<string?> PickSaveFileAsync(FilePickerSaveOptions options)
+    {
+        var file = await _owner.StorageProvider.SaveFilePickerAsync(options).ConfigureAwait(true);
+        return file?.TryGetLocalPath();
+    }
+
+    public async Task<string?> PickFolderAsync(FolderPickerOpenOptions options)
+    {
+        var folders = await _owner.StorageProvider.OpenFolderPickerAsync(options).ConfigureAwait(true);
+        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+    }
+
+    public Task<IStorageFolder?> ResolveFolderAsync(Uri path) =>
+        _owner.StorageProvider.TryGetFolderFromPathAsync(path);
+}
+
+/// <summary>
 /// The framework's themed default <see cref="IUserInteraction"/>, hosted on a
 /// <see cref="Window"/>.
 /// </summary>
@@ -25,6 +82,18 @@ namespace SaveEditor.Ui.Dialogs;
 /// <see cref="Window"/>. Hosts size to their content up to 90% of the owner's
 /// working area (with a fallback cap when screens cannot be enumerated) so a long
 /// About or document body cannot grow past the display.
+/// </para>
+/// <para>
+/// <strong>Every entry point marshals itself onto the UI thread.</strong> The safe
+/// file workflow runs codecs on the thread pool, and resuming from one leaves the
+/// rest of a save running there, so a picker or dialog opened from the middle of a
+/// Save As is reached from a pool thread rather than from the thread that owns the
+/// window. Constructing a <see cref="Window"/> or reaching
+/// <see cref="TopLevel.StorageProvider"/> from there does not fail somewhere visible:
+/// the workflow catches everything and reports a failed save, so the user sees no
+/// chooser at all and no explanation of why. Marshalling here rather than in the
+/// workflow keeps the workflow free of a UI thread it should not know about, and puts
+/// the affinity in the type that actually owns the UI objects.
 /// </para>
 /// <para>
 /// <see cref="PickSaveFileAsync"/> always reports
@@ -41,6 +110,7 @@ public sealed class ThemedUserInteraction : IUserInteraction
 {
     private readonly Window _owner;
     private readonly PathDisplayFormatter _pathFormatter;
+    private readonly IStoragePickers _pickers;
 
     /// <summary>Creates the interaction over a host window.</summary>
     /// <param name="owner">
@@ -52,67 +122,56 @@ public sealed class ThemedUserInteraction : IUserInteraction
     /// Defaults to <see cref="PathDisplayFormatter.Default"/>.
     /// </param>
     public ThemedUserInteraction(Window owner, PathDisplayFormatter? pathFormatter = null)
+        : this(owner, pickers: null, pathFormatter)
+    {
+    }
+
+    /// <summary>Creates the interaction over substituted pickers.</summary>
+    /// <remarks>
+    /// Internal because an editor that wants a different picker replaces
+    /// <see cref="IUserInteraction"/>, which is the seam that exists for that. See
+    /// <see cref="IStoragePickers"/> for why one is needed here at all.
+    /// </remarks>
+    internal ThemedUserInteraction(
+        Window owner, IStoragePickers? pickers, PathDisplayFormatter? pathFormatter = null)
     {
         ArgumentNullException.ThrowIfNull(owner);
 
         _owner = owner;
         _pathFormatter = pathFormatter ?? PathDisplayFormatter.Default;
+        _pickers = pickers ?? new TopLevelStoragePickers(owner);
     }
 
     /// <inheritdoc />
-    public async ValueTask<string?> PickOpenFileAsync(
+    public ValueTask<string?> PickOpenFileAsync(
         FilePickerRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-
-        var files = await _owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = request.Title,
-            AllowMultiple = false,
-            SuggestedFileName = request.SuggestedFileName,
-            FileTypeFilter = BuildFileTypes(request.Formats),
-        }).ConfigureAwait(true);
-
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        return new ValueTask<string?>(OnUiThreadAsync(() => PickOpenFileCoreAsync(request)));
     }
 
     /// <inheritdoc />
-    public async ValueTask<SaveFilePickResult?> PickSaveFileAsync(
+    public ValueTask<SaveFilePickResult?> PickSaveFileAsync(
         FilePickerRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-
-        var file = await _owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-        {
-            Title = request.Title,
-            SuggestedFileName = request.SuggestedFileName,
-            FileTypeChoices = BuildFileTypes(request.Formats),
-        }).ConfigureAwait(true);
-
-        var path = file?.TryGetLocalPath();
-        return path is null ? null : new SaveFilePickResult(path, PickerConfirmedOverwrite: false);
+        return new ValueTask<SaveFilePickResult?>(OnUiThreadAsync(() => PickSaveFileCoreAsync(request)));
     }
 
     /// <inheritdoc />
-    public async ValueTask<string?> PickFolderAsync(
+    public ValueTask<string?> PickFolderAsync(
         string title, string? suggestedDirectory = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(title);
-
-        var folders = await _owner.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-        {
-            Title = title,
-            AllowMultiple = false,
-        }).ConfigureAwait(true);
-
-        return folders.Count > 0 ? folders[0].TryGetLocalPath() : null;
+        return new ValueTask<string?>(OnUiThreadAsync(() => PickFolderCoreAsync(title, suggestedDirectory)));
     }
 
     /// <inheritdoc />
     public ValueTask<bool> ConfirmAsync(ConfirmationRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return new ValueTask<bool>(ShowConfirmationAsync(request, request.Target, cancellationToken));
+        return new ValueTask<bool>(
+            OnUiThreadAsync(() => ShowConfirmationAsync(request, request.Target, cancellationToken)));
     }
 
     /// <summary>
@@ -148,24 +207,29 @@ public sealed class ThemedUserInteraction : IUserInteraction
             Target = label,
         };
 
-        return new ValueTask<bool>(ShowConfirmationAsync(request, request.Target, cancellationToken));
+        return new ValueTask<bool>(
+            OnUiThreadAsync(() => ShowConfirmationAsync(request, request.Target, cancellationToken)));
     }
 
     /// <inheritdoc />
     public ValueTask ShowMessageAsync(MessageRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return new ValueTask(ShowMessageCoreAsync(request, cancellationToken));
+        return new ValueTask(OnUiThreadAsync(() => ShowMessageCoreAsync(request, cancellationToken)));
     }
 
     /// <summary>Shows a block of read-only text in a themed, scrollable viewer.</summary>
     /// <param name="request">Title and body. The body is neutralized before display.</param>
     /// <param name="cancellationToken">Cancels the dialog.</param>
-    public async ValueTask ShowDocumentAsync(
+    public ValueTask ShowDocumentAsync(
         DocumentRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        return new ValueTask(OnUiThreadAsync(() => ShowDocumentCoreAsync(request, cancellationToken)));
+    }
 
+    private async Task ShowDocumentCoreAsync(DocumentRequest request, CancellationToken cancellationToken)
+    {
         var view = new DocumentViewerContent
         {
             Title = request.Title,
@@ -186,11 +250,15 @@ public sealed class ThemedUserInteraction : IUserInteraction
     /// point of resolving ambiguous detection by asking is that the framework has no
     /// basis for recommending one.
     /// </remarks>
-    public async ValueTask<string?> ChooseAsync(
+    public ValueTask<string?> ChooseAsync(
         ChoicePrompt prompt, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(prompt);
+        return new ValueTask<string?>(OnUiThreadAsync(() => ChooseCoreAsync(prompt, cancellationToken)));
+    }
 
+    private async Task<string?> ChooseCoreAsync(ChoicePrompt prompt, CancellationToken cancellationToken)
+    {
         string? chosen = null;
 
         var options = new StackPanel { Spacing = 8 };
@@ -249,11 +317,15 @@ public sealed class ThemedUserInteraction : IUserInteraction
     /// <param name="credits">Contributor and acknowledgement content.</param>
     /// <param name="licenses">Third-party license content.</param>
     /// <param name="cancellationToken">Cancels the dialog.</param>
-    public async ValueTask ShowAboutAsync(
+    public ValueTask ShowAboutAsync(
         object? appIdentity,
         object? credits,
         object? licenses,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        new(OnUiThreadAsync(() => ShowAboutCoreAsync(appIdentity, credits, licenses, cancellationToken)));
+
+    private async Task ShowAboutCoreAsync(
+        object? appIdentity, object? credits, object? licenses, CancellationToken cancellationToken)
     {
         var view = new AboutDialogContent { AppIdentity = appIdentity, Credits = credits, Licenses = licenses };
         var window = CreateHostWindow("About", view, width: 480);
@@ -262,6 +334,75 @@ public sealed class ThemedUserInteraction : IUserInteraction
         using var registration = cancellationToken.Register(() => Dispatcher.UIThread.Post(window.Close));
         await window.ShowDialog(_owner).ConfigureAwait(true);
     }
+
+    private async Task<string?> PickOpenFileCoreAsync(FilePickerRequest request) =>
+        await _pickers.PickOpenFileAsync(new FilePickerOpenOptions
+        {
+            Title = request.Title,
+            AllowMultiple = false,
+            SuggestedFileName = request.SuggestedFileName,
+            SuggestedStartLocation = await StartLocationAsync(request.SuggestedDirectory).ConfigureAwait(true),
+            FileTypeFilter = BuildFileTypes(request.Formats),
+        }).ConfigureAwait(true);
+
+    private async Task<SaveFilePickResult?> PickSaveFileCoreAsync(FilePickerRequest request)
+    {
+        var path = await _pickers.PickSaveFileAsync(new FilePickerSaveOptions
+        {
+            Title = request.Title,
+            SuggestedFileName = request.SuggestedFileName,
+            SuggestedStartLocation = await StartLocationAsync(request.SuggestedDirectory).ConfigureAwait(true),
+            FileTypeChoices = BuildFileTypes(request.Formats),
+        }).ConfigureAwait(true);
+
+        return path is null ? null : new SaveFilePickResult(path, PickerConfirmedOverwrite: false);
+    }
+
+    private async Task<string?> PickFolderCoreAsync(string title, string? suggestedDirectory) =>
+        await _pickers.PickFolderAsync(new FolderPickerOpenOptions
+        {
+            Title = title,
+            AllowMultiple = false,
+            SuggestedStartLocation = await StartLocationAsync(suggestedDirectory).ConfigureAwait(true),
+        }).ConfigureAwait(true);
+
+    /// <summary>Turns a suggested directory into the folder a picker should open in.</summary>
+    /// <remarks>
+    /// <see cref="FilePickerRequest.SuggestedDirectory"/> was previously accepted and
+    /// dropped, which left Save As opening wherever the platform last happened to be
+    /// rather than beside the save being copied. A directory that cannot be resolved
+    /// yields <see langword="null"/> rather than throwing: a picker that opens in the
+    /// wrong place is a nuisance, and one that does not open at all is the defect this
+    /// method is part of fixing.
+    /// </remarks>
+    private async Task<IStorageFolder?> StartLocationAsync(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _pickers.ResolveFolderAsync(new Uri(Path.GetFullPath(directory))).ConfigureAwait(true);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Runs UI work on the thread that owns the window, from wherever it is called.</summary>
+    /// <remarks>
+    /// Already on the UI thread, the work runs inline — posting it would defer every
+    /// dialog behind whatever else is queued, and a nested dialog opened from a click
+    /// handler would then race the handler that opened it.
+    /// </remarks>
+    private static Task<T> OnUiThreadAsync<T>(Func<Task<T>> work) =>
+        Dispatcher.UIThread.CheckAccess() ? work() : Dispatcher.UIThread.InvokeAsync(work);
+
+    private static Task OnUiThreadAsync(Func<Task> work) =>
+        Dispatcher.UIThread.CheckAccess() ? work() : Dispatcher.UIThread.InvokeAsync(work);
 
     private async Task<bool> ShowConfirmationAsync(
         ConfirmationRequest request, PathLabel? targetPath, CancellationToken cancellationToken)
