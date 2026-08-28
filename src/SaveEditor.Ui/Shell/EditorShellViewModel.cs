@@ -596,6 +596,19 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(LastBackupLabel));
         OnPropertyChanged(nameof(HasUnsavedWork));
         OnPropertyChanged(nameof(IsWelcomeVisible));
+
+        // Every command, not only the two whose availability is obviously stateful.
+        // An asynchronous command reports itself unavailable while its own task is in
+        // flight, so a state change that arrives during one — the session's own
+        // StateChanged fires mid-save — has to be able to put the command back. The
+        // previous list refreshed Undo and Redo alone, which left the others relying
+        // on nothing but the command's own completion notification.
+        OpenSaveCommand.NotifyCanExecuteChanged();
+        OpenRecentCommand.NotifyCanExecuteChanged();
+        SaveAsCommand.NotifyCanExecuteChanged();
+        OverwriteWithBackupCommand.NotifyCanExecuteChanged();
+        ReloadCommand.NotifyCanExecuteChanged();
+        CloseCommand.NotifyCanExecuteChanged();
         UndoCommand.NotifyCanExecuteChanged();
         RedoCommand.NotifyCanExecuteChanged();
     }
