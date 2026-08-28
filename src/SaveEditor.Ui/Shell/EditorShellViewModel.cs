@@ -304,8 +304,77 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
             return;
         }
 
+        var before = _session.CurrentPath;
+
         await _session.OpenAsync(path, cancellationToken).ConfigureAwait(true);
         NotifyDocumentState();
+
+        if (OpenedPath(before, path) is { } opened)
+        {
+            await RememberRecentAsync(opened, cancellationToken).ConfigureAwait(true);
+        }
+    }
+
+    /// <summary>
+    /// The path a just-finished open actually landed on, or <see langword="null"/>
+    /// when it did not land on one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The session reports the path of whatever it is holding, so "something is open"
+    /// is not on its own evidence that <em>this</em> open succeeded: a declined,
+    /// cancelled, or failed open leaves the previous document in place, and recording
+    /// that path would reorder Recent behind the user's back — or, on a first run,
+    /// invent an entry for a file that was never opened.
+    /// </para>
+    /// <para>
+    /// A successful open either moves the session to a different file or leaves it on
+    /// the file that was just asked for. The path returned is the session's own rather
+    /// than the requested one: the two differ whenever the workflow canonicalizes, and
+    /// a Recent entry has to reopen the file that was actually read.
+    /// </para>
+    /// </remarks>
+    private string? OpenedPath(string? before, string requested)
+    {
+        if (!_session.HasDocument || _session.CurrentPath is not { Length: > 0 } current)
+        {
+            return null;
+        }
+
+        return RecentPaths.Comparer.Equals(current, before)
+               && !RecentPaths.Comparer.Equals(current, requested)
+            ? null
+            : current;
+    }
+
+    /// <summary>Moves a path to the front of Recent and persists the list.</summary>
+    /// <remarks>
+    /// Screening is <see cref="RecentPaths"/>'s, the same rules the settings file is
+    /// read back through, so a path that could never be restored is never stored
+    /// either. The in-memory list is the base rather than the file's, because the
+    /// pruning path in <see cref="OpenRecentAsync"/> writes it back the same way and
+    /// the two must not disagree about what the user last saw.
+    /// </remarks>
+    private async ValueTask RememberRecentAsync(string path, CancellationToken cancellationToken)
+    {
+        if (!RecentPaths.IsStorable(path))
+        {
+            return;
+        }
+
+        var promoted = RecentPaths.Promote(
+            [.. Recents.Select(r => r.Path)], path, EditorSettings.MaxRecentFiles);
+
+        Recents.Clear();
+        foreach (var recent in promoted)
+        {
+            Recents.Add(new RecentEntry(recent, _formatter.Format(recent)));
+        }
+
+        var settings = await _settings.LoadAsync(cancellationToken).ConfigureAwait(true);
+        await _settings
+            .SaveAsync(settings with { RecentFiles = promoted }, cancellationToken)
+            .ConfigureAwait(true);
     }
 
     [RelayCommand]
