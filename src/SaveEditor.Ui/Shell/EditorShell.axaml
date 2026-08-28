@@ -20,7 +20,8 @@
   <DockPanel>
 
     <!-- Menus are always in-window, on every platform. -->
-    <Menu DockPanel.Dock="Top"
+    <Menu x:Name="MenuBar"
+          DockPanel.Dock="Top"
           Background="{DynamicResource PanelBackground}"
           Padding="6,2">
 
@@ -97,12 +98,12 @@
       </MenuItem>
 
       <!--
-        A ContentControl is a menu-bar item even when empty. MenuExtensions is
-        optional, so the slot has to collapse rather than draw a blank entry
-        after Help.
+        MenuExtensions has no markup slot on purpose. Menu wraps any item that is
+        not already a MenuItem in a generated MenuItem container, so a placeholder
+        control here is a real menu entry even when it holds nothing, and IsVisible
+        on the placeholder never reaches the container that gets drawn. The
+        code-behind adds the editor's menus to Items directly instead.
       -->
-      <ContentControl Content="{Binding MenuExtensions, ElementName=Root}"
-                      IsVisible="{Binding MenuExtensions, ElementName=Root, Converter={x:Static ObjectConverters.IsNotNull}}" />
     </Menu>
 
     <!-- Status bar is the canonical outcome channel. -->
