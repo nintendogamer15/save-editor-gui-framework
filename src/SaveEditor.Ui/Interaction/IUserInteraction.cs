@@ -117,10 +117,22 @@ public sealed record MessageRequest(
 /// Everything the framework needs from the user that requires a dialog.
 /// </summary>
 /// <remarks>
+/// <para>
 /// A themed default implementation ships with the framework. Editors may replace
 /// it — to integrate a platform picker, or to drive it from tests — but a
 /// replacement inherits the fail-closed overwrite rule described on
 /// <see cref="SaveFilePickResult"/>.
+/// </para>
+/// <para>
+/// <strong>An implementation is called from whatever thread the operation is on,
+/// and must marshal onto the UI thread itself.</strong> The safe file workflow runs
+/// codecs on the thread pool and resumes there, so a picker or dialog raised from
+/// the middle of a save is reached from a pool thread. An implementation that
+/// touches UI objects directly gets an invalid-thread failure that the workflow
+/// catches and reports as a failed save — the user sees no dialog at all, and no
+/// reason why. The framework's own <c>ThemedUserInteraction</c> marshals; a
+/// replacement has to as well.
+/// </para>
 /// </remarks>
 public interface IUserInteraction
 {
