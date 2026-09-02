@@ -1,4 +1,6 @@
+using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Avalonia.Headless.XUnit;
 using SaveEditor.Ui.Shell;
@@ -202,6 +204,40 @@ public class EditorShellTests
         // pane shows something the sidebar no longer offers.
         Assert.Single(vm.Sections);
         Assert.Equal("stats", vm.SelectedSection?.Key);
+    }
+
+    [AvaloniaFact]
+    public async Task RefreshSections_Keeps_Bound_ListBox_Selection_When_Section_Still_Visible()
+    {
+        var (vm, _, _, _) = Build();
+        vm.RegisterSections(
+        [
+            new SectionDescriptor { Key = "stats", Title = "Stats" },
+            new SectionDescriptor { Key = "inventory", Title = "Inventory" },
+        ]);
+
+        var shell = new EditorShell { DataContext = vm };
+        var window = new Window { Width = 1000, Height = 700, Content = shell };
+        window.Show();
+
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+
+        vm.SelectedSection = vm.Sections[1];
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+
+        vm.RefreshSections();
+        Dispatcher.UIThread.RunJobs();
+        await Task.Yield();
+
+        Assert.Equal("inventory", vm.SelectedSection?.Key);
+
+        var listBox = shell.GetVisualDescendants()
+            .OfType<ListBox>()
+            .Single(l => AutomationProperties.GetName(l) == "Sections");
+        var selected = Assert.IsType<SectionDescriptor>(listBox.SelectedItem);
+        Assert.Equal("inventory", selected.Key);
     }
 
     [AvaloniaFact]

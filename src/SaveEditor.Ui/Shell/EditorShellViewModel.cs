@@ -207,6 +207,7 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
     /// <summary>Re-evaluates section visibility predicates and the selection.</summary>
     public void RefreshSections()
     {
+        var previousKey = SelectedSection?.Key;
         var visible = _allSections.Where(s => s.EvaluateVisibility()).ToList();
 
         Sections.Clear();
@@ -216,11 +217,13 @@ public sealed partial class EditorShellViewModel : ObservableObject, IDisposable
         }
 
         // A selection that just became invisible would otherwise leave the content
-        // pane showing a section the sidebar no longer offers.
-        if (SelectedSection is null || !visible.Contains(SelectedSection))
-        {
-            SelectedSection = visible.FirstOrDefault();
-        }
+        // pane showing a section the sidebar no longer offers. Restore by key so a
+        // two-way-bound ListBox that reset SelectedItem on Clear does not drop a
+        // still-visible section.
+        var match = previousKey is null
+            ? null
+            : Sections.FirstOrDefault(s => string.Equals(s.Key, previousKey, StringComparison.Ordinal));
+        SelectedSection = match ?? visible.FirstOrDefault();
     }
 
     /// <summary>Loads persisted recents and the last selected section.</summary>
